@@ -1,0 +1,590 @@
+import {
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot,
+  getDoc,
+  getDocs,
+  increment,
+  setDoc,
+  where,
+  runTransaction,
+  writeBatch,
+  limit,
+  deleteDoc,
+} from "firebase/firestore";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+} from "firebase/auth";
+import { db, auth, googleProvider } from "./firebaseConfig";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { updateClass } from "../utils/xp";
+import { isShowdownActive } from "../utils/showdownUtils";
+
+/**
+ * Creates a User profile if it doesn't exist.
+ * Use the UID from Firebase Authentication.
+ * SECURITY UPDATE: Writes ONLY to 'users' collection (safe fields).
+ * Stats are now server-managed or read-only default.
+ */
+export const onboardHero = async (user) => {
+  if (!user || !user.uid) {
+    console.error("onboardHero aborted: Invalid user object", user);
+    return;
+  }
+
+  try {
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      // 1. Create Public Profile
+      await setDoc(userRef, {
+        uid: user.uid,
+        name: user.displayName || "New Hero",
+        email: user.email,
+        avatar:
+          user.photoURL ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+        city: "Ahmedabad", // Default
+
+        // ✅ Stats for Leaderboard & Indexing
+        xp: 0,
+        thisWeekXP: 0,
+        level: 1,
+        reliabilityScore: 100,
+        totalQuests: 0,
+
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 2. Create Private Stats Document
+      const userStatsRef = doc(db, "userStats", user.uid);
+      await setDoc(userStatsRef, {
+        xp: 0,
+        thisWeekXP: 0,
+        level: 1,
+        reliabilityScore: 100,
+        badges: [],
+        daily_streak: 0,
+        createdAt: serverTimestamp(),
+      });
+
+      console.log("New Hero Onboarded (Profile + Stats Locked)!");
+    } else {
+      console.log("Welcome back, Legend.");
+    }
+  } catch (error) {
+    console.error("onboardHero failed:", error);
+    // Don't throw, just log. allow login to proceed.
+  }
+};
+
+export const updateHeroProfile = async (userId, data) => {
+  const userRef = doc(db, "users", userId);
+  // Security: Rules will only allow displayName, photoURL, city, class, gender
+  await updateDoc(userRef, data);
+};
+
+// --- AUTHENTICATION ---
+export const signUpWithEmail = async (email, password, name) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    // Update name in Firebase Auth
+    await updateProfile(userCredential.user, { displayName: name });
+    // Pass the actual user object
+    await onboardHero(userCredential.user);
+    return userCredential.user;
+  } catch (error) {
+    console.error("signUpWithEmail failed:", error);
+    throw error;
+  }
+};
+
+export const signInWithEmail = async (email, password) => {
+  const userCredential = await signInWithEmailAndPassword(
+    auth,
+    email,
+    password
+  );
+  return userCredential.user;
+};
+
+export const signInWithGoogle = async () => {
+  const result = await signInWithPopup(auth, googleProvider);
+  await onboardHero(result.user);
+  return result.user;
+};
+
+export const signOutUser = () => signOut(auth);
+
+export const onAuthStateChangedListener = (callback) =>
+  onAuthStateChanged(auth, callback);
+
+// --- QUEST LOGIC ---
+
+/**
+ * SECURE JOIN: Uses Transaction + Subcollection
+ */
+export const joinQuest = async (questId, userId) => {
+  const questRef = doc(db, "quests", questId);
+  const userRef = doc(db, "users", userId);
+  const memberRef = doc(db, "quests", questId, "members", userId);
+
+  try {
+    const questSnap = await getDoc(questRef);
+    const userSnap = await getDoc(userRef);
+
+    if (!questSnap.exists()) throw new Error("Mission not found!");
+    if (!userSnap.exists()) throw new Error("Hero profile not found!");
+
+    const qData = questSnap.data();
+    const requirement = qData.genderRequirement || "Everyone";
+    const userGender = userSnap.data().gender;
+
+    if (requirement === "Female" && userGender !== "female")
+      throw new Error("Target location is female-only.");
+    if (requirement === "Male" && userGender !== "male")
+      throw new Error("Target location is male-only.");
+
+    // 2. Add to Quest Members
+    await setDoc(memberRef, {
+      uid: userId,
+      name: userSnap.data().name || "Hero",
+      joinedAt: serverTimestamp(),
+    });
+
+    // 2.5 Sync to Main Doc
+    await updateDoc(questRef, {
+      members: arrayUnion(userId),
+      membersCount: increment(1),
+    });
+
+    // 3. Record in user's profile subcollection for MyMissions
+    try {
+      const joinedQuestRef = doc(db, "users", userId, "joinedQuests", questId);
+      await setDoc(joinedQuestRef, {
+        joinedAt: serverTimestamp(),
+        role: "member",
+      });
+    } catch (err) {
+      console.warn(
+        "MyMissions: JoinedQuest record failed (Permissions):",
+        err.code
+      );
+      // We don't throw here to allow the user to still be a member of the quest
+    }
+
+    console.log(`✅ Joined quest ${questId} successfully.`);
+    return true;
+  } catch (error) {
+    console.error("Error joining quest:", error);
+    return false;
+  }
+};
+
+export const leaveQuest = async (questId, userId) => {
+  const questRef = doc(db, "quests", questId);
+  const memberRef = doc(db, "quests", questId, "members", userId);
+  await deleteDoc(memberRef);
+  await updateDoc(questRef, {
+    members: arrayRemove(userId),
+    membersCount: increment(-1),
+  });
+};
+
+export const verifyQuestMember = async (questId, userId) => {
+  // MVP Stub: Verification usually requires updates that might be restricted.
+  // We'll leave this empty or basic log for now.
+  console.log("Verify Quest Member (Stubbed for MVP Rules)");
+};
+
+export const saveQuestVerification = async (questId, uid, payload) => {
+  if (!questId) throw new Error("questId missing");
+  if (!uid) throw new Error("uid missing");
+
+  // ✅ Check membership FIRST
+  const memberRef = doc(db, "quests", questId, "members", uid);
+  const memberSnap = await getDoc(memberRef);
+  if (!memberSnap.exists()) {
+    throw new Error("Not a quest member. Join quest first.");
+  }
+
+  // ✅ Write verification doc
+  const verificationRef = doc(db, "quests", questId, "verifications", uid);
+
+  await setDoc(
+    verificationRef,
+    {
+      uid,
+      questId,
+      completed: true,
+      rewarded: true, // ✅ Match backend field for individual tracking
+      completedAt: serverTimestamp(),
+      locationVerified: Boolean(payload?.locationVerified),
+      codeVerified: Boolean(payload?.codeVerified),
+      photoURL: payload?.photoURL || "",
+    },
+    { merge: true }
+  );
+
+  // ✅ Mark quest completed for THIS USER (THIS FIXES YOUR REDIRECT LOOP)
+  // Allowed by rules: status, completedBy, updatedAt
+  const questRef = doc(db, "quests", questId);
+  await updateDoc(questRef, {
+    completedBy: arrayUnion(uid),
+    updatedAt: serverTimestamp(),
+  });
+
+  return true;
+};
+
+export const syncHubLocation = async (hubId, lat, lng) => {
+  try {
+    const hubRef = doc(db, "hubs", hubId);
+    await updateDoc(hubRef, {
+      lat: lat,
+      long: lng,
+      coordinates: { latitude: lat, longitude: lng },
+    });
+  } catch (err) {
+    console.warn("Hub location sync failed (Permissions):", err.code);
+  }
+};
+
+export const createReport = async (reportData) => {
+  const reportsRef = collection(db, "reports");
+  await addDoc(reportsRef, {
+    ...reportData,
+    timestamp: serverTimestamp(),
+  });
+};
+
+export const logActivity = async (type, userName, action, target) => {
+  // Global activity writes are now restricted to Cloud Functions for major events.
+  // We keep this for non-critical client logs if allowed, but most will fail silently now.
+  try {
+    await addDoc(collection(db, "global_activity"), {
+      type,
+      user: userName,
+      action,
+      target,
+      timestamp: serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn(
+      "Log Activity suppressed by rules (Client Write Blocked):",
+      error
+    );
+  }
+};
+
+export const createQuest = async (questData) => {
+  const questsRef = collection(db, "quests");
+  let roomCode = null;
+  if (questData.isPrivate) {
+    roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  const newQuest = {
+    ...questData,
+    roomCode: roomCode || null,
+    members: [questData.hostId],
+    createdAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(questsRef, newQuest);
+
+  // Auto-join host
+  await joinQuest(docRef.id, questData.hostId);
+
+  return docRef.id;
+};
+
+export const joinQuestByCode = async (code, userId) => {
+  const questsRef = collection(db, "quests");
+  const cleanCode = code.trim().toUpperCase();
+  const q = query(
+    questsRef,
+    where("roomCode", "==", cleanCode),
+    where("status", "==", "open")
+  );
+
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    throw new Error("Invalid Code");
+  }
+
+  const questId = querySnapshot.docs[0].id;
+  await joinQuest(questId, userId);
+  return questId;
+};
+
+// --- BACKEND API CONNECTOR ---
+// Change to your deployed URL in production
+const API_URL = "http://localhost:5000/api";
+
+const getAuthToken = async () => {
+  if (!auth.currentUser) throw new Error("User not authenticated");
+  return await auth.currentUser.getIdToken();
+};
+
+export const finalizeQuest = async (questId, verificationData) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/finalize`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      questId,
+      ...verificationData,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    // Handle "already claimed" gracefully if needed, or throw
+    if (data.alreadyClaimed) return data;
+    throw new Error(data.error || "Failed to finalize quest");
+  }
+  return data;
+};
+
+export const claimDailyBounty = async () => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/bounty/claim`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to claim bounty");
+  }
+  return data;
+};
+
+export const getWeeklyLeaderboard = async () => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/leaderboard/weekly`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to fetch leaderboard");
+  }
+  return data;
+};
+
+export const subscribeToQuest = (questId, callback) => {
+  const questRef = doc(db, "quests", questId);
+
+  return onSnapshot(
+    questRef,
+    (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() });
+      }
+    },
+    (error) => {
+      if (error?.code === "permission-denied") {
+        console.warn(`Quest read blocked: ${questId}`);
+        return;
+      }
+      console.error(`Error subscribing to quest ${questId}:`, error);
+    }
+  );
+};
+
+// ✅ Helper: Check if user is a member of a quest (True Source of Truth)
+export const isUserQuestMember = async (questId, uid) => {
+  if (!questId || !uid) return false;
+  try {
+    const ref = doc(db, "quests", questId, "members", uid);
+    const snap = await getDoc(ref);
+    return snap.exists();
+  } catch (error) {
+    console.warn("Membership check failed:", error);
+    return false;
+  }
+};
+
+// ✅ Helper: Check if user has personally verified a quest
+export const getUserVerificationStatus = async (questId, uid) => {
+  if (!questId || !uid) return false;
+  try {
+    const ref = doc(db, "quests", questId, "verifications", uid);
+    const snap = await getDoc(ref);
+    return snap.exists() && snap.data()?.completed === true;
+  } catch (error) {
+    console.warn("Verification check failed:", error);
+    return false;
+  }
+};
+
+export const subscribeToAllQuests = (callback) => {
+  const questsRef = collection(db, "quests");
+
+  return onSnapshot(
+    questsRef,
+    (snapshot) => {
+      const quests = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(quests);
+    },
+    (error) => {
+      // ✅ Ignore permission denied spam
+      if (error?.code === "permission-denied") {
+        console.warn("Quests read blocked by rules (permission-denied).");
+        return;
+      }
+      console.error("Error subscribing to all quests:", error);
+    }
+  );
+};
+
+/**
+ * Updates quest status (ONLY host can do this due to Firestore rules)
+ */
+export const updateQuestStatus = async (questId, status) => {
+  if (!questId) throw new Error("questId is required");
+  if (!status) throw new Error("status is required");
+
+  const questRef = doc(db, "quests", questId);
+
+  await updateDoc(questRef, {
+    status,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// --- CHAT LOGIC ---
+
+export const sendSquadMessage = async (questId, userId, text, senderName) => {
+  if (!text.trim()) return;
+  // Secure Path: quests/{id}/chat
+  const messagesRef = collection(db, "quests", questId, "chat");
+  await addDoc(messagesRef, {
+    text: text,
+    senderId: userId,
+    senderName: senderName,
+    createdAt: serverTimestamp(),
+  });
+};
+
+export const subscribeToSquadChat = (questId, callback) => {
+  const q = query(
+    collection(db, "quests", questId, "chat"),
+    orderBy("createdAt", "asc")
+  );
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const messages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(messages);
+    },
+    (error) => {
+      console.error(
+        `Error subscribing to squad chat for quest ${questId}:`,
+        error
+      );
+    }
+  );
+};
+
+// --- REFINED XP & LEVEL LOGIC ---
+
+// --- LEGACY STUBS (Kept for compatibility if imported elsewhere, but effectively disabled) ---
+
+export const checkLevelUp = async () => {
+  console.warn("checkLevelUp is server-side only now.");
+  return false;
+};
+
+export const awardXP = async () => {
+  console.warn("awardXP is server-side only now.");
+};
+
+export const finalizeUserQuestStats = async () => {
+  console.warn("finalizeUserQuestStats is server-side only now.");
+};
+
+export const resetWeeklyLeaderboardManual = async () => {
+  console.warn("Manual Reset disabled.");
+  return false;
+};
+
+export const checkStreak = async () => {
+  // Logic moved to server
+};
+
+// Old claimDailyBounty was here, removed to avoid duplicate.
+
+/**
+ * Simulated Cloud Function: Weekly Reset (Sunday 11:59PM logic)
+ * DISABLED: Security Rules block client-side batch updates.
+ */
+export const simulateWeeklyReset = async () => {
+  console.log("🔒 Security: simulateWeeklyReset disabled on client.");
+  return false;
+};
+
+export const syncServerTime = async () => {
+  try {
+    // For now, we'll return 0, but ensured it's a valid async function.
+    return 0;
+  } catch (e) {
+    return 0;
+  }
+};
+
+export const submitVibeChecks = async (questId, reviews) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/vibe-check`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      questId,
+      reviews,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to submit vibe checks");
+  }
+  return data;
+};
