@@ -171,7 +171,7 @@ export const resetHeroPassword = async (email) => {
 /**
  * SECURE JOIN: Uses Transaction + Subcollection
  */
-export const joinQuest = async (questId, userId) => {
+export const joinQuest = async (questId, userId, secretCode = null) => {
   const questRef = doc(db, "quests", questId);
   const userRef = doc(db, "users", userId);
   const memberRef = doc(db, "quests", questId, "members", userId);
@@ -184,6 +184,17 @@ export const joinQuest = async (questId, userId) => {
     if (!userSnap.exists()) throw new Error("Hero profile not found!");
 
     const qData = questSnap.data();
+
+    // ✅ NEW: Check secret code for private quests
+    if (qData.isPrivate && qData.secretCode) {
+      if (!secretCode) {
+        throw new Error("This is a private quest. Secret code required!");
+      }
+      if (qData.secretCode.toUpperCase() !== secretCode.toUpperCase()) {
+        throw new Error("Invalid secret code! Access denied.");
+      }
+    }
+
     const requirement = qData.genderRequirement || "Everyone";
     const userGender = userSnap.data().gender;
 
@@ -198,8 +209,6 @@ export const joinQuest = async (questId, userId) => {
       name: userSnap.data().name || "Hero",
       joinedAt: serverTimestamp(),
     });
-
-   
 
     // 3. Record in user's profile subcollection for MyMissions
     try {
@@ -225,13 +234,34 @@ export const joinQuest = async (questId, userId) => {
 };
 
 export const leaveQuest = async (questId, userId) => {
-  const questRef = doc(db, "quests", questId);
-  const memberRef = doc(db, "quests", questId, "members", userId);
-  await deleteDoc(memberRef);
-  await updateDoc(questRef, {
-    members: arrayRemove(userId),
-    membersCount: increment(-1),
-  });
+  try {
+    const questRef = doc(db, "quests", questId);
+    const memberRef = doc(db, "quests", questId, "members", userId);
+    const joinedQuestRef = doc(db, "users", userId, "joinedQuests", questId);
+
+    // Delete member document
+    await deleteDoc(memberRef);
+
+    // Update quest members array and count
+    await updateDoc(questRef, {
+      members: arrayRemove(userId),
+      membersCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Delete from user's joinedQuests
+    try {
+      await deleteDoc(joinedQuestRef);
+    } catch (err) {
+      console.warn("Failed to delete joinedQuest (may not exist):", err?.code);
+    }
+
+    console.log(`✅ Left quest: ${questId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Leave quest failed:", error);
+    throw new Error(error.message || "Failed to leave quest");
+  }
 };
 
 export const verifyQuestMember = async (questId, userId) => {
@@ -345,19 +375,42 @@ export const createQuest = async (questData) => {
 export const joinQuestByCode = async (code, userId) => {
   const questsRef = collection(db, "quests");
   const cleanCode = code.trim().toUpperCase();
-  const q = query(
+
+  // First, try to find by room code
+  const roomCodeQuery = query(
     questsRef,
     where("roomCode", "==", cleanCode),
     where("status", "==", "open"),
   );
 
-  const querySnapshot = await getDocs(q);
+  let querySnapshot = await getDocs(roomCodeQuery);
+
+  // If no room code match, try secret code for private quests
   if (querySnapshot.empty) {
-    throw new Error("Invalid Code");
+    const secretCodeQuery = query(
+      questsRef,
+      where("secretCode", "==", cleanCode),
+      where("isPrivate", "==", true),
+      where("status", "==", "open"),
+    );
+    querySnapshot = await getDocs(secretCodeQuery);
   }
 
-  const questId = querySnapshot.docs[0].id;
-  await joinQuest(questId, userId);
+  if (querySnapshot.empty) {
+    throw new Error("Invalid Code - No quest found with this code");
+  }
+
+  const questDoc = querySnapshot.docs[0];
+  const questId = questDoc.id;
+  const questData = questDoc.data();
+
+  // For private quests with secret code, pass the code for validation
+  if (questData.isPrivate && questData.secretCode) {
+    await joinQuest(questId, userId, cleanCode);
+  } else {
+    await joinQuest(questId, userId);
+  }
+
   return questId;
 };
 
@@ -610,6 +663,43 @@ export const submitVibeChecks = async (questId, reviews) => {
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || "Failed to submit vibe checks");
+  }
+  return data;
+};
+
+// ✅ NEW: Delete Quest (Backend API - Host only)
+export const deleteQuestAPI = async (questId) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/${questId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to delete quest");
+  }
+  return data;
+};
+
+// ✅ NEW: Edit Quest (Backend API - Host only)
+export const editQuestAPI = async (questId, updates) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/${questId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to edit quest");
   }
   return data;
 };

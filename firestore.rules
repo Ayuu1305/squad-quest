@@ -14,6 +14,10 @@ service cloud.firestore {
     function notUpdating(fields) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
     }
+    
+    function isQuestHost(questId) {
+      return get(/databases/$(database)/documents/quests/$(questId)).data.hostId == request.auth.uid;
+    }
 
     // ✅ USERS
     match /users/{userId} {
@@ -45,13 +49,23 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
 
+      // ✅ UPDATE: Host can edit quest details + Members can update status/completedBy + Members/count can be updated for join/leave
       allow update: if isAuthenticated() && (
-        resource.data.hostId == request.auth.uid ||
-        (
-          exists(/databases/$(database)/documents/quests/$(questId)/members/$(request.auth.uid)) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "completedBy", "updatedAt"])
-        )
+        // Host can update quest details (excluding protected fields)
+        (resource.data.hostId == request.auth.uid && 
+         notUpdating(['members', 'membersCount', 'completedBy', 'createdAt', 'hostId'])) ||
+        
+        // Members can mark quest as completed
+        (exists(/databases/$(database)/documents/quests/$(questId)/members/$(request.auth.uid)) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "completedBy", "updatedAt"])) ||
+        
+        // ✅ NEW: Allow members/membersCount updates for join/leave operations
+        (isAuthenticated() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["members", "membersCount", "updatedAt"]))
       );
+      
+      // ✅ DELETE: Only host can delete quest
+      allow delete: if resource.data.hostId == request.auth.uid;
 
       // ✅ MEMBERS
       match /members/{memberId} {
@@ -61,7 +75,10 @@ service cloud.firestore {
           && request.auth.uid == memberId
           && request.resource.data.uid == request.auth.uid;
 
-        allow update, delete: if false;
+        // ✅ NEW: Member can delete their own membership
+        allow delete: if isAuthenticated() && request.auth.uid == memberId;
+        
+        allow update: if false;
       }
 
       // ✅ CHAT
@@ -72,7 +89,10 @@ service cloud.firestore {
         allow create: if isAuthenticated()
           && exists(/databases/$(database)/documents/quests/$(questId)/members/$(request.auth.uid));
 
-        allow update, delete: if false;
+        // ✅ NEW: Host can delete chat messages
+        allow delete: if isQuestHost(questId);
+        
+        allow update: if false;
       }
 
       // ✅ VERIFICATIONS
@@ -85,7 +105,10 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/quests/$(questId)/members/$(request.auth.uid))
           && !exists(/databases/$(database)/documents/quests/$(questId)/verifications/$(userId));
 
-        allow update, delete: if false;
+        // ✅ NEW: Host can delete verifications when deleting quest
+        allow delete: if isQuestHost(questId);
+        
+        allow update: if false;
       }
     }
 

@@ -1,0 +1,165 @@
+import { db, admin } from "../server.js";
+
+/**
+ * DELETE QUEST - Host only
+ * Deletes quest document and all subcollections (members, chat, verifications)
+ */
+export const deleteQuest = async (req, res) => {
+  try {
+    const { questId } = req.params;
+    const userId = req.user.uid;
+
+    if (!questId) {
+      return res.status(400).json({ error: "Quest ID required" });
+    }
+
+    // 1. Verify quest exists and user is host
+    const questRef = db.collection("quests").doc(questId);
+    const questSnap = await questRef.get();
+
+    if (!questSnap.exists) {
+      return res.status(404).json({ error: "Quest not found" });
+    }
+
+    const questData = questSnap.data();
+
+    if (questData.hostId !== userId) {
+      return res.status(403).json({ error: "Only quest host can delete" });
+    }
+
+    // 2. Delete all subcollections
+    const batch = db.batch();
+
+    // Delete members subcollection
+    const membersSnapshot = await questRef.collection("members").get();
+    membersSnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    // Delete chat subcollection
+    const chatSnapshot = await questRef.collection("chat").get();
+    chatSnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    // Delete verifications subcollection
+    const verificationsSnapshot = await questRef
+      .collection("verifications")
+      .get();
+    verificationsSnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    // 3. Delete quest document
+    batch.delete(questRef);
+
+    // 4. Commit all deletes
+    await batch.commit();
+
+    // 5. Clean up joinedQuests from all members (optional, on best-effort basis)
+    try {
+      if (questData.members && Array.isArray(questData.members)) {
+        const cleanupBatch = db.batch();
+        questData.members.forEach((memberId) => {
+          const joinedQuestRef = db
+            .collection("users")
+            .doc(memberId)
+            .collection("joinedQuests")
+            .doc(questId);
+          cleanupBatch.delete(joinedQuestRef);
+        });
+        await cleanupBatch.commit();
+      }
+    } catch (cleanupError) {
+      console.warn("Cleanup failed (non-critical):", cleanupError?.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Quest ${questId} deleted successfully`,
+    });
+  } catch (error) {
+    console.error("❌ Delete Quest Error:", error);
+    return res.status(500).json({
+      error: "Failed to delete quest",
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * EDIT QUEST - Host only
+ * Updates quest details (excluding protected fields)
+ */
+export const editQuest = async (req, res) => {
+  try {
+    const { questId } = req.params;
+    const userId = req.user.uid;
+    const updates = req.body;
+
+    if (!questId) {
+      return res.status(400).json({ error: "Quest ID required" });
+    }
+
+    // 1. Verify quest exists and user is host
+    const questRef = db.collection("quests").doc(questId);
+    const questSnap = await questRef.get();
+
+    if (!questSnap.exists) {
+      return res.status(404).json({ error: "Quest not found" });
+    }
+
+    const questData = questSnap.data();
+
+    if (questData.hostId !== userId) {
+      return res.status(403).json({ error: "Only quest host can edit" });
+    }
+
+    // 2. Filter out protected fields
+    const protectedFields = [
+      "members",
+      "membersCount",
+      "completedBy",
+      "createdAt",
+      "hostId",
+      "id",
+    ];
+
+    const filteredUpdates = {};
+    Object.keys(updates).forEach((key) => {
+      if (!protectedFields.includes(key)) {
+        filteredUpdates[key] = updates[key];
+      }
+    });
+
+    // 3. Add updatedAt timestamp
+    filteredUpdates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+    // 4. Update quest
+    await questRef.update(filteredUpdates);
+
+    return res.status(200).json({
+      success: true,
+      message: "Quest updated successfully",
+      updated: filteredUpdates,
+    });
+  } catch (error) {
+    console.error("❌ Edit Quest Error:", error);
+    return res.status(500).json({
+      error: "Failed to edit quest",
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * DELETE QUEST - Host only
+ * Deletes quest document and all subcollections (members, chat, verifications)
+ */
+
+
+/**
+ * EDIT QUEST - Host only
+ * Updates quest details (excluding protected fields)
+ */
+

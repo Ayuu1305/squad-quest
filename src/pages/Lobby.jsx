@@ -21,6 +21,7 @@ import {
 
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
+import toast from "react-hot-toast";
 
 const Lobby = () => {
   const { id } = useParams();
@@ -182,7 +183,7 @@ const Lobby = () => {
                         const text = `🕵️ Squad Quest Mission Briefing:\n\nMission: ${liveQuest.title}\nAccess Code: *${liveQuest.roomCode}*\n\nJoin me in the Shadows.`;
                         window.open(
                           `https://wa.me/?text=${encodeURIComponent(text)}`,
-                          "_blank"
+                          "_blank",
                         );
                       }}
                       className="bg-green-600 hover:bg-green-500 text-white p-3 rounded-xl transition-colors shadow-lg"
@@ -191,6 +192,40 @@ const Lobby = () => {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ✅ NEW: Secret Code for Private Quests */}
+            {liveQuest.isPrivate && liveQuest.secretCode && (
+              <div className="bg-gradient-to-br from-purple-500/20 to-transparent rounded-2xl p-4 border-2 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.3)] mt-4">
+                <div className="flex items-end gap-4">
+                  <div className="flex-1">
+                    <p className="text-[9px] text-purple-300 mb-1 uppercase font-mono">
+                      🔐 Secret Code (Private Quest)
+                    </p>
+                    <div
+                      onClick={() => {
+                        navigator.clipboard.writeText(liveQuest.secretCode);
+                        toast.success("Secret code copied!", { icon: "🔐" });
+                      }}
+                      className="text-3xl font-mono font-black text-purple-200 tracking-[0.2em] cursor-pointer hover:text-purple-400 transition-colors"
+                    >
+                      {liveQuest.secretCode}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(liveQuest.secretCode);
+                      toast.success("Secret code copied!", { icon: "🔐" });
+                    }}
+                    className="bg-purple-600 hover:bg-purple-500 text-white p-3 rounded-xl transition-colors shadow-lg"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-[9px] text-purple-300 mt-2 font-mono">
+                  Share this code with members to join
+                </p>
               </div>
             )}
 
@@ -280,9 +315,14 @@ const Lobby = () => {
           <ChatInterface
             quest={liveQuest}
             user={user}
-            onLeave={() => {
-              leaveQuest(liveQuest.id);
-              navigate("/board");
+            onLeave={async () => {
+              try {
+                await leaveQuest(liveQuest.id);
+                navigate("/board");
+              } catch (error) {
+                console.error("Leave quest failed:", error);
+                alert(`Failed to leave quest: ${error.message}`);
+              }
             }}
           />
         </div>

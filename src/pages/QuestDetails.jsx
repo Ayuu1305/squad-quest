@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Gem,
   ExternalLink,
+  Edit3,
+  Trash2,
 } from "lucide-react";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
@@ -19,10 +21,15 @@ import {
   subscribeToQuest,
   isUserQuestMember,
   getUserVerificationStatus,
+  deleteQuestAPI,
+  editQuestAPI,
 } from "../backend/firebaseService";
 import { collection, onSnapshot, query, where, doc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import TacticalErrorModal from "../components/TacticalErrorModal";
+import DeleteQuestModal from "../components/DeleteQuestModal";
+import EditQuestModal from "../components/EditQuestModal";
+import toast from "react-hot-toast";
 
 const QuestDetails = () => {
   const { id } = useParams();
@@ -36,8 +43,19 @@ const QuestDetails = () => {
   const [loading, setLoading] = useState(true);
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
 
+  // ✅ NEW: Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // ✅ NEW: Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [isMember, setIsMember] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+
+  // ✅ Check if user is quest host
+  const isHost = quest?.hostId === user?.uid;
 
   useEffect(() => {
     if (!user || !id) return;
@@ -194,9 +212,34 @@ const QuestDetails = () => {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="px-4 py-1.5 glassmorphism rounded-full border border-neon-purple/50 text-xs font-black font-mono text-neon-purple uppercase">
-              Quest Ready
-            </div>
+
+            {/* ✅ NEW: Host-only action buttons */}
+            {isHost && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="p-3 glassmorphism rounded-xl text-blue-400 hover:bg-blue-500/20 transition-colors border border-blue-400/30"
+                  title="Edit Quest"
+                >
+                  <Edit3 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowDeleteModal(true);
+                  }}
+                  className="p-3 glassmorphism rounded-xl text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/30"
+                  title="Delete Quest"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {!isHost && (
+              <div className="px-4 py-1.5 glassmorphism rounded-full border border-neon-purple/50 text-xs font-black font-mono text-neon-purple uppercase">
+                Quest Ready
+              </div>
+            )}
           </div>
 
           {/* Quest Title Overlay */}
@@ -399,6 +442,57 @@ const QuestDetails = () => {
           isOpen={errorModal.isOpen}
           onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
           message={errorModal.message}
+        />
+
+        {/* ✅ NEW: Delete Quest Modal */}
+        <DeleteQuestModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={async () => {
+            setIsDeleting(true);
+            try {
+              await deleteQuestAPI(id);
+              toast.success("Quest deleted successfully!", {
+                icon: "🗑️",
+                duration: 3000,
+              });
+              setTimeout(() => navigate("/board"), 500);
+            } catch (error) {
+              console.error("Delete quest failed:", error);
+              toast.error(error.message || "Failed to delete quest");
+            } finally {
+              setIsDeleting(false);
+              setShowDeleteModal(false);
+            }
+          }}
+          questTitle={quest?.title || "Unknown Quest"}
+          isDeleting={isDeleting}
+        />
+
+        {/* ✅ NEW: Edit Quest Modal */}
+        <EditQuestModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSave={async (updates) => {
+            setIsSaving(true);
+            try {
+              await editQuestAPI(id, updates);
+              toast.success("Quest updated successfully!", {
+                icon: "✏️",
+                duration: 3000,
+              });
+              setShowEditModal(false);
+              window.location.reload();
+            } catch (error) {
+              console.error("Edit quest failed:", error);
+              toast.error(error.message || "Failed to update quest");
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+          quest={quest}
+          isSaving={isSaving}
+          userCity={user?.city}
         />
       </div>
     </div>

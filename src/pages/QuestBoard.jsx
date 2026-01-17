@@ -8,6 +8,7 @@ import QuestCard from "../components/QuestCard";
 import DailyBounty from "../components/DailyBounty";
 import LiveFeed from "../components/LiveFeed";
 import TacticalErrorModal from "../components/TacticalErrorModal";
+import SecretCodeModal from "../components/SecretCodeModal";
 import CyberGridBackground from "../components/CyberGridBackground";
 import HallOfFameIntro from "../components/HallOfFameIntro"; // IMPORTED
 import { useGame } from "../context/GameContext";
@@ -47,6 +48,14 @@ const QuestBoard = () => {
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
   const [timeTick, setTimeTick] = useState(Date.now());
   const [showHallOfFame, setShowHallOfFame] = useState(true); // State for Intro
+
+  // ✅ NEW: Secret Code Modal state
+  const [secretCodeModal, setSecretCodeModal] = useState({
+    isOpen: false,
+    quest: null,
+  });
+  const [isJoining, setIsJoining] = useState(false);
+
   const containerRef = useRef(null);
 
   // Subscriptions & Live Ticker
@@ -61,8 +70,6 @@ const QuestBoard = () => {
     const unsubQuests = subscribeToAllQuests((data) => {
       setQuests(data);
     });
-
-    
 
     return () => {
       clearInterval(timer);
@@ -88,7 +95,9 @@ const QuestBoard = () => {
           .includes(searchTerm.toLowerCase());
       const matchesCity = quest.city === city;
       const isOpen = quest.status === "open";
-      const isPublic = !quest.isPrivate; // Filter out private quests
+
+      // ✅ Show private quests ONLY if user is the host, otherwise show public quests
+      const isVisibleToUser = !quest.isPrivate || quest.hostId === user?.uid;
 
       // Gender Requirement Logic (Security & Visibility)
       let matchesGender = true;
@@ -116,15 +125,21 @@ const QuestBoard = () => {
 
       const isCompleted = quest.status === "completed";
 
+      // ✅ NEW: Hide quests with no members or deleted quests
+      const hasMembers =
+        (quest.membersCount || 0) > 0 ||
+        (quest.members && quest.members.length > 0);
+
       return (
         matchesCategory &&
         matchesSearch &&
         matchesCity &&
         isOpen &&
         !isCompleted &&
-        isPublic &&
+        isVisibleToUser && // ✅ Changed from isPublic
         matchesGender &&
-        !isExpired
+        !isExpired &&
+        hasMembers // ✅ Hide empty quests
       );
     })
     .map((quest) => {
@@ -311,10 +326,7 @@ const QuestBoard = () => {
                       }}
                     >
                       <Link to={`/quest/${quest.id}`} className="block">
-                        <QuestCard
-                          quest={quest}
-                          hub={null}
-                        />
+                        <QuestCard quest={quest} hub={null} />
                       </Link>
                     </motion.div>
                   ))
@@ -411,6 +423,35 @@ const QuestBoard = () => {
           isOpen={errorModal.isOpen}
           onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
           message={errorModal.message}
+        />
+
+        {/* ✅ NEW: Secret Code Modal for Private Quests */}
+        <SecretCodeModal
+          isOpen={secretCodeModal.isOpen}
+          onClose={() => setSecretCodeModal({ isOpen: false, quest: null })}
+          onSubmit={async (secretCode) => {
+            if (!secretCodeModal.quest || !user?.uid) return;
+
+            setIsJoining(true);
+            try {
+              const { joinQuest } = await import("../backend/firebaseService");
+              await joinQuest(secretCodeModal.quest.id, user.uid, secretCode);
+
+              // Success - navigate to lobby
+              navigate(`/lobby/${secretCodeModal.quest.id}`);
+            } catch (error) {
+              console.error("Join quest error:", error);
+              setErrorModal({
+                isOpen: true,
+                message: error.message || "Failed to join quest",
+              });
+            } finally {
+              setIsJoining(false);
+              setSecretCodeModal({ isOpen: false, quest: null });
+            }
+          }}
+          questTitle={secretCodeModal.quest?.title || ""}
+          isJoining={isJoining}
         />
       </div>
     </div>

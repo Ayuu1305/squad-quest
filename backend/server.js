@@ -17,15 +17,17 @@ app.use(
       "https://squad-quest-ca9f2.firebaseapp.com",
     ],
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
 
-// ✅ Firebase Admin Init (Render-safe)
+// ✅ Firebase Admin Init (Production - Render)
 if (!admin.apps.length) {
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    throw new Error("❌ FIREBASE_SERVICE_ACCOUNT_KEY missing in ENV");
+    throw new Error(
+      "❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required",
+    );
   }
 
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -34,7 +36,7 @@ if (!admin.apps.length) {
     credential: admin.credential.cert(serviceAccount),
   });
 
-  console.log("✅ Firebase Admin Initialized (ENV JSON)");
+  console.log("✅ Firebase Admin Initialized");
 }
 
 export const db = admin.firestore();
@@ -43,15 +45,26 @@ export { admin };
 
 // Import Routes
 import { verifyToken } from "./middleware/auth.js";
-import { finalizeQuest, submitVibeCheck } from "./controllers/questController.js";
+import {
+  finalizeQuest,
+  submitVibeCheck,
+} from "./controllers/questController.js";
 import { claimBounty } from "./controllers/bountyController.js";
 import { getWeeklyLeaderboard } from "./controllers/leaderboardController.js";
+import {
+  deleteQuest,
+  editQuest,
+} from "./controllers/questManagementController.js";
 
 // Routes
 app.post("/api/quest/finalize", verifyToken, finalizeQuest);
 app.post("/api/quest/vibe-check", verifyToken, submitVibeCheck);
 app.post("/api/bounty/claim", verifyToken, claimBounty);
 app.get("/api/leaderboard/weekly", verifyToken, getWeeklyLeaderboard);
+
+// ✅ NEW: Quest Management Routes
+app.delete("/api/quest/:questId", verifyToken, deleteQuest);
+app.put("/api/quest/:questId", verifyToken, editQuest);
 
 app.get("/", (req, res) => {
   res.send("Squad Quest Backend is Running ✅");
@@ -60,4 +73,3 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
- 
