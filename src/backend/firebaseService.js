@@ -26,6 +26,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  sendEmailVerification,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { db, auth, googleProvider } from "./firebaseConfig";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -110,6 +112,13 @@ export const signUpWithEmail = async (email, password, name) => {
     await updateProfile(userCredential.user, { displayName: name });
     // Pass the actual user object
     await onboardHero(userCredential.user);
+
+    // 3. Send Verification Email
+    await sendEmailVerification(userCredential.user);
+
+    // 4. Sign out immediately to prevent auto-login before verification
+    await auth.signOut();
+
     return userCredential.user;
   } catch (error) {
     console.error("signUpWithEmail failed:", error);
@@ -123,7 +132,17 @@ export const signInWithEmail = async (email, password) => {
     email,
     password
   );
-  return userCredential.user;
+
+  const user = userCredential.user;
+
+  // ✅ ENFORCE EMAIL VERIFICATION
+  if (!user.emailVerified) {
+    // If not verified, we sign them out immediately to prevent session creation
+    await auth.signOut();
+    throw new Error("EMAIL_NOT_VERIFIED");
+  }
+
+  return user;
 };
 
 export const signInWithGoogle = async () => {
@@ -136,6 +155,16 @@ export const signOutUser = () => signOut(auth);
 
 export const onAuthStateChangedListener = (callback) =>
   onAuthStateChanged(auth, callback);
+
+export const resetHeroPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return true;
+  } catch (error) {
+    console.error("resetHeroPassword failed:", error);
+    throw error;
+  }
+};
 
 // --- QUEST LOGIC ---
 
@@ -338,7 +367,7 @@ export const joinQuestByCode = async (code, userId) => {
 
 // --- BACKEND API CONNECTOR ---
 // Change to your deployed URL in production
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const getAuthToken = async () => {
   if (!auth.currentUser) throw new Error("User not authenticated");

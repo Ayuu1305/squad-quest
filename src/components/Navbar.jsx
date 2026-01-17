@@ -24,7 +24,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-[420px] bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-4 flex justify-between items-center z-50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[var(--max-width-app)] mx-auto bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-4 flex justify-between items-center z-50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       {navItems.map((item) => (
         <NavLink
           key={item.id}

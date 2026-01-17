@@ -15,6 +15,7 @@ import MyMissions from "./pages/MyMissions";
 import WorldGuide from "./pages/WorldGuide";
 import HeroJourney from "./pages/HeroJourney";
 import Navbar from "./components/Navbar";
+import { Toaster } from "react-hot-toast";
 import { useGame } from "./context/GameContext";
 import { useAuth } from "./context/AuthContext";
 
@@ -24,18 +25,20 @@ const ProtectedRoute = ({ children }) => {
   const { city } = useGame();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/login" />;
+  // ✅ Check for existence AND verification
+  if (!user || !user.emailVerified) return <Navigate to="/login" />;
   if (!city) return <Navigate to="/" />;
 
   return children;
 };
 
-// Protects routes that require ONLY login (e.g. Profile, where you might switch cities)
+// Protects routes that require ONLY login
 const UserProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/login" />;
+  // ✅ Check for existence AND verification
+  if (!user || !user.emailVerified) return <Navigate to="/login" />;
 
   return children;
 };
@@ -46,17 +49,19 @@ const CitySelectionRoute = ({ children }) => {
   const { city } = useGame();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/login" />;
+  // ✅ Check for existence AND verification
+  if (!user || !user.emailVerified) return <Navigate to="/login" />;
   if (city) return <Navigate to="/board" />;
 
   return children;
 };
 
-// Redirects logged-in users away from Auth pages
+// Redirects logged-in verified users away from Auth pages
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return user ? <Navigate to="/board" /> : children;
+  // ✅ Only redirect if verified
+  return user && user.emailVerified ? <Navigate to="/board" /> : children;
 };
 
 import GenderSelectionModal from "./components/GenderSelectionModal";
@@ -78,7 +83,9 @@ function App() {
 
   return (
     <div className="bg-dark-bg min-h-screen text-white font-['Inter'] selection:bg-neon-purple selection:text-white">
-      {user && !loading && !user.gender && <GenderSelectionModal />}
+      {user && !loading && user.emailVerified && !user.gender && (
+        <GenderSelectionModal />
+      )}
 
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
@@ -281,6 +288,7 @@ function App() {
       </AnimatePresence>
 
       {showNavbar && <Navbar />}
+      <Toaster position="top-center" reverseOrder={false} />
     </div>
   );
 }

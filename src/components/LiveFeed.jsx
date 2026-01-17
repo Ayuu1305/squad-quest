@@ -69,14 +69,7 @@ const LiveFeed = () => {
   };
 
   return (
-    <div className="mt-8 mb-24 cursor-default select-none">
-      <div className="flex items-center gap-2 mb-3 px-1">
-        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-        <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">
-          The Tavern • Live Feed
-        </h3>
-      </div>
-
+    <div className="cursor-default select-none">
       <div className="space-y-2 relative h-64 overflow-hidden mask-gradient-b">
         <AnimatePresence initial={false}>
           {activities.map((item) => (

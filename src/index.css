@@ -6,7 +6,7 @@
   --color-dark-card: #1a1a2e;
   --color-accent-blue: #16213e;
 
-  --max-width-app: 480px;
+  --max-width-app: 500px;
 
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-glow: glow 2s ease-in-out infinite alternate;
@@ -196,6 +196,9 @@
   max-width: var(--max-width-app);
   margin: 0 auto;
   min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .quest-card {

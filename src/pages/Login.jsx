@@ -10,6 +10,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { signInWithEmail, signInWithGoogle } from "../backend/firebaseService";
+import { toast } from "react-hot-toast";
+import CyberGridBackground from "../components/CyberGridBackground";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -24,11 +26,40 @@ const Login = () => {
     setError("");
     try {
       await signInWithEmail(email, password);
+      toast.success("Access Granted. Welcome back, Hero.");
       navigate("/board");
     } catch (err) {
-      setError("Authorization Failed: Invalid Credentials");
+      if (err.message === "EMAIL_NOT_VERIFIED") {
+        const msg =
+          "Comms Encryption Active: Verify your email before accessing the Hub.";
+        setError(msg);
+        toast.error(msg, { icon: "📧" });
+      } else {
+        const msg = "Authorization Failed: Invalid Credentials";
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast.error("Please enter your Comms Address (Email) first.", {
+        icon: "🛡️",
+      });
+      return;
+    }
+
+    try {
+      const { resetHeroPassword } = await import("../backend/firebaseService");
+      await resetHeroPassword(email);
+      toast.success("Recovery Comms Sent. Check your inbox, Hero.", {
+        icon: "📧",
+      });
+    } catch (err) {
+      toast.error("Recovery Dispatch Failed. Check the address.");
     }
   };
 
@@ -42,17 +73,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-dark-bg relative flex items-center justify-center p-6 overflow-y-auto">
+      <CyberGridBackground />
+
       {/* Background Decor */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-neon-purple rounded-full blur-[100px]" />
-        <div className="absolute bottom-20 right-10 w-64 h-64 bg-blue-600 rounded-full blur-[100px]" />
+      <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-purple rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600 rounded-full blur-[120px] animate-pulse" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md z-10"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md relative z-10 py-12"
       >
         <div className="text-center mb-8">
           <div className="inline-block p-4 bg-neon-purple/20 rounded-2xl mb-4 border border-neon-purple/50">
@@ -105,6 +138,15 @@ const Login = () => {
                   placeholder="••••••••"
                   required
                 />
+              </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  className="text-[10px] font-black uppercase text-neon-purple hover:text-white transition-colors tracking-widest italic"
+                >
+                  Forgot Password?
+                </button>
               </div>
             </div>
 

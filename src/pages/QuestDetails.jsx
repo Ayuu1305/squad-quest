@@ -174,7 +174,7 @@ const QuestDetails = () => {
   const isStarted = new Date() >= startTimeObj;
 
   return (
-    <div className="bg-dark-bg min-h-screen pb-24">
+    <div className="app-container bg-dark-bg min-h-screen pb-24">
       {/* Header Image/Background */}
       <div className="relative h-64 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-dark-bg to-transparent z-10" />

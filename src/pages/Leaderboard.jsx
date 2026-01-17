@@ -128,8 +128,6 @@ const Leaderboard = () => {
 
   return (
     <div className="app-container min-h-screen bg-dark-bg pb-48 relative overflow-x-hidden">
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-neon-purple/20 to-transparent pointer-events-none" />
-
       {/* Header */}
       <div className="relative pt-12 pb-8 px-6 text-center">
         <motion.div

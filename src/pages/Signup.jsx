@@ -11,6 +11,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { signUpWithEmail, signInWithGoogle } from "../backend/firebaseService";
+import { toast } from "react-hot-toast";
+import CyberGridBackground from "../components/CyberGridBackground";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -26,10 +28,18 @@ const Signup = () => {
     setError("");
     try {
       await signUpWithEmail(email, password, username);
-      navigate("/board");
+      toast.success(
+        "Profile Initialized! Check your comms (email) for verification.",
+        {
+          duration: 6000,
+        }
+      );
+      navigate("/login");
     } catch (err) {
       console.error("Signup Error Details:", err);
-      setError(`${err.code || "Sync Failed"}: ${err.message}`);
+      const message = `${err.code || "Sync Failed"}: ${err.message}`;
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -45,17 +55,19 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-dark-bg relative flex items-center justify-center p-6 overflow-y-auto">
+      <CyberGridBackground />
+
       {/* Background Decor */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-        <div className="absolute top-20 right-10 w-64 h-64 bg-neon-purple rounded-full blur-[100px]" />
-        <div className="absolute bottom-20 left-10 w-64 h-64 bg-blue-600 rounded-full blur-[100px]" />
+      <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-neon-purple rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-600 rounded-full blur-[120px] animate-pulse" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md z-10"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md relative z-10 py-12"
       >
         <div className="text-center mb-8">
           <div className="inline-block p-4 bg-neon-purple/20 rounded-2xl mb-4 border border-neon-purple/50">

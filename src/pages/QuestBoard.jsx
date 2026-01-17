@@ -179,7 +179,7 @@ const QuestBoard = () => {
 
   return (
     <div
-      className={`min-h-screen relative transition-colors duration-1000 bg-dark-bg`}
+      className="min-h-screen relative transition-colors duration-1000 bg-dark-bg"
       ref={containerRef}
     >
       {/* Hall Of Fame Ceremony Overlay */}
@@ -211,19 +211,11 @@ const QuestBoard = () => {
             >
               <AlertCircle className="w-5 h-5 text-red-500 animate-pulse" />
               <div className="flex flex-col items-center">
-                <h2 className="showdown-header text-[12px] font-black uppercase tracking-[0.4em] text-red-500 italic">
-                  SUNDAY NIGHT SHOWDOWN:{" "}
-                  <span className="text-white">2X XP ACTIVE</span>
+                <h2 className="showdown-header text-[10px] font-black uppercase tracking-[0.2em] text-red-500 italic">
+                  SUNDAY SHOWDOWN: <span className="text-white">2X XP</span>
                 </h2>
               </div>
-              <Zap className="w-4 h-4 text-yellow-400 fill-current animate-bounce" />
-
-              {/* Animating scanning red line for Showdown */}
-              <motion.div
-                animate={{ x: ["-100%", "100%"] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                className="absolute bottom-0 left-0 w-1/2 h-[1px] bg-red-500 shadow-[0_0_10px_#ff0000]"
-              />
+              <Zap className="w-4 h-4 text-yellow-400 fill-current" />
             </motion.div>
           ) : (
             <motion.div
@@ -234,10 +226,10 @@ const QuestBoard = () => {
               className="flex items-center justify-center gap-4 py-2 px-6"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-blue-400 uppercase tracking-widest">
-                  Next Weekly Reset:
+                <span className="text-[9px] font-mono text-blue-400 uppercase tracking-widest">
+                  Weekly Reset:
                 </span>
-                <span className="text-xs font-black font-mono text-white tracking-widest">
+                <span className="text-[10px] font-black font-mono text-white tracking-widest">
                   {nextReset}
                 </span>
               </div>
@@ -247,139 +239,90 @@ const QuestBoard = () => {
       </div>
 
       <div className="relative z-10 p-4 pt-8 container mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <header className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-['Orbitron'] font-black text-transparent bg-clip-text bg-gradient-to-r from-neon-purple to-blue-400 italic tracking-tighter drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">
-                QUEST BOARD
-              </h1>
-              <div className="flex items-center gap-2 text-xs text-gray-400 font-mono mt-1">
-                <MapPin className="w-3 h-3 text-neon-purple" />
-                <span className="uppercase tracking-widest">
-                  Sector: {city}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end">
-              <div className="text-[10px] uppercase font-black text-gray-500 mb-1 tracking-widest">
-                Operative Status
-              </div>
-              <div className="bg-black/40 backdrop-blur-md border border-neon-purple/50 rounded-lg px-4 py-2 text-sm font-black text-neon-purple italic shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                LV. {user?.level || 1}
-              </div>
-            </div>
-          </header>
-        </div>
-
-        {/* Top Controls Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          {/* Daily Bounty Panel */}
-          <div className="lg:col-span-3">
-            <DailyBounty />
-          </div>
-
-          {/* Private Channel Access */}
-          <div className="lg:col-span-1 p-5 glassmorphism-dark rounded-2xl border border-white/10 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Shield className="w-24 h-24 text-neon-purple" />
-            </div>
-
-            <h3 className="text-xs font-black uppercase text-neon-purple tracking-widest mb-3 flex items-center gap-2">
-              <Lock className="w-3 h-3" /> Private Channel
-            </h3>
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const code = e.target.code.value;
-                if (!code || code.length < 6 || !user?.uid) return;
-                try {
-                  const qId = await joinQuestByCode(code, user.uid);
-                  navigate(`/lobby/${qId}`);
-                } catch (err) {
-                  console.error(err);
-                }
-              }}
-              className="flex flex-col gap-2"
-            >
-              <input
-                name="code"
-                type="text"
-                maxLength={6}
-                placeholder="ACCESS CODE"
-                onChange={async (e) => {
-                  const code = e.target.value;
-                  if (code.length === 6 && user?.uid) {
-                    try {
-                      const qId = await joinQuestByCode(code, user.uid);
-                      navigate(`/lobby/${qId}`);
-                      e.target.value = "";
-                    } catch (err) {
-                      console.error(err);
-                    }
-                  }
-                }}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-[0.4em] uppercase text-white placeholder-gray-700 focus:border-neon-purple outline-none focus:shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-all"
-              />
-            </form>
-          </div>
-        </div>
-
-        {/* Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Column: Filters & Quest Grid */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Search & Filters */}
-            <div className="sticky top-20 z-30 bg-dark-bg/80 backdrop-blur-xl p-4 rounded-2xl border border-white/5 shadow-2xl">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder="Search active missions..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:border-neon-purple outline-none transition-all"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Content Column */}
+          <div className="lg:col-span-8">
+            {/* Header */}
+            <div className="mb-8">
+              <header className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-4xl font-['Orbitron'] font-black text-transparent bg-clip-text bg-gradient-to-r from-neon-purple to-blue-400 italic tracking-tighter shadow-neon-purple mb-2">
+                    QUEST BOARD
+                  </h1>
+                  <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
+                    <MapPin className="w-3 h-3 text-neon-purple" />
+                    <span className="uppercase tracking-[0.2em]">
+                      Sector: {city}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar md:pb-0">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.name}
-                      onClick={() => setFilter(cat.name)}
-                      className={`flex items-center gap-2 px-6 py-3 rounded-xl whitespace-nowrap transition-all duration-300 font-black text-[10px] uppercase tracking-widest border ${
-                        filter === cat.name
-                          ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_20px_rgba(168,85,247,0.4)]"
-                          : "bg-black/20 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <cat.icon className="w-3.5 h-3.5" />
-                      {cat.name}
-                    </button>
-                  ))}
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black font-mono text-gray-500 uppercase tracking-widest mb-1.5">
+                    Operative Status
+                  </span>
+                  <div className="bg-black/40 backdrop-blur-md border border-neon-purple/50 rounded-xl px-4 py-2 text-sm font-black text-neon-purple italic shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                    LV. {user?.level || 1}
+                  </div>
+                </div>
+              </header>
+            </div>
+
+            {/* Daily Bounty Section */}
+            <div className="mb-6">
+              <DailyBounty />
+            </div>
+
+            {/* Search & Filter Component */}
+            <div className="mb-8">
+              <div className="bg-dark-bg/80 backdrop-blur-xl p-3 rounded-2xl border border-white/5 shadow-2xl">
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Search missions..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-neon-purple outline-none transition-all"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.name}
+                        onClick={() => setFilter(cat.name)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-300 font-black text-[9px] uppercase tracking-widest border ${
+                          filter === cat.name
+                            ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                            : "bg-black/20 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <cat.icon className="w-3 h-3" />
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 3-Column Quest Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Quest Grid - Restored for Desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
               <AnimatePresence mode="popLayout">
                 {filteredQuests.length > 0 ? (
                   filteredQuests.map((quest) => (
                     <motion.div
                       key={quest.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       exit={{
                         opacity: 0,
-                        scale: 0.9,
+                        scale: 0.95,
                         transition: { duration: 0.2 },
                       }}
-                      className="quest-card-item"
                     >
-                      <Link to={`/quest/${quest.id}`} className="block group">
+                      <Link to={`/quest/${quest.id}`} className="block">
                         <QuestCard
                           quest={quest}
                           hub={hubs.find(
@@ -391,42 +334,89 @@ const QuestBoard = () => {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="col-span-full py-24 glassmorphism-dark rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center">
-                    <div className="w-20 h-20 bg-neon-purple/5 rounded-full flex items-center justify-center mb-6">
-                      <Zap className="w-10 h-10 text-gray-700 animate-pulse" />
+                  <div className="md:col-span-2 py-16 glassmorphism-dark rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-neon-purple/5 rounded-full flex items-center justify-center mb-4">
+                      <Zap className="w-8 h-8 text-gray-700 animate-pulse" />
                     </div>
-                    <h3 className="text-xl font-black text-gray-600 uppercase tracking-widest mb-2">
+                    <h3 className="text-sm font-black text-gray-600 uppercase tracking-widest mb-2">
                       No Signal Found
                     </h3>
-                    <p className="text-gray-600 font-mono text-xs uppercase tracking-tight">
-                      Adjust frequences or broaden search parameters.
+                    <p className="text-gray-600 font-mono text-[9px] uppercase tracking-tight">
+                      Try broadening search parameters.
                     </p>
                   </div>
                 )}
               </AnimatePresence>
             </div>
+
+            <div className="pt-8 pb-32 border-t border-white/5 lg:hidden">
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">
+                  The Tavern • Live Feed
+                </h3>
+              </div>
+              <LiveFeed />
+            </div>
           </div>
 
-          {/* Right Column: Live Feed */}
-          <div className="hidden lg:block lg:col-span-1 border-l border-neon-purple/10 pl-6">
-            <div className="sticky top-24">
+          {/* Sidebar Column (Desktop Only) */}
+          <div className="hidden lg:block lg:col-span-4 sticky top-8 h-fit space-y-6">
+            {/* Private Channel Access */}
+            <div className="p-6 glassmorphism-dark rounded-3xl border border-white/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Lock className="w-12 h-12 text-neon-purple" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase text-neon-purple tracking-[0.3em] mb-4 flex items-center gap-2">
+                <Lock className="w-3 h-3" /> Private Channel
+              </h3>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const code = e.target.code.value;
+                  if (!code || code.length < 6 || !user?.uid) return;
+                  try {
+                    const qId = await joinQuestByCode(code, user.uid);
+                    navigate(`/lobby/${qId}`);
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                className="relative"
+              >
+                <input
+                  name="code"
+                  type="text"
+                  maxLength={6}
+                  placeholder="ACCESS CODE"
+                  className="w-full bg-black/50 border border-white/10 rounded-2xl px-4 py-4 text-center text-lg font-mono tracking-[0.4em] uppercase text-white placeholder-gray-800 focus:border-neon-purple outline-none transition-all"
+                />
+              </form>
+            </div>
+
+            {/* Live Feed Sidebar */}
+            <div className="glassmorphism-dark rounded-3xl p-6 border border-white/5">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">
+                  The Tavern • Live Feed
+                </h3>
+              </div>
               <LiveFeed />
             </div>
           </div>
         </div>
 
-        {/* Mobile Live Feed Stack */}
-        <div className="lg:hidden mt-12 pb-32">
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-700 to-transparent mb-8" />
-          <LiveFeed />
-        </div>
-
-        {/* Floating Action Button */}
-        <Link to="/create-quest" className="fixed bottom-8 right-8 z-50 group">
+        {/* Floating Action Button - Position adjusted for app feel */}
+        <Link
+          to="/create-quest"
+          className="fixed bottom-28 right-6 z-50 group sm:bottom-8 sm:right-8"
+        >
           <div className="absolute inset-0 bg-neon-purple blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-          <div className="relative bg-black border border-neon-purple shadow-[0_0_30px_rgba(168,85,247,0.4)] p-4 rounded-2xl flex items-center gap-3 transition-transform duration-300 hover:scale-105 hover:-rotate-1 active:scale-95">
-            <Plus className="w-6 h-6 text-white" />
-            <span className="font-black italic text-white tracking-wider pr-1">
+          <div className="relative bg-black border border-neon-purple shadow-[0_0_30px_rgba(168,85,247,0.4)] px-4 py-3 rounded-2xl flex items-center gap-2 transition-transform duration-300 hover:scale-105 active:scale-95">
+            <Plus className="w-5 h-5 text-white" />
+            <span className="font-black italic text-xs text-white tracking-widest">
               POST MISSION
             </span>
           </div>

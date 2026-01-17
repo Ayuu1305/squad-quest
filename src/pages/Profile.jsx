@@ -38,7 +38,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen pt-6 bg-dark-bg relative">
+    <div className="min-h-screen bg-dark-bg pb-32">
       <AnimatePresence>
         {showEditModal && (
           <EditProfileModal
@@ -48,122 +48,122 @@ const Profile = () => {
         )}
       </AnimatePresence>
 
-      {/* Profile Header */}
-      <header className="px-6 flex items-center justify-between mb-8">
-        <button
-          onClick={() => navigate("/board")}
-          className="p-3 glassmorphism rounded-xl hover:bg-white/10 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-400" />
-        </button>
-        <h1 className="text-xl font-['Orbitron'] font-black text-white uppercase italic tracking-tighter">
-          Hero Profile
-        </h1>
-        <div className="flex gap-2">
+      <div className="container mx-auto max-w-7xl px-4 md:px-8">
+        {/* Profile Header */}
+        <header className="py-8 flex items-center justify-between">
           <button
-            onClick={handleSwitchRealm}
-            className="p-3 glassmorphism rounded-xl hover:text-neon-purple transition-colors flex items-center gap-2 group"
-            title="Switch Realm"
+            onClick={() => navigate("/board")}
+            className="p-3 glassmorphism rounded-xl hover:bg-white/10 transition-colors"
           >
-            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-neon-purple" />
-            <span className="text-[10px] font-black uppercase hidden sm:inline">
-              Realm
-            </span>
+            <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
-          <button
-            onClick={handleLogout}
-            className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2 group"
-            title="Sign Out"
-          >
-            <Power className="w-5 h-5 text-red-400" />
-            <span className="text-[10px] font-black uppercase hidden sm:inline text-red-400">
-              Exit
-            </span>
-          </button>
-        </div>
-      </header>
 
-      <HeroProfile user={user} onEdit={() => setShowEditModal(true)} />
+          <div className="flex gap-4">
+            <button
+              onClick={handleSwitchRealm}
+              className="p-3 glassmorphism rounded-xl hover:text-neon-purple transition-colors flex items-center gap-2 group"
+              title="Switch Realm"
+            >
+              <LogOut className="w-5 h-5 text-gray-400 group-hover:text-neon-purple" />
+              <span className="text-[10px] font-black uppercase hidden sm:inline">
+                Realm
+              </span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2 group"
+              title="Sign Out"
+            >
+              <Power className="w-5 h-5 text-red-400" />
+              <span className="text-[10px] font-black uppercase hidden sm:inline text-red-400">
+                Exit
+              </span>
+            </button>
+          </div>
+        </header>
 
-      {/* Safety Section */}
-      <footer className="px-6 py-12 space-y-8">
-        <div className="p-6 glassmorphism-dark rounded-3xl border border-neon-purple/20 bg-gradient-to-br from-neon-purple/5 to-transparent">
-          <div className="flex items-center gap-3 mb-4">
-            <ShieldCheck className="w-6 h-6 text-neon-purple" />
-            <h2 className="text-lg font-black font-['Orbitron'] text-white uppercase italic tracking-tighter">
-              Safety Guidelines
-            </h2>
+        <HeroProfile user={user} onEdit={() => setShowEditModal(true)} />
+
+        {/* Safety Section */}
+        <footer className="py-12 space-y-8">
+          <div className="p-6 glassmorphism-dark rounded-3xl border border-neon-purple/20 bg-gradient-to-br from-neon-purple/5 to-transparent">
+            <div className="flex items-center gap-3 mb-4">
+              <ShieldCheck className="w-6 h-6 text-neon-purple" />
+              <h2 className="text-lg font-black font-['Orbitron'] text-white uppercase italic tracking-tighter">
+                Safety Guidelines
+              </h2>
+            </div>
+
+            <div className="space-y-4 mb-8">
+              <div className="flex gap-3">
+                <div className="h-2 w-2 rounded-full bg-neon-purple mt-1.5 shrink-0" />
+                <p className="text-xs text-gray-400 leading-relaxed font-mono uppercase tracking-tight">
+                  Always meet in the designated Hub location. Never divert to
+                  unknown sectors.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <div className="h-2 w-2 rounded-full bg-neon-purple mt-1.5 shrink-0" />
+                <p className="text-xs text-gray-400 leading-relaxed font-mono uppercase tracking-tight">
+                  Squad Quest is a community of Heroes. Respect the Realm and
+                  its inhabitants.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-black/40 rounded-2xl border border-white/5 space-y-4">
+              <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                <HeartPulse className="w-3.5 h-3.5" />
+                Ahmedabad Emergency Contacts
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold">
+                    {" "}
+                    Police{" "}
+                  </div>
+                  <div className="text-white font-mono flex items-center gap-2">
+                    <PhoneCall className="w-3 h-3 text-neon-purple" /> 100
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold">
+                    {" "}
+                    Ambulance{" "}
+                  </div>
+                  <div className="text-white font-mono flex items-center gap-2">
+                    <PhoneCall className="w-3 h-3 text-neon-purple" /> 108
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold">
+                    {" "}
+                    Women Help{" "}
+                  </div>
+                  <div className="text-white font-mono flex items-center gap-2">
+                    <PhoneCall className="w-3 h-3 text-neon-purple" /> 181
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold">
+                    {" "}
+                    Fire{" "}
+                  </div>
+                  <div className="text-white font-mono flex items-center gap-2">
+                    <PhoneCall className="w-3 h-3 text-neon-purple" /> 101
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-4 mb-8">
-            <div className="flex gap-3">
-              <div className="h-2 w-2 rounded-full bg-neon-purple mt-1.5 shrink-0" />
-              <p className="text-xs text-gray-400 leading-relaxed font-mono uppercase tracking-tight">
-                Always meet in the designated Hub location. Never divert to
-                unknown sectors.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <div className="h-2 w-2 rounded-full bg-neon-purple mt-1.5 shrink-0" />
-              <p className="text-xs text-gray-400 leading-relaxed font-mono uppercase tracking-tight">
-                Squad Quest is a community of Heroes. Respect the Realm and its
-                inhabitants.
-              </p>
-            </div>
+          <div className="text-center">
+            <p className="text-[10px] text-gray-600 font-black uppercase tracking-[0.2em]">
+              Squad Quest • Ahmedabad Launch v1.0
+            </p>
           </div>
-
-          <div className="p-4 bg-black/40 rounded-2xl border border-white/5 space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
-              <HeartPulse className="w-3.5 h-3.5" />
-              Ahmedabad Emergency Contacts
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <div className="text-[10px] text-gray-500 uppercase font-bold">
-                  Police
-                </div>
-                <div className="text-white font-mono flex items-center gap-2">
-                  <PhoneCall className="w-3 h-3 text-neon-purple" />
-                  100
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] text-gray-500 uppercase font-bold">
-                  Ambulance
-                </div>
-                <div className="text-white font-mono flex items-center gap-2">
-                  <PhoneCall className="w-3 h-3 text-neon-purple" />
-                  108
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] text-gray-500 uppercase font-bold">
-                  Women Help
-                </div>
-                <div className="text-white font-mono flex items-center gap-2">
-                  <PhoneCall className="w-3 h-3 text-neon-purple" />
-                  181
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] text-gray-500 uppercase font-bold">
-                  Fire
-                </div>
-                <div className="text-white font-mono flex items-center gap-2">
-                  <PhoneCall className="w-3 h-3 text-neon-purple" />
-                  101
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <p className="text-[10px] text-gray-600 font-black uppercase tracking-[0.2em]">
-            Squad Quest • Ahmedabad Launch v1.0
-          </p>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 };
