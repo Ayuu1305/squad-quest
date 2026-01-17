@@ -62,27 +62,11 @@ const QuestBoard = () => {
       setQuests(data);
     });
 
-    const hubsRef = collection(db, "hubs");
-    const unsubHubs = onSnapshot(
-      hubsRef,
-      (snapshot) => {
-        const hubsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setHubs(hubsData);
-      },
-      (error) => {
-        // ✅ Ignore permission-denied during logout
-        if (error?.code === "permission-denied") return;
-        console.error("Hubs listener error:", error);
-      },
-    );
+    
 
     return () => {
       clearInterval(timer);
       unsubQuests();
-      unsubHubs();
     };
   }, [user?.uid]);
 
@@ -329,10 +313,7 @@ const QuestBoard = () => {
                       <Link to={`/quest/${quest.id}`} className="block">
                         <QuestCard
                           quest={quest}
-                          hub={hubs.find(
-                            (h) =>
-                              h.id === quest.hubId || h.name === quest.hubName,
-                          )}
+                          hub={null}
                         />
                       </Link>
                     </motion.div>

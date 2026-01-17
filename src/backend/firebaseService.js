@@ -199,11 +199,7 @@ export const joinQuest = async (questId, userId) => {
       joinedAt: serverTimestamp(),
     });
 
-    // 2.5 Sync to Main Doc
-    await updateDoc(questRef, {
-      members: arrayUnion(userId),
-      membersCount: increment(1),
-    });
+   
 
     // 3. Record in user's profile subcollection for MyMissions
     try {

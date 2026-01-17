@@ -3,9 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, ChevronRight, Trophy } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { subscribeToAllQuests } from "../backend/firebaseService";
 import QuestCard from "../components/QuestCard";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 
 const MyMissions = () => {
@@ -14,76 +13,82 @@ const MyMissions = () => {
 
   const [activeTab, setActiveTab] = useState("upcoming");
   const [quests, setQuests] = useState([]);
-  const [hubs, setHubs] = useState([]);
+  const [hubs, setHubs] = useState({}); // ✅ Map: { [hubId]: hubData }
   const [loading, setLoading] = useState(true);
 
+  // ✅ Source of Truth: users/{uid}/joinedQuests subcollection
+  // Then fetch each quest document individually
   useEffect(() => {
     if (!user?.uid) return;
 
-    let unsubscribeQuests = null;
-
-    // ✅ Listen joined quest IDs from: users/{uid}/joinedQuests
     const joinedRef = collection(db, "users", user.uid, "joinedQuests");
 
-    const unsubscribeJoined = onSnapshot(
+    const unsubJoined = onSnapshot(
       joinedRef,
-      (snapshot) => {
-        const joinedIds = snapshot.docs.map((doc) => doc.id);
+      async (snapshot) => {
+        const questIds = snapshot.docs.map((doc) => doc.id);
 
-        // ✅ If already subscribed, stop previous subscription before resubscribing
-        if (typeof unsubscribeQuests === "function") {
-          unsubscribeQuests();
+        if (questIds.length === 0) {
+          setQuests([]);
+          setLoading(false);
+          return;
         }
 
-        // ✅ Subscribe all quests, then filter client-side
-        unsubscribeQuests = subscribeToAllQuests(
-          (allQuests) => {
-            const myQuests = allQuests.filter(
-              (q) => joinedIds.includes(q.id) || q.hostId === user.uid,
-            );
+        // Fetch each quest document
+        const questPromises = questIds.map(async (questId) => {
+          try {
+            const questSnap = await getDoc(doc(db, "quests", questId));
+            if (questSnap.exists()) {
+              return { id: questSnap.id, ...questSnap.data() };
+            }
+          } catch (err) {
+            console.warn("Quest fetch failed:", questId, err?.code);
+          }
+          return null;
+        });
 
-            setQuests(myQuests);
-            setLoading(false);
-          },
-          (error) => {
-            console.error("MyMissions: Quests listener error:", error);
-            setLoading(false);
-          },
+        const fetchedQuests = (await Promise.all(questPromises)).filter(
+          Boolean,
         );
+        setQuests(fetchedQuests);
+        setLoading(false);
       },
-      (err) => {
-        // ✅ Ignore permission-denied during logout
-        if (err?.code === "permission-denied") return;
-        console.warn("MyMissions: JoinedQuests snapshot blocked:", err.code);
+      (error) => {
+        if (error?.code === "permission-denied") return;
+        console.warn("MyMissions: JoinedQuests listener error:", error?.code);
         setLoading(false);
       },
     );
 
-    // ✅ Hubs listener
-    const hubsRef = collection(db, "hubs");
-    const unsubHubs = onSnapshot(
-      hubsRef,
-      (snapshot) => {
-        const hubsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setHubs(hubsData);
-      },
-      (error) => {
-        // ✅ Ignore permission-denied during logout
-        if (error?.code === "permission-denied") return;
-        console.error("MyMissions: Hubs listener error:", error);
-      },
-    );
-
-    // ✅ Cleanup safely
-    return () => {
-      if (typeof unsubscribeQuests === "function") unsubscribeQuests();
-      unsubscribeJoined();
-      unsubHubs();
-    };
+    return () => unsubJoined();
   }, [user?.uid]);
+
+  // ✅ Fetch hubs per-quest (avoids collection-wide subscription and permission issues)
+  useEffect(() => {
+    if (quests.length === 0) return;
+
+    const fetchHubs = async () => {
+      const hubIds = [...new Set(quests.map((q) => q.hubId).filter(Boolean))];
+      const hubMap = {};
+
+      await Promise.all(
+        hubIds.map(async (hubId) => {
+          try {
+            const hubSnap = await getDoc(doc(db, "hubs", hubId));
+            if (hubSnap.exists()) {
+              hubMap[hubId] = { id: hubSnap.id, ...hubSnap.data() };
+            }
+          } catch (err) {
+            console.warn("Hub fetch failed:", hubId, err?.code);
+          }
+        }),
+      );
+
+      setHubs(hubMap);
+    };
+
+    fetchHubs();
+  }, [quests]);
 
   const now = new Date();
 
@@ -171,9 +176,8 @@ const MyMissions = () => {
         ) : displayQuests.length > 0 ? (
           <AnimatePresence mode="popLayout">
             {displayQuests.map((quest) => {
-              const hub = hubs.find(
-                (h) => h.id === quest.hubId || h.name === quest.hubName,
-              );
+              // ✅ Direct map lookup (hubs is now { [hubId]: hubData })
+              const hub = hubs[quest.hubId];
 
               return (
                 <motion.div

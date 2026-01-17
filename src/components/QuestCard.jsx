@@ -20,28 +20,25 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
 
   // Subscribe to Members Subcollection
   useEffect(() => {
-    if (!quest.id) return;
-    const membersRef = collection(db, "quests", quest.id, "members");
+  if (!quest.id) return;
 
-    const unsubscribe = onSnapshot(
-      membersRef,
-      (snapshot) => {
-        const membersList = snapshot.docs.map((doc) => doc.data());
-        setMembers(membersList);
+  const membersRef = collection(db, "quests", quest.id, "members");
 
-        const avatars = snapshot.docs
-          .map((doc) => doc.data().avatar)
-          .filter((a) => a);
-        setMemberAvatars(avatars.slice(0, 3));
-      },
-      (error) => {
-        // ✅ Ignore permission-denied during logout
-        if (error?.code === "permission-denied") return;
-        console.warn("Members listener suppressed:", error);
-      },
-    );
-    return unsubscribe;
-  }, [quest.id]);
+  const unsubscribe = onSnapshot(
+    membersRef,
+    (snapshot) => {
+      const memberIds = snapshot.docs.map((doc) => doc.id);
+      setMembers(memberIds);
+    },
+    (error) => {
+      if (error?.code === "permission-denied") return;
+      console.warn("Members listener error:", error);
+    }
+  );
+
+  return unsubscribe;
+}, [quest.id]);
+
 
   // Rarity styling logic for missions
   const getRarity = (difficulty = 1) => {
