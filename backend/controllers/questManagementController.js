@@ -177,7 +177,9 @@ export const leaveQuest = async (req, res) => {
 
     // Don't allow host to leave (they should delete instead)
     if (questData.hostId === userId) {
-      return res.status(403).json({ error: "Host cannot leave quest. Delete it instead." });
+      return res
+        .status(403)
+        .json({ error: "Host cannot leave quest. Delete it instead." });
     }
 
     // 2. Check if user is a member
@@ -185,24 +187,51 @@ export const leaveQuest = async (req, res) => {
     const memberSnap = await memberRef.get();
 
     if (!memberSnap.exists) {
-      return res.status(400).json({ error: "You are not a member of this quest" });
+      return res
+        .status(400)
+        .json({ error: "You are not a member of this quest" });
     }
 
-    // 3. Get user data for XP calculation
+    // 3. Check if leaving within 1 hour of quest start (penalty applies only then)
+    let isWithinOneHour = false;
+    const questStartTime = questData.startTime;
+
+    if (questStartTime) {
+      const startTimeMs = questStartTime.toDate
+        ? questStartTime.toDate().getTime()
+        : new Date(questStartTime).getTime();
+      const now = Date.now();
+      const oneHourMs = 60 * 60 * 1000; // 1 hour in milliseconds
+      const timeUntilStart = startTimeMs - now;
+
+      // Apply penalty if: quest already started OR less than 1 hour until start
+      isWithinOneHour = timeUntilStart <= oneHourMs;
+    }
+
+    // 4. Get user data for XP calculation (only if within 1 hour)
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
-    
+
     let xpPenalty = 0;
     let weeklyPenalty = 0;
-    
-    if (userSnap.exists) {
+
+    if (isWithinOneHour && userSnap.exists) {
       const userData = userSnap.data();
       const currentXP = userData.xp || 0;
       const currentWeeklyXP = userData.thisWeekXP || 0;
-      
+
       // Calculate 2% penalty (minimum 1 XP if they have any)
       xpPenalty = currentXP > 0 ? Math.max(1, Math.floor(currentXP * 0.02)) : 0;
-      weeklyPenalty = currentWeeklyXP > 0 ? Math.floor(currentWeeklyXP * 0.02) : 0;
+      weeklyPenalty =
+        currentWeeklyXP > 0
+          ? Math.max(1, Math.floor(currentWeeklyXP * 0.02))
+          : 0;
+
+      console.log(
+        `⚠️ Leaving within 1 hour - Penalty applies: XP=${xpPenalty}, Weekly=${weeklyPenalty}`,
+      );
+    } else {
+      console.log(`✅ Leaving with more than 1 hour remaining - No penalty`);
     }
 
     // 4. Batch all updates
@@ -219,32 +248,34 @@ export const leaveQuest = async (req, res) => {
     batch.delete(memberRef);
 
     // Delete from user's joinedQuests
-    const joinedQuestRef = db.collection("users").doc(userId).collection("joinedQuests").doc(questId);
+    const joinedQuestRef = db
+      .collection("users")
+      .doc(userId)
+      .collection("joinedQuests")
+      .doc(questId);
     batch.delete(joinedQuestRef);
 
-    // Apply XP penalty to user
-    if (xpPenalty > 0 || weeklyPenalty > 0) {
-      const userUpdate = {
+    // Apply XP penalty to user (both xp and thisWeekXP)
+    if (xpPenalty > 0) {
+      batch.update(userRef, {
+        xp: admin.firestore.FieldValue.increment(-xpPenalty),
+        thisWeekXP: admin.firestore.FieldValue.increment(-weeklyPenalty),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-      
-      if (xpPenalty > 0) {
-        userUpdate.xp = admin.firestore.FieldValue.increment(-xpPenalty);
-      }
-      if (weeklyPenalty > 0) {
-        userUpdate.thisWeekXP = admin.firestore.FieldValue.increment(-weeklyPenalty);
-      }
-      
-      batch.update(userRef, userUpdate);
+      });
+      console.log(
+        `📉 Applying penalty to user: xp=-${xpPenalty}, thisWeekXP=-${weeklyPenalty}`,
+      );
     }
 
     // Commit all changes
     await batch.commit();
 
-    console.log(`✅ User ${userId} left quest ${questId}. XP penalty: -${xpPenalty} (weekly: -${weeklyPenalty})`);
-    
-    res.json({ 
-      success: true, 
+    console.log(
+      `✅ User ${userId} left quest ${questId}. XP penalty: -${xpPenalty} (weekly: -${weeklyPenalty})`,
+    );
+
+    res.json({
+      success: true,
       message: "Left quest successfully",
       xpPenalty,
       weeklyPenalty,
