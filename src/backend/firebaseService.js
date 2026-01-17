@@ -235,57 +235,29 @@ export const joinQuest = async (questId, userId, secretCode = null) => {
 
 export const leaveQuest = async (questId, userId) => {
   try {
-    const questRef = doc(db, "quests", questId);
-    const memberRef = doc(db, "quests", questId, "members", userId);
-    const joinedQuestRef = doc(db, "users", userId, "joinedQuests", questId);
-    const userRef = doc(db, "users", userId);
+    const token = await getAuthToken();
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-    // 1. First update quest members array and count (while member still exists for permission check)
-    await updateDoc(questRef, {
-      members: arrayRemove(userId),
-      membersCount: increment(-1),
-      updatedAt: serverTimestamp(),
+    const response = await fetch(`${API_URL}/quest/${questId}/leave`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
 
-    // 2. Delete member document from quest subcollection
-    await deleteDoc(memberRef);
+    const result = await response.json();
 
-    // 3. Delete from user's joinedQuests
-    try {
-      await deleteDoc(joinedQuestRef);
-    } catch (err) {
-      console.warn("Failed to delete joinedQuest (may not exist):", err?.code);
+    if (!response.ok) {
+      throw new Error(result.error || "Failed to leave quest");
     }
 
-    // ✅ 4. Deduct 2% XP penalty for leaving quest
-    try {
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const currentXP = userData.xp || 0;
-        const currentWeeklyXP = userData.thisWeekXP || 0;
-
-        // Calculate 2% penalty (minimum 1 XP if they have any)
-        const xpPenalty = Math.max(1, Math.floor(currentXP * 0.02));
-        const weeklyPenalty = Math.max(0, Math.floor(currentWeeklyXP * 0.02));
-
-        // Update user profile XP
-        await updateDoc(userRef, {
-          xp: increment(-xpPenalty),
-          thisWeekXP: increment(-weeklyPenalty),
-          updatedAt: serverTimestamp(),
-        });
-
-        console.log(
-          `⚠️ Applied 2% XP penalty: -${xpPenalty} XP (weekly: -${weeklyPenalty})`,
-        );
-      }
-    } catch (xpErr) {
-      console.warn("XP penalty failed (non-critical):", xpErr?.message);
-    }
-
-    console.log(`✅ Left quest: ${questId}`);
-    return { success: true };
+    console.log(`✅ Left quest: ${questId}. XP penalty: -${result.xpPenalty}`);
+    return {
+      success: true,
+      xpPenalty: result.xpPenalty,
+      weeklyPenalty: result.weeklyPenalty,
+    };
   } catch (error) {
     console.error("❌ Leave quest failed:", error);
     throw new Error(error.message || "Failed to leave quest");

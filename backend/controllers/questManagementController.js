@@ -153,13 +153,104 @@ export const editQuest = async (req, res) => {
 };
 
 /**
- * DELETE QUEST - Host only
- * Deletes quest document and all subcollections (members, chat, verifications)
+ * LEAVE QUEST - Member only (not host)
+ * Removes member from quest and applies 2% XP penalty
  */
+export const leaveQuest = async (req, res) => {
+  try {
+    const { questId } = req.params;
+    const userId = req.user.uid;
 
+    if (!questId) {
+      return res.status(400).json({ error: "Quest ID required" });
+    }
 
-/**
- * EDIT QUEST - Host only
- * Updates quest details (excluding protected fields)
- */
+    // 1. Verify quest exists
+    const questRef = db.collection("quests").doc(questId);
+    const questSnap = await questRef.get();
 
+    if (!questSnap.exists) {
+      return res.status(404).json({ error: "Quest not found" });
+    }
+
+    const questData = questSnap.data();
+
+    // Don't allow host to leave (they should delete instead)
+    if (questData.hostId === userId) {
+      return res.status(403).json({ error: "Host cannot leave quest. Delete it instead." });
+    }
+
+    // 2. Check if user is a member
+    const memberRef = questRef.collection("members").doc(userId);
+    const memberSnap = await memberRef.get();
+
+    if (!memberSnap.exists) {
+      return res.status(400).json({ error: "You are not a member of this quest" });
+    }
+
+    // 3. Get user data for XP calculation
+    const userRef = db.collection("users").doc(userId);
+    const userSnap = await userRef.get();
+    
+    let xpPenalty = 0;
+    let weeklyPenalty = 0;
+    
+    if (userSnap.exists) {
+      const userData = userSnap.data();
+      const currentXP = userData.xp || 0;
+      const currentWeeklyXP = userData.thisWeekXP || 0;
+      
+      // Calculate 2% penalty (minimum 1 XP if they have any)
+      xpPenalty = currentXP > 0 ? Math.max(1, Math.floor(currentXP * 0.02)) : 0;
+      weeklyPenalty = currentWeeklyXP > 0 ? Math.floor(currentWeeklyXP * 0.02) : 0;
+    }
+
+    // 4. Batch all updates
+    const batch = db.batch();
+
+    // Update quest - remove from members array and decrement count
+    batch.update(questRef, {
+      members: admin.firestore.FieldValue.arrayRemove(userId),
+      membersCount: admin.firestore.FieldValue.increment(-1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Delete member document
+    batch.delete(memberRef);
+
+    // Delete from user's joinedQuests
+    const joinedQuestRef = db.collection("users").doc(userId).collection("joinedQuests").doc(questId);
+    batch.delete(joinedQuestRef);
+
+    // Apply XP penalty to user
+    if (xpPenalty > 0 || weeklyPenalty > 0) {
+      const userUpdate = {
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      
+      if (xpPenalty > 0) {
+        userUpdate.xp = admin.firestore.FieldValue.increment(-xpPenalty);
+      }
+      if (weeklyPenalty > 0) {
+        userUpdate.thisWeekXP = admin.firestore.FieldValue.increment(-weeklyPenalty);
+      }
+      
+      batch.update(userRef, userUpdate);
+    }
+
+    // Commit all changes
+    await batch.commit();
+
+    console.log(`✅ User ${userId} left quest ${questId}. XP penalty: -${xpPenalty} (weekly: -${weeklyPenalty})`);
+    
+    res.json({ 
+      success: true, 
+      message: "Left quest successfully",
+      xpPenalty,
+      weeklyPenalty,
+    });
+  } catch (error) {
+    console.error("Leave quest error:", error);
+    res.status(500).json({ error: error.message || "Failed to leave quest" });
+  }
+};

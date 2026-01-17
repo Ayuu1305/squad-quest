@@ -54,6 +54,7 @@ import { getWeeklyLeaderboard } from "./controllers/leaderboardController.js";
 import {
   deleteQuest,
   editQuest,
+  leaveQuest,
 } from "./controllers/questManagementController.js";
 
 // Routes
@@ -65,6 +66,7 @@ app.get("/api/leaderboard/weekly", verifyToken, getWeeklyLeaderboard);
 // ✅ NEW: Quest Management Routes
 app.delete("/api/quest/:questId", verifyToken, deleteQuest);
 app.put("/api/quest/:questId", verifyToken, editQuest);
+app.post("/api/quest/:questId/leave", verifyToken, leaveQuest);
 
 app.get("/", (req, res) => {
   res.send("Squad Quest Backend is Running ✅");
