@@ -84,6 +84,20 @@ export const onboardHero = async (user) => {
         createdAt: serverTimestamp(),
       });
 
+      // ✅ NEW: Log new hero signup to global activity
+      try {
+        await addDoc(collection(db, "global_activity"), {
+          type: "hero_joined",
+          userId: user.uid,
+          user: user.displayName || "New Hero",
+          action: "joined the squad",
+          target: "Squad Quest",
+          timestamp: serverTimestamp(),
+        });
+      } catch (err) {
+        console.warn("Failed to log hero signup activity:", err);
+      }
+
       console.log("New Hero Onboarded (Profile + Stats Locked)!");
     } else {
       console.log("Welcome back, Legend.");
@@ -368,6 +382,20 @@ export const createQuest = async (questData) => {
 
   // Auto-join host
   await joinQuest(docRef.id, questData.hostId);
+
+  // ✅ NEW: Log quest creation to global activity
+  try {
+    await addDoc(collection(db, "global_activity"), {
+      type: "quest_created",
+      userId: questData.hostId,
+      user: questData.hostName || "Unknown Hero",
+      action: `posted new mission`,
+      target: questData.title || "New Mission",
+      timestamp: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn("Failed to log quest creation activity:", err);
+  }
 
   return docRef.id;
 };

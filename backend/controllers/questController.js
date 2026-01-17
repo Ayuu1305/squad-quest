@@ -133,7 +133,7 @@ export const finalizeQuest = async (req, res) => {
         { merge: true },
       );
 
-      // ✅ global activity log - Standardized Keys
+      // ✅ global activity log - Quest Completion
       const activityRef = db.collection("global_activity").doc();
       t.set(activityRef, {
         type: "quest",
@@ -143,6 +143,23 @@ export const finalizeQuest = async (req, res) => {
         target: qData.title || "Quest",
         earnedXP,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // ✅ NEW: Log badge unlocks
+      const newlyUnlockedBadges = newBadges.filter(
+        (badge) => !currentStats.badges || !currentStats.badges.includes(badge),
+      );
+
+      newlyUnlockedBadges.forEach((badge) => {
+        const badgeActivityRef = db.collection("global_activity").doc();
+        t.set(badgeActivityRef, {
+          type: "badge",
+          userId: uid,
+          user: memberDoc.data().name || "Unknown Hero",
+          action: `unlocked ${badge} badge`,
+          target: badge,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
       });
 
       return {
