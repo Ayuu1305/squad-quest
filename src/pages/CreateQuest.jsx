@@ -29,6 +29,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
+import toast from "react-hot-toast";
 
 const CreateQuest = () => {
   const { user } = useAuth();
@@ -121,7 +122,7 @@ const CreateQuest = () => {
     }
     if (!user?.city) {
       alert(
-        "CRITICAL: Your sector (city) is unknown. Update your profile first."
+        "CRITICAL: Your sector (city) is unknown. Update your profile first.",
       );
       return;
     }
@@ -148,6 +149,19 @@ const CreateQuest = () => {
         male: "Male",
       };
 
+      // ✅ NEW: Validate start time is in the future
+      const startTimeDate = new Date(formData.startTime);
+      const now = new Date();
+
+      if (startTimeDate <= now) {
+        toast.error("Start time must be in the future! Choose a later time.", {
+          icon: "⏰",
+          duration: 4000,
+        });
+        setLoading(false);
+        return;
+      }
+
       const questData = {
         title: formData.title,
         objective: formData.objective,
@@ -160,7 +174,7 @@ const CreateQuest = () => {
         genderRequirement:
           genderRequirementMap[formData.genderPreference] || "Everyone",
         maxPlayers: maxCapacityNum,
-        startTime: new Date(formData.startTime), // Firestore Timestamp via SDK
+        startTime: startTimeDate, // Firestore Timestamp via SDK
         hostId: user.uid,
         hostName: user.name || user.displayName || "Unknown Hero",
         hubId: selectedHub.id,
@@ -336,8 +350,8 @@ const CreateQuest = () => {
                 {pref === "everyone"
                   ? "Everyone"
                   : pref === "female"
-                  ? "Females Only"
-                  : "Males Only"}
+                    ? "Females Only"
+                    : "Males Only"}
               </button>
             ))}
           </div>

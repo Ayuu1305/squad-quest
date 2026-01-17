@@ -257,6 +257,33 @@ export const leaveQuest = async (questId, userId) => {
       console.warn("Failed to delete joinedQuest (may not exist):", err?.code);
     }
 
+    // ✅ 4. Deduct 2% XP penalty for leaving quest
+    try {
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const currentXP = userData.xp || 0;
+        const currentWeeklyXP = userData.thisWeekXP || 0;
+
+        // Calculate 2% penalty (minimum 1 XP if they have any)
+        const xpPenalty = Math.max(1, Math.floor(currentXP * 0.02));
+        const weeklyPenalty = Math.max(0, Math.floor(currentWeeklyXP * 0.02));
+
+        // Update user profile XP
+        await updateDoc(userRef, {
+          xp: increment(-xpPenalty),
+          thisWeekXP: increment(-weeklyPenalty),
+          updatedAt: serverTimestamp(),
+        });
+
+        console.log(
+          `⚠️ Applied 2% XP penalty: -${xpPenalty} XP (weekly: -${weeklyPenalty})`,
+        );
+      }
+    } catch (xpErr) {
+      console.warn("XP penalty failed (non-critical):", xpErr?.message);
+    }
+
     console.log(`✅ Left quest: ${questId}`);
     return { success: true };
   } catch (error) {
