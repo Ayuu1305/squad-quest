@@ -154,7 +154,11 @@ const QuestBoard = () => {
     });
 
   // GSAP Background Effects (Showdown Pulse)
+  // GSAP Background Effects (Showdown Pulse)
   useGSAP(() => {
+    // Disable on mobile/touch devices for performance
+    if (window.innerWidth < 768) return;
+
     if (activeShowdown) {
       gsap.to(containerRef.current, {
         backgroundColor: "#1a0000",
@@ -162,7 +166,7 @@ const QuestBoard = () => {
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut",
-        overwrite: "auto", // Ensure clean overwrites
+        overwrite: "auto",
       });
 
       gsap.to(".showdown-header", {
@@ -276,65 +280,74 @@ const QuestBoard = () => {
                 <DailyBounty />
               </div>
 
-              {/* Private Channel Access */}
-              <div className="p-4 glassmorphism-dark rounded-2xl border border-white/5 relative overflow-hidden group lg:w-80">
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Lock className="w-10 h-10 text-neon-purple" />
+              {/* Private Channel Access - Redesigned */}
+              <div className="p-1 rounded-2xl bg-gradient-to-br from-white/10 to-transparent border border-white/5 shadow-2xl lg:w-80 group hover:border-neon-purple/30 transition-colors duration-500">
+                <div className="h-full bg-black/40 backdrop-blur-xl rounded-xl p-5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity duration-500">
+                    <Lock className="w-12 h-12 text-neon-purple animate-pulse-slow" />
+                  </div>
+
+                  <h3 className="text-[10px] font-black uppercase text-neon-purple tracking-[0.3em] mb-4 flex items-center gap-2">
+                    <Lock className="w-3 h-3 animate-pulse" /> Private Channel
+                  </h3>
+
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const code = e.target.code.value;
+                      if (!code || code.length < 6 || !user?.uid) return;
+                      try {
+                        const qId = await joinQuestByCode(code, user.uid);
+                        navigate(`/lobby/${qId}`);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                    className="relative"
+                  >
+                    <input
+                      name="code"
+                      type="text"
+                      maxLength={6}
+                      placeholder="ACCESS CODE"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-center text-sm font-mono tracking-[0.4em] uppercase text-white placeholder-gray-700 focus:border-neon-purple focus:shadow-[0_0_15px_rgba(168,85,247,0.3)] outline-none transition-all duration-300"
+                    />
+                  </form>
                 </div>
-                <h3 className="text-[10px] font-black uppercase text-neon-purple tracking-[0.3em] mb-3 flex items-center gap-2">
-                  <Lock className="w-3 h-3" /> Private Channel
-                </h3>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const code = e.target.code.value;
-                    if (!code || code.length < 6 || !user?.uid) return;
-                    try {
-                      const qId = await joinQuestByCode(code, user.uid);
-                      navigate(`/lobby/${qId}`);
-                    } catch (err) {
-                      console.error(err);
-                    }
-                  }}
-                  className="relative"
-                >
-                  <input
-                    name="code"
-                    type="text"
-                    maxLength={6}
-                    placeholder="ACCESS CODE"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-center text-sm font-mono tracking-[0.4em] uppercase text-white placeholder-gray-800 focus:border-neon-purple outline-none transition-all"
-                  />
-                </form>
               </div>
             </div>
 
-            {/* Search & Filter Component */}
+            {/* Search & Filter Component - Redesigned */}
             <div className="mb-8">
-              <div className="bg-dark-bg/80 backdrop-blur-xl p-3 rounded-2xl border border-white/5 shadow-2xl">
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <div className="bg-dark-bg/80 backdrop-blur-xl p-4 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-purple/5 to-blue-500/5 pointer-events-none" />
+
+                <div className="space-y-4 relative z-10">
+                  <div className="relative group">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-neon-purple transition-colors duration-300" />
                     <input
                       type="text"
-                      placeholder="Search missions..."
-                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-neon-purple outline-none transition-all"
+                      placeholder="SEARCH MISSIONS..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-xs font-bold tracking-wider text-white placeholder-gray-600 focus:border-neon-purple/50 focus:bg-black/60 focus:shadow-[0_0_20px_rgba(168,85,247,0.1)] outline-none transition-all duration-300 uppercase"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+
+                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                     {categories.map((cat) => (
                       <button
                         key={cat.name}
                         onClick={() => setFilter(cat.name)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-300 font-black text-[9px] uppercase tracking-widest border ${
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg whitespace-nowrap transition-all duration-300 font-black text-[9px] uppercase tracking-widest border backdrop-blur-md ${
                           filter === cat.name
-                            ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                            : "bg-black/20 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
+                            ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-105"
+                            : "bg-black/20 text-gray-500 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20"
                         }`}
                       >
-                        <cat.icon className="w-3 h-3" />
+                        <cat.icon
+                          className={`w-3 h-3 ${filter === cat.name ? "animate-pulse" : ""}`}
+                        />
                         {cat.name}
                       </button>
                     ))}
@@ -385,15 +398,18 @@ const QuestBoard = () => {
         {/* ✅ NEW: Floating Live Feed - YouTube style notifications */}
         <FloatingLiveFeed />
 
-        {/* Floating Action Button - Position adjusted for app feel */}
+        {/* Floating Action Button - Optimized for Mobile Touch */}
         <Link
           to="/create-quest"
           className="fixed bottom-28 right-6 z-50 group sm:bottom-8 sm:right-8"
         >
+          {/* Extended Touch Area for Mobile */}
+          <div className="absolute inset-[-10px] rounded-full sm:hidden" />
+
           <div className="absolute inset-0 bg-neon-purple blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-          <div className="relative bg-black border border-neon-purple shadow-[0_0_30px_rgba(168,85,247,0.4)] px-4 py-3 rounded-2xl flex items-center gap-2 transition-transform duration-300 hover:scale-105 active:scale-95">
-            <Plus className="w-5 h-5 text-white" />
-            <span className="font-black italic text-xs text-white tracking-widest">
+          <div className="relative bg-black border border-neon-purple shadow-[0_0_30px_rgba(168,85,247,0.4)] px-6 py-4 rounded-2xl flex items-center gap-2 transition-transform duration-300 hover:scale-105 active:scale-95">
+            <Plus className="w-6 h-6 text-white" />
+            <span className="font-black italic text-xs text-white tracking-widest hidden sm:inline">
               POST MISSION
             </span>
           </div>

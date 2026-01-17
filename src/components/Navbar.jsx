@@ -24,7 +24,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[var(--max-width-app)] mx-auto bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-4 flex justify-between items-center z-50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[var(--max-width-app)] mx-auto bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-4 pb-safe-bottom flex justify-between items-center z-50 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5),0_0_10px_rgba(168,85,247,0.1)] min-h-[80px]">
       {navItems.map((item) => (
         <NavLink
           key={item.id}
@@ -40,7 +40,7 @@ const Navbar = () => {
               {isActive && (
                 <motion.div
                   layoutId="nav-active"
-                  className="absolute -inset-x-3 -inset-y-2 bg-white/10 rounded-2xl z-0"
+                  className="absolute -inset-x-3 -inset-y-2 bg-gradient-to-b from-neon-purple/20 to-transparent rounded-2xl z-0 border-t border-neon-purple/30"
                   initial={false}
                   transition={{
                     type: "spring",
