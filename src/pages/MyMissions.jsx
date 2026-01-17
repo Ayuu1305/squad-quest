@@ -39,7 +39,7 @@ const MyMissions = () => {
         unsubscribeQuests = subscribeToAllQuests(
           (allQuests) => {
             const myQuests = allQuests.filter(
-              (q) => joinedIds.includes(q.id) || q.hostId === user.uid
+              (q) => joinedIds.includes(q.id) || q.hostId === user.uid,
             );
 
             setQuests(myQuests);
@@ -48,13 +48,15 @@ const MyMissions = () => {
           (error) => {
             console.error("MyMissions: Quests listener error:", error);
             setLoading(false);
-          }
+          },
         );
       },
       (err) => {
+        // ✅ Ignore permission-denied during logout
+        if (err?.code === "permission-denied") return;
         console.warn("MyMissions: JoinedQuests snapshot blocked:", err.code);
         setLoading(false);
-      }
+      },
     );
 
     // ✅ Hubs listener
@@ -69,8 +71,10 @@ const MyMissions = () => {
         setHubs(hubsData);
       },
       (error) => {
+        // ✅ Ignore permission-denied during logout
+        if (error?.code === "permission-denied") return;
         console.error("MyMissions: Hubs listener error:", error);
-      }
+      },
     );
 
     // ✅ Cleanup safely
@@ -93,8 +97,8 @@ const MyMissions = () => {
     const startTimeParsed = q?.startTime?.toDate
       ? q.startTime.toDate()
       : q?.startTime
-      ? new Date(q.startTime)
-      : null;
+        ? new Date(q.startTime)
+        : null;
 
     if (!startTimeParsed || Number.isNaN(startTimeParsed.getTime()))
       return false;
@@ -168,7 +172,7 @@ const MyMissions = () => {
           <AnimatePresence mode="popLayout">
             {displayQuests.map((quest) => {
               const hub = hubs.find(
-                (h) => h.id === quest.hubId || h.name === quest.hubName
+                (h) => h.id === quest.hubId || h.name === quest.hubName,
               );
 
               return (
@@ -196,15 +200,15 @@ const MyMissions = () => {
                           quest.completedBy?.includes(user?.uid)
                             ? "bg-green-500/20 border-green-500/50 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]"
                             : quest.status === "active"
-                            ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
-                            : "bg-neon-purple/20 border-neon-purple/50 text-neon-purple"
+                              ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                              : "bg-neon-purple/20 border-neon-purple/50 text-neon-purple"
                         }`}
                       >
                         {quest.completedBy?.includes(user?.uid)
                           ? "Cleared"
                           : quest.status === "active"
-                          ? "Tactical"
-                          : "Recruiting"}
+                            ? "Tactical"
+                            : "Recruiting"}
                       </span>
                     </div>
 

@@ -30,7 +30,7 @@ export const GameProvider = ({ children }) => {
 
   // Sync joined quests from user profile
   useEffect(() => {
-    if (!user) {
+    if (!user?.uid) {
       setJoinedQuests([]);
       return;
     }
@@ -43,12 +43,14 @@ export const GameProvider = ({ children }) => {
         }
       },
       (error) => {
+        // ✅ Ignore permission-denied during logout
+        if (error?.code === "permission-denied") return;
         console.error("GameContext: User listener error:", error);
-      }
+      },
     );
 
     return () => unsub();
-  }, [user]);
+  }, [user?.uid]);
 
   const selectCity = async (cityName) => {
     setCity(cityName);

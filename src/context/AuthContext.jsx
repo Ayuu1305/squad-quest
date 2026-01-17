@@ -14,6 +14,12 @@ export const AuthProvider = ({ children }) => {
     let unsubscribeStats = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      // ✅ IMMEDIATE CLEANUP: Unsubscribe previous listeners BEFORE processing new state
+      unsubscribeFirestore();
+      unsubscribeStats();
+      unsubscribeFirestore = () => {};
+      unsubscribeStats = () => {};
+
       if (authUser) {
         // 1. Subscribe to Public Profile (users/{uid})
         unsubscribeFirestore = onSnapshot(
@@ -22,13 +28,13 @@ export const AuthProvider = ({ children }) => {
             const profileData = docSnap.exists() ? docSnap.data() : {};
 
             // 2. Subscribe to Secure Stats (userStats/{uid})
+            unsubscribeStats();
             unsubscribeStats = onSnapshot(
               doc(db, "userStats", authUser.uid),
               (statsSnap) => {
                 const statsData = statsSnap.exists()
                   ? statsSnap.data()
                   : {
-                      // Fallback to public profile if secure stats missing (Migration support)
                       xp: profileData.xp || 0,
                       level: profileData.level || 1,
                       reliabilityScore: profileData.reliabilityScore || 100,
@@ -37,30 +43,32 @@ export const AuthProvider = ({ children }) => {
 
                 setUser({
                   ...authUser,
-                  ...profileData, // Public info (City, Name, etc.)
-                  ...statsData, // Secure info (overrides public if exists)
+                  ...profileData,
+                  ...statsData,
                 });
                 setLoading(false);
               },
               (error) => {
+                // ✅ Ignore permission-denied during logout
+                if (error?.code === "permission-denied") return;
                 console.warn("Stats Helper (restricted):", error);
                 setUser({
                   ...authUser,
                   ...profileData,
                 });
                 setLoading(false);
-              }
+              },
             );
           },
           (error) => {
+            // ✅ Ignore permission-denied during logout
+            if (error?.code === "permission-denied") return;
             console.error("User profile listener error:", error);
             setLoading(false);
-          }
+          },
         );
       } else {
         setUser(null);
-        unsubscribeFirestore();
-        unsubscribeStats();
         setLoading(false);
       }
     });

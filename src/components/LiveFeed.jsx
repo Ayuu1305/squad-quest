@@ -18,12 +18,12 @@ const LiveFeed = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) return; // Wait for auth
+    if (!user?.uid) return; // ✅ Stop if logged out
 
     const q = query(
       collection(db, "global_activity"),
       orderBy("timestamp", "desc"),
-      limit(25)
+      limit(25),
     );
 
     const unsub = onSnapshot(
@@ -45,13 +45,15 @@ const LiveFeed = () => {
         setActivities(list);
       },
       (err) => {
+        // ✅ Ignore permission-denied during logout
+        if (err?.code === "permission-denied") return;
         console.error("LiveFeed subscription error:", err);
         setActivities([]);
-      }
+      },
     );
 
     return () => unsub();
-  }, [user]);
+  }, [user?.uid]);
 
   const getIcon = (type) => {
     switch (type) {
@@ -83,10 +85,10 @@ const LiveFeed = () => {
                 item.userAura === "gold"
                   ? "border-yellow-500/50 bg-yellow-500/5"
                   : item.userAura === "blue"
-                  ? "border-blue-500/50 bg-blue-500/5"
-                  : item.userAura === "mythic"
-                  ? "border-purple-500/50 bg-purple-500/5"
-                  : "border-white/5 hover:bg-white/5"
+                    ? "border-blue-500/50 bg-blue-500/5"
+                    : item.userAura === "mythic"
+                      ? "border-purple-500/50 bg-purple-500/5"
+                      : "border-white/5 hover:bg-white/5"
               }`}
             >
               <div className="p-1.5 rounded-lg bg-white/5 shadow-inner relative">
@@ -103,8 +105,8 @@ const LiveFeed = () => {
                       item.userAura === "gold"
                         ? "text-yellow-400"
                         : item.userAura === "mythic"
-                        ? "text-purple-400"
-                        : "text-white"
+                          ? "text-purple-400"
+                          : "text-white"
                     }`}
                   >
                     {item.user || item.userName || "Unknown"}

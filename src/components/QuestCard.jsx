@@ -35,8 +35,10 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
         setMemberAvatars(avatars.slice(0, 3));
       },
       (error) => {
+        // ✅ Ignore permission-denied during logout
+        if (error?.code === "permission-denied") return;
         console.warn("Members listener suppressed:", error);
-      }
+      },
     );
     return unsubscribe;
   }, [quest.id]);
@@ -145,7 +147,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
             }
           } catch (e) {}
           return { seed: uid, tier: "Bronze" };
-        })
+        }),
       );
       setMemberAvatars(info);
     };

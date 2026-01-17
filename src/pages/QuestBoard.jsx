@@ -51,6 +51,8 @@ const QuestBoard = () => {
 
   // Subscriptions & Live Ticker
   useEffect(() => {
+    if (!user?.uid) return; // ✅ Stop if logged out
+
     // Force re-render every 10 seconds to update expired status
     const timer = setInterval(() => {
       setTimeTick(Date.now());
@@ -71,8 +73,10 @@ const QuestBoard = () => {
         setHubs(hubsData);
       },
       (error) => {
+        // ✅ Ignore permission-denied during logout
+        if (error?.code === "permission-denied") return;
         console.error("Hubs listener error:", error);
-      }
+      },
     );
 
     return () => {
@@ -80,7 +84,7 @@ const QuestBoard = () => {
       unsubQuests();
       unsubHubs();
     };
-  }, []);
+  }, [user?.uid]);
 
   const categories = [
     { name: "All", icon: Zap },
@@ -142,7 +146,7 @@ const QuestBoard = () => {
     .map((quest) => {
       // Add mock distance if coordinates exist, otherwise random
       const hub = hubs.find(
-        (h) => h.id === quest.hubId || h.name === quest.hubName
+        (h) => h.id === quest.hubId || h.name === quest.hubName,
       );
       const distance = hub
         ? (Math.random() * 3 + 0.5).toFixed(1)
@@ -327,7 +331,7 @@ const QuestBoard = () => {
                           quest={quest}
                           hub={hubs.find(
                             (h) =>
-                              h.id === quest.hubId || h.name === quest.hubName
+                              h.id === quest.hubId || h.name === quest.hubName,
                           )}
                         />
                       </Link>
