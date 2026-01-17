@@ -106,7 +106,7 @@ export const signUpWithEmail = async (email, password, name) => {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
-      password
+      password,
     );
     // Update name in Firebase Auth
     await updateProfile(userCredential.user, { displayName: name });
@@ -130,7 +130,7 @@ export const signInWithEmail = async (email, password) => {
   const userCredential = await signInWithEmailAndPassword(
     auth,
     email,
-    password
+    password,
   );
 
   const user = userCredential.user;
@@ -215,7 +215,7 @@ export const joinQuest = async (questId, userId) => {
     } catch (err) {
       console.warn(
         "MyMissions: JoinedQuest record failed (Permissions):",
-        err.code
+        err.code,
       );
       // We don't throw here to allow the user to still be a member of the quest
     }
@@ -264,13 +264,13 @@ export const saveQuestVerification = async (questId, uid, payload) => {
       uid,
       questId,
       completed: true,
-      rewarded: true, // ✅ Match backend field for individual tracking
+      rewarded: false, // ✅ Backend will set to true only after awarding XP
       completedAt: serverTimestamp(),
       locationVerified: Boolean(payload?.locationVerified),
       codeVerified: Boolean(payload?.codeVerified),
       photoURL: payload?.photoURL || "",
     },
-    { merge: true }
+    { merge: true },
   );
 
   // ✅ Mark quest completed for THIS USER (THIS FIXES YOUR REDIRECT LOOP)
@@ -319,7 +319,7 @@ export const logActivity = async (type, userName, action, target) => {
   } catch (error) {
     console.warn(
       "Log Activity suppressed by rules (Client Write Blocked):",
-      error
+      error,
     );
   }
 };
@@ -352,7 +352,7 @@ export const joinQuestByCode = async (code, userId) => {
   const q = query(
     questsRef,
     where("roomCode", "==", cleanCode),
-    where("status", "==", "open")
+    where("status", "==", "open"),
   );
 
   const querySnapshot = await getDocs(q);
@@ -446,7 +446,7 @@ export const subscribeToQuest = (questId, callback) => {
         return;
       }
       console.error(`Error subscribing to quest ${questId}:`, error);
-    }
+    },
   );
 };
 
@@ -495,7 +495,7 @@ export const subscribeToAllQuests = (callback) => {
         return;
       }
       console.error("Error subscribing to all quests:", error);
-    }
+    },
   );
 };
 
@@ -531,7 +531,7 @@ export const sendSquadMessage = async (questId, userId, text, senderName) => {
 export const subscribeToSquadChat = (questId, callback) => {
   const q = query(
     collection(db, "quests", questId, "chat"),
-    orderBy("createdAt", "asc")
+    orderBy("createdAt", "asc"),
   );
   return onSnapshot(
     q,
@@ -545,9 +545,9 @@ export const subscribeToSquadChat = (questId, callback) => {
     (error) => {
       console.error(
         `Error subscribing to squad chat for quest ${questId}:`,
-        error
+        error,
       );
-    }
+    },
   );
 };
 
