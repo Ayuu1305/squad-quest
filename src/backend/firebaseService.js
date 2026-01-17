@@ -238,18 +238,19 @@ export const leaveQuest = async (questId, userId) => {
     const questRef = doc(db, "quests", questId);
     const memberRef = doc(db, "quests", questId, "members", userId);
     const joinedQuestRef = doc(db, "users", userId, "joinedQuests", questId);
+    const userRef = doc(db, "users", userId);
 
-    // Delete member document
-    await deleteDoc(memberRef);
-
-    // Update quest members array and count
+    // 1. First update quest members array and count (while member still exists for permission check)
     await updateDoc(questRef, {
       members: arrayRemove(userId),
       membersCount: increment(-1),
       updatedAt: serverTimestamp(),
     });
 
-    // Delete from user's joinedQuests
+    // 2. Delete member document from quest subcollection
+    await deleteDoc(memberRef);
+
+    // 3. Delete from user's joinedQuests
     try {
       await deleteDoc(joinedQuestRef);
     } catch (err) {

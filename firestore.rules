@@ -49,20 +49,20 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
 
-      // ✅ UPDATE: Host can edit quest details + Members can update status/completedBy + Members/count can be updated for join/leave
+      // ✅ UPDATE: Separate rules for different update scenarios
       allow update: if isAuthenticated() && (
         // Host can update quest details (excluding protected fields)
         (resource.data.hostId == request.auth.uid && 
          notUpdating(['members', 'membersCount', 'completedBy', 'createdAt', 'hostId'])) ||
         
-        // Members can mark quest as completed
+        // Quest members can mark quest as completed
         (exists(/databases/$(database)/documents/quests/$(questId)/members/$(request.auth.uid)) &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "completedBy", "updatedAt"])) ||
         
-        // ✅ NEW: Allow members/membersCount updates for join/leave operations
-        (isAuthenticated() && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["members", "membersCount", "updatedAt"]))
+        // ✅ ANY authenticated user can update members/membersCount for join/leave
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["members", "membersCount", "updatedAt"])
       );
+
       
       // ✅ DELETE: Only host can delete quest
       allow delete: if resource.data.hostId == request.auth.uid;
