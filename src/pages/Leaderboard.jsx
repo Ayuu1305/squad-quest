@@ -103,7 +103,7 @@ const Leaderboard = () => {
       } catch (err) {
         console.error("Leaderboard component error:", err);
         setError(
-          err.message?.includes("index") ? "INDEX_REQUIRED" : "FETCH_ERROR"
+          err.message?.includes("index") ? "INDEX_REQUIRED" : "FETCH_ERROR",
         );
       } finally {
         setLoading(false);
@@ -288,18 +288,41 @@ const Leaderboard = () => {
           </div>
         ) : (
           <div className="max-w-2xl mx-auto px-6 md:px-8 z-10 relative">
-        <div className="bg-dark-bg/50 backdrop-blur-md rounded-3xl border border-white/5 p-2 shadow-2xl">
-          <Reorder.Group axis="y" values={heroes} onReorder={handleReorder}>
-            <AnimatePresence>
-              {loading ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-20"
-                >
-            )}
+            <div className="bg-dark-bg/50 backdrop-blur-md rounded-3xl border border-white/5 p-2 shadow-2xl">
+              <Reorder.Group axis="y" values={heroes} onReorder={handleReorder}>
+                <AnimatePresence mode="popLayout">
+                  {loading ? (
+                    <motion.div
+                      key="loader"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-center py-20"
+                    >
+                      <div className="w-12 h-12 border-4 border-neon-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
+                        Syncing Global Database...
+                      </p>
+                    </motion.div>
+                  ) : (
+                    heroes
+                      .slice(3)
+                      .map((hero, index) => (
+                        <LeaderboardItem
+                          key={hero.id}
+                          hero={hero}
+                          rank={index + 4}
+                          isCurrentUser={hero.id === user?.uid}
+                          category={category}
+                          onClick={() => setSelectedHero(hero)}
+                        />
+                      ))
+                  )}
+                </AnimatePresence>
+              </Reorder.Group>
+            </div>
 
-            {/* ✅ Pinned "Your Position" (If not in top 20) */}
+            {/* ✅ Pinned "Your Position" */}
             {myStats && !heroes.some((h) => h.id === user?.uid) && (
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
