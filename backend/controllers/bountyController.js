@@ -14,7 +14,7 @@ export const claimBounty = async (req, res) => {
       // ✅ 1. FETCH ALL DATA FIRST using t.getAll
       const [statsSnap, publicSnap] = await t.getAll(
         userStatsRef,
-        publicUserRef
+        publicUserRef,
       );
 
       const stats = statsSnap.exists ? statsSnap.data() : {};
@@ -63,7 +63,7 @@ export const claimBounty = async (req, res) => {
       const { level: newLevel } = calculateLevelFromXP(newXP);
 
       const updatePayload = {
-        xp: newXP,
+        xp: admin.firestore.FieldValue.increment(earnedXP),
         thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
         level: newLevel,
         daily_streak: streak,

@@ -31,7 +31,7 @@ export const finalizeQuest = async (req, res) => {
           userStatsRef,
           verificationRef,
           memberRef,
-          userRef
+          userRef,
         );
 
       if (!questDoc.exists) throw new Error("Quest not found");
@@ -106,20 +106,20 @@ export const finalizeQuest = async (req, res) => {
           badges: newBadges,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
 
-      // ✅ Sync into users (mandatory for leaderboard)
+      // ✅ Sync into users (mandatory for leaderboard) - Use increment to prevent race conditions
       t.set(
         userRef,
         {
-          xp: newXP,
+          xp: admin.firestore.FieldValue.increment(earnedXP),
           level: newLevel,
           reliabilityScore: newReliability,
           thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       // ✅ mark verification rewarded
@@ -130,7 +130,7 @@ export const finalizeQuest = async (req, res) => {
           earnedXP,
           rewardedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       // ✅ global activity log - Standardized Keys
@@ -212,12 +212,12 @@ export const submitVibeCheck = async (req, res) => {
       const reviewerXP = reviewerDataFromMap.xp || 0;
       const reviewerReward = 50;
       const { level: newReviewerLevel } = calculateLevelFromXP(
-        reviewerXP + reviewerReward
+        reviewerXP + reviewerReward,
       );
 
-      // Update Reviewer
+      // Update Reviewer - Use increment to prevent race conditions
       const reviewerPayload = {
-        xp: reviewerXP + reviewerReward,
+        xp: admin.firestore.FieldValue.increment(reviewerReward),
         level: newReviewerLevel,
         thisWeekXP: admin.firestore.FieldValue.increment(reviewerReward),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -241,7 +241,7 @@ export const submitVibeCheck = async (req, res) => {
         const { level: newLevel } = calculateLevelFromXP(newXP);
 
         const targetPayload = {
-          xp: newXP,
+          xp: admin.firestore.FieldValue.increment(xpReward),
           level: newLevel,
           thisWeekXP: admin.firestore.FieldValue.increment(xpReward),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
