@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Zap, Shield, Star, Gift } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGame } from "../context/GameContext";
@@ -288,38 +288,36 @@ const Leaderboard = () => {
           </div>
         ) : (
           <div className="max-w-2xl mx-auto px-6 md:px-8 z-10 relative">
-            <div className="bg-dark-bg/50 backdrop-blur-md rounded-3xl border border-white/5 p-2 shadow-2xl">
-              <Reorder.Group axis="y" values={heroes} onReorder={handleReorder}>
-                <AnimatePresence mode="popLayout">
-                  {loading ? (
-                    <motion.div
-                      key="loader"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-center py-20"
-                    >
-                      <div className="w-12 h-12 border-4 border-neon-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                      <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
-                        Syncing Global Database...
-                      </p>
-                    </motion.div>
-                  ) : (
-                    heroes
-                      .slice(3)
-                      .map((hero, index) => (
-                        <LeaderboardItem
-                          key={hero.id}
-                          hero={hero}
-                          rank={index + 4}
-                          isCurrentUser={hero.id === user?.uid}
-                          category={category}
-                          onClick={() => setSelectedHero(hero)}
-                        />
-                      ))
-                  )}
-                </AnimatePresence>
-              </Reorder.Group>
+            <div className="bg-dark-bg/50 backdrop-blur-md rounded-3xl border border-white/5 p-2 shadow-2xl space-y-3">
+              <AnimatePresence mode="popLayout">
+                {loading ? (
+                  <motion.div
+                    key="loader"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-center py-20"
+                  >
+                    <div className="w-12 h-12 border-4 border-neon-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
+                      Syncing Global Database...
+                    </p>
+                  </motion.div>
+                ) : (
+                  heroes
+                    .slice(3)
+                    .map((hero, index) => (
+                      <LeaderboardItem
+                        key={hero.id}
+                        hero={hero}
+                        rank={index + 4}
+                        isCurrentUser={hero.id === user?.uid}
+                        category={category}
+                        onClick={() => setSelectedHero(hero)}
+                      />
+                    ))
+                )}
+              </AnimatePresence>
             </div>
 
             {/* ✅ Pinned "Your Position" */}

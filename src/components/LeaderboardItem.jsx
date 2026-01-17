@@ -1,4 +1,4 @@
-import { Reorder, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { getTier, getRarity } from "../utils/xp";
 import HeroAvatar from "./HeroAvatar";
 import { MapPin } from "lucide-react";
@@ -40,8 +40,7 @@ const LeaderboardItem = ({
   const metric = getMetricDisplay();
 
   return (
-    <Reorder.Item
-      value={hero}
+    <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
@@ -134,7 +133,7 @@ const LeaderboardItem = ({
 
       {/* Decorative RPG corner */}
       <div className="absolute bottom-1 right-1 w-2 h-2 border-b-2 border-r-2 border-white/5 rounded-br" />
-    </Reorder.Item>
+    </motion.div>
   );
 };
 
