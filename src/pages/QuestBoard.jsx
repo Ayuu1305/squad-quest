@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react";
 
 import QuestCard from "../components/QuestCard";
 import DailyBounty from "../components/DailyBounty";
-import LiveFeed from "../components/LiveFeed";
+import FloatingLiveFeed from "../components/FloatingLiveFeed";
 import TacticalErrorModal from "../components/TacticalErrorModal";
 import SecretCodeModal from "../components/SecretCodeModal";
 import CyberGridBackground from "../components/CyberGridBackground";
@@ -242,9 +242,9 @@ const QuestBoard = () => {
       </div>
 
       <div className="relative z-10 p-4 pt-8 container mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Main Content Column */}
-          <div className="lg:col-span-8">
+        <div className="grid grid-cols-1 gap-8">
+          {/* Main Content Column - FULL WIDTH */}
+          <div className="w-full">
             {/* Header */}
             <div className="mb-8">
               <header className="flex justify-between items-start">
@@ -270,9 +270,43 @@ const QuestBoard = () => {
               </header>
             </div>
 
-            {/* Daily Bounty Section */}
-            <div className="mb-6">
-              <DailyBounty />
+            {/* Daily Bounty + Private Channel Row */}
+            <div className="mb-6 flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <DailyBounty />
+              </div>
+
+              {/* Private Channel Access */}
+              <div className="p-4 glassmorphism-dark rounded-2xl border border-white/5 relative overflow-hidden group lg:w-80">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Lock className="w-10 h-10 text-neon-purple" />
+                </div>
+                <h3 className="text-[10px] font-black uppercase text-neon-purple tracking-[0.3em] mb-3 flex items-center gap-2">
+                  <Lock className="w-3 h-3" /> Private Channel
+                </h3>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const code = e.target.code.value;
+                    if (!code || code.length < 6 || !user?.uid) return;
+                    try {
+                      const qId = await joinQuestByCode(code, user.uid);
+                      navigate(`/lobby/${qId}`);
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }}
+                  className="relative"
+                >
+                  <input
+                    name="code"
+                    type="text"
+                    maxLength={6}
+                    placeholder="ACCESS CODE"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-center text-sm font-mono tracking-[0.4em] uppercase text-white placeholder-gray-800 focus:border-neon-purple outline-none transition-all"
+                  />
+                </form>
+              </div>
             </div>
 
             {/* Search & Filter Component */}
@@ -345,65 +379,11 @@ const QuestBoard = () => {
                 )}
               </AnimatePresence>
             </div>
-
-            <div className="pt-8 pb-32 border-t border-white/5 lg:hidden">
-              <div className="flex items-center justify-center gap-2 mb-6">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">
-                  The Tavern • Live Feed
-                </h3>
-              </div>
-              <LiveFeed />
-            </div>
-          </div>
-
-          {/* Sidebar Column (Desktop Only) */}
-          <div className="hidden lg:block lg:col-span-4 sticky top-8 h-fit space-y-6">
-            {/* Private Channel Access */}
-            <div className="p-6 glassmorphism-dark rounded-3xl border border-white/5 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Lock className="w-12 h-12 text-neon-purple" />
-              </div>
-              <h3 className="text-[10px] font-black uppercase text-neon-purple tracking-[0.3em] mb-4 flex items-center gap-2">
-                <Lock className="w-3 h-3" /> Private Channel
-              </h3>
-
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const code = e.target.code.value;
-                  if (!code || code.length < 6 || !user?.uid) return;
-                  try {
-                    const qId = await joinQuestByCode(code, user.uid);
-                    navigate(`/lobby/${qId}`);
-                  } catch (err) {
-                    console.error(err);
-                  }
-                }}
-                className="relative"
-              >
-                <input
-                  name="code"
-                  type="text"
-                  maxLength={6}
-                  placeholder="ACCESS CODE"
-                  className="w-full bg-black/50 border border-white/10 rounded-2xl px-4 py-4 text-center text-lg font-mono tracking-[0.4em] uppercase text-white placeholder-gray-800 focus:border-neon-purple outline-none transition-all"
-                />
-              </form>
-            </div>
-
-            {/* Live Feed Sidebar */}
-            <div className="glassmorphism-dark rounded-3xl p-6 border border-white/5">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">
-                  The Tavern • Live Feed
-                </h3>
-              </div>
-              <LiveFeed />
-            </div>
           </div>
         </div>
+
+        {/* ✅ NEW: Floating Live Feed - YouTube style notifications */}
+        <FloatingLiveFeed />
 
         {/* Floating Action Button - Position adjusted for app feel */}
         <Link

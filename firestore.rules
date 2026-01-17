@@ -121,7 +121,8 @@ service cloud.firestore {
     // ✅ GLOBAL ACTIVITY FEED
     match /global_activity/{docId} {
       allow read: if isAuthenticated();
-      allow write: if false; // Only backend writes here now
+      allow create: if isAuthenticated(); // Allow users to log activities
+      allow update, delete: if false; // No editing or deleting
     }
 
     // ✅ HALL OF FAME
