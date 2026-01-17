@@ -7,6 +7,7 @@ import {
 } from "../backend/firebaseService";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
+import toast from "react-hot-toast";
 
 const GameContext = createContext({
   city: "",
@@ -78,10 +79,25 @@ export const GameProvider = ({ children }) => {
   const leaveQuest = async (questId) => {
     if (!user) return;
     try {
-      await firebaseLeave(questId, user.uid);
+      const result = await firebaseLeave(questId, user.uid);
+
+      // Show XP penalty notification
+      if (result.xpPenalty > 0) {
+        toast.error(`Left quest. XP penalty: -${result.xpPenalty} XP`, {
+          icon: "⚠️",
+          duration: 4000,
+        });
+      } else {
+        toast.success("Left quest successfully", {
+          icon: "✅",
+        });
+      }
+
       // Local state will be updated by the onSnapshot listener above
     } catch (error) {
       console.error("Failed to leave quest:", error);
+      toast.error(error.message || "Failed to leave quest");
+      throw error;
     }
   };
 
