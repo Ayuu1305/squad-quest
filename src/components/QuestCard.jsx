@@ -245,7 +245,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
                 key={uid}
                 className="w-8 h-8 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center overflow-hidden"
               >
-                <HeroAvatar uid={uid} size="sm" />
+                <HeroAvatar seed={uid} size={32} />
               </div>
             ))}
             {members.length > 3 && (

@@ -287,40 +287,16 @@ const Leaderboard = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {heroes.length > 3 && (
-              <motion.div
-                variants={listContainerVariants}
-                initial="hidden"
-                animate="show"
-              >
-                <Reorder.Group
-                  axis="y"
-                  values={heroes}
-                  onReorder={handleReorder}
-                  className="space-y-3"
+          <div className="max-w-2xl mx-auto px-6 md:px-8 z-10 relative">
+        <div className="bg-dark-bg/50 backdrop-blur-md rounded-3xl border border-white/5 p-2 shadow-2xl">
+          <Reorder.Group axis="y" values={heroes} onReorder={handleReorder}>
+            <AnimatePresence>
+              {loading ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-20"
                 >
-                  <AnimatePresence mode="popLayout">
-                    {heroes.slice(3).map((hero, index) => {
-                      const rank = index + 4;
-                      const isTopTen = rank <= 10;
-
-                      return (
-                        <motion.div key={hero.id} variants={itemVariants}>
-                          <LeaderboardItem
-                            hero={hero}
-                            rank={rank}
-                            isCurrentUser={hero.id === user?.uid}
-                            onClick={setSelectedHero}
-                            category={category}
-                            isGlitch={activeShowdown && isTopTen}
-                          />
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </Reorder.Group>
-              </motion.div>
             )}
 
             {/* ✅ Pinned "Your Position" (If not in top 20) */}
