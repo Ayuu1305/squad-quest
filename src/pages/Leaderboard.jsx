@@ -127,9 +127,15 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="app-container min-h-screen bg-dark-bg pb-64 relative overflow-x-hidden">
+    <div
+      className="app-container min-h-screen bg-dark-bg relative overflow-x-hidden overflow-y-auto"
+      style={{
+        paddingBottom: "140px",
+        paddingTop: "env(safe-area-inset-top, 60px)",
+      }}
+    >
       {/* Header */}
-      <div className="relative pt-20 pb-8 px-6 text-center">
+      <div className="relative pt-0 pb-8 px-6 text-center">
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
