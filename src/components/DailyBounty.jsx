@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { Flame, Gift, Clock, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { claimDailyBounty, checkStreak } from "../backend/firebaseService";
+import toast from "react-hot-toast";
 
 const DailyBounty = () => {
   const { user } = useAuth();
@@ -122,9 +123,53 @@ const DailyBounty = () => {
     try {
       await claimDailyBounty();
       triggerGoldBurst();
-      // Logic for success would be handled by AuthContext listener updating 'user'
+      toast.success("🎉 Daily Bounty Claimed! +50 XP", {
+        duration: 3000,
+        style: {
+          background: "#1a1a2e",
+          color: "#fff",
+          border: "1px solid rgba(234,179,8,0.3)",
+        },
+      });
     } catch (e) {
-      console.error(e);
+      // Graceful handling for cooldown errors
+      const errorMsg = e?.message?.toLowerCase() || "";
+      if (
+        errorMsg.includes("cooldown") ||
+        errorMsg.includes("already claimed")
+      ) {
+        // Don't log as error - this is expected behavior
+        setCanClaim(false);
+        toast("⏳ Daily Reward already claimed. Come back tomorrow!", {
+          duration: 4000,
+          icon: "⚠️",
+          style: {
+            background: "#1a1a2e",
+            color: "#fbbf24",
+            border: "1px solid rgba(251,191,36,0.3)",
+          },
+        });
+      } else if (
+        errorMsg.includes("failed to fetch") ||
+        errorMsg.includes("network")
+      ) {
+        // Network error - could be localhost backend not running
+        toast.error("🔌 Connection failed. Check if the server is running.", {
+          duration: 4000,
+          style: {
+            background: "#1a1a2e",
+            color: "#ef4444",
+            border: "1px solid rgba(239,68,68,0.3)",
+          },
+        });
+        console.warn(
+          "Daily Bounty: Network error - backend may not be running",
+        );
+      } else {
+        // Unknown error - log it
+        console.error("Daily Bounty claim error:", e);
+        toast.error("Failed to claim bounty. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

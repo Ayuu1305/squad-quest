@@ -46,7 +46,18 @@ export const GameProvider = ({ children }) => {
       (error) => {
         // ✅ Ignore permission-denied during logout
         if (error?.code === "permission-denied") return;
-        console.error("GameContext: User listener error:", error);
+
+        // ✅ Check for network/blocked errors (Ad-blocker issue)
+        if (
+          error?.message?.includes("ERR_BLOCKED") ||
+          error?.code === "unavailable"
+        ) {
+          console.warn(
+            "⚠️ GameContext: Connection blocked. If using an ad-blocker (uBlock, Brave Shields), try disabling it for this site.",
+          );
+        } else {
+          console.error("GameContext: User listener error:", error);
+        }
       },
     );
 
