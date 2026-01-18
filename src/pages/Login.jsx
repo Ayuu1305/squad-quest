@@ -31,7 +31,7 @@ const Login = () => {
     } catch (err) {
       if (err.message === "EMAIL_NOT_VERIFIED") {
         const msg =
-          "Comms Encryption Active: Verify your email before accessing the Hub.";
+          "Verify your email before accessing the Hub.Check Spam Folder Too";
         setError(msg);
         toast.error(msg, { icon: "📧" });
       } else {
