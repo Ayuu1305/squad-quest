@@ -41,98 +41,114 @@ const LeaderboardItem = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => onClick(hero)}
-      className={`relative p-5 rounded-[2rem] border transition-all backdrop-blur-xl flex items-center gap-5 cursor-pointer ${
+      className={`relative mb-3 rounded-2xl sm:rounded-[2rem] border overflow-hidden transition-all backdrop-blur-xl cursor-pointer group ${
         isCurrentUser
-          ? "bg-neon-purple/20 border-neon-purple shadow-[0_0_35px_rgba(168,85,247,0.5)] z-10 scale-[1.02]"
-          : "bg-white/5 border-white/10 hover:border-white/20"
+          ? "bg-gradient-to-r from-neon-purple/20 via-neon-purple/10 to-transparent border-neon-purple/50 shadow-[0_0_20px_rgba(168,85,247,0.3)] z-10"
+          : "bg-gradient-to-r from-white/10 to-transparent border-white/10 hover:border-white/20 hover:bg-white/10"
       } ${
         isGlitch
           ? "animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.4)] border-red-500 bg-red-500/10"
           : ""
       }`}
     >
-      {isCurrentUser && (
-        <div className="absolute -top-2 -right-2 px-3 py-1 bg-neon-purple text-white text-[10px] font-black uppercase rounded-full shadow-lg z-20 animate-bounce-slow">
-          YOU
+      <div className="flex items-center p-3 sm:p-5 gap-3 sm:gap-5 relative z-10">
+        {/* Rank Badge - Stylized */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center w-10 sm:w-14">
+          <div
+            className={`font-['Orbitron'] font-black italic text-xl sm:text-2xl leading-none drop-shadow-md ${
+              rank <= 3
+                ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+                : "text-white"
+            }`}
+          >
+            #{rank}
+          </div>
+          {rank <= 3 && (
+            <div className="h-0.5 w-6 bg-yellow-400/50 rounded-full mt-1" />
+          )}
         </div>
-      )}
 
-      {/* RPG Rank Indicator */}
-      <div
-        className={`flex flex-col items-center justify-center w-10 h-10 rounded-xl border border-white/5 font-['Orbitron'] font-black italic shadow-inner ${
-          rank <= 5 ? "text-white" : "text-gray-600"
-        }`}
-      >
-        <span className="text-[10px] opacity-40 leading-none mb-0.5">RANK</span>
-        <span className="text-sm leading-none">#{rank}</span>
+        {/* Avatar Section */}
+        <div className="relative flex-shrink-0">
+          <div
+            className={`p-0.5 rounded-full ${
+              isCurrentUser
+                ? "bg-gradient-to-br from-neon-purple to-pink-500 animate-spin-slow"
+                : "bg-white/10"
+            }`}
+          >
+            <HeroAvatar
+              seed={hero.avatarSeed || hero.name}
+              tierName={tier.name}
+              size={48}
+              className="rounded-full border-2 border-dark-bg bg-dark-bg"
+            />
+          </div>
+          {/* Level Badge Overlap */}
+          <div className="absolute -bottom-1 -right-1 bg-dark-bg rounded-md px-1 py-0.5 border border-white/10 shadow-lg flex items-center gap-0.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[8px] font-black text-white px-0.5">
+              L{hero.level || 1}
+            </span>
+          </div>
+        </div>
+
+        {/* Main Info */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-['Orbitron'] font-bold text-sm sm:text-lg tracking-wide truncate drop-shadow-sm">
+              {hero.name}
+            </span>
+            {isCurrentUser && (
+              <span className="text-[8px] bg-neon-purple text-white px-1.5 py-0.5 rounded-sm font-black uppercase tracking-wider">
+                YOU
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-gray-400 font-mono uppercase tracking-widest">
+              <MapPin className="w-3 h-3 text-neon-purple/70" />
+              <span className="truncate max-w-[80px] sm:max-w-none">
+                {hero.city || "Roaming"}
+              </span>
+            </div>
+            {hero.thisWeekXP > 0 && (
+              <>
+                <span className="w-0.5 h-2 bg-white/20" />
+                <span className="text-[9px] text-green-400 font-mono">
+                  +{hero.thisWeekXP}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side Stats */}
+        <div className="text-right flex-shrink-0 flex flex-col items-end pl-2 border-l border-white/5">
+          <div
+            className={`font-['Orbitron'] font-black text-lg sm:text-2xl leading-none tracking-tighter ${metric.color} drop-shadow-[0_0_15px_rgba(168,85,247,0.2)]`}
+          >
+            {metric.value}
+          </div>
+          <div className="text-[8px] sm:text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] mt-1">
+            {metric.label.split(" ")[0]} {/* "Total"/"Weekly" only */}
+          </div>
+        </div>
       </div>
 
-      <div className="relative">
-        <HeroAvatar
-          seed={hero.avatarSeed || hero.name}
-          tierName={tier.name}
-          size={56}
-          className={`rounded-2xl border-2 ${
-            isCurrentUser ? "border-neon-purple" : "border-white/10"
-          }`}
-        />
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+        <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-white/5 to-transparent skew-x-12 opacity-50" />
         {isCurrentUser && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-neon-purple rounded-full border-2 border-dark-bg flex items-center justify-center">
-            <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
-          </div>
+          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-neon-purple to-transparent opacity-70" />
         )}
       </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-white font-black italic text-base uppercase tracking-tight truncate">
-            {hero.name}
-          </span>
-          {hero.xp === 0 && (
-            <span className="text-[8px] bg-white/10 text-gray-400 px-1.5 py-0.5 rounded-full font-black tracking-widest uppercase border border-white/10">
-              New Recruit
-            </span>
-          )}
-          {hero.thisWeekXP > 500 && (
-            <motion.span
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full font-black tracking-widest uppercase border border-red-500/30"
-            >
-              TRENDING
-            </motion.span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-[9px] text-gray-500 font-black uppercase tracking-widest mt-1.5 font-mono">
-          <span className="text-neon-purple bg-neon-purple/10 px-1.5 py-0.5 rounded border border-neon-purple/20">
-            LVL {hero.level || 1}
-          </span>
-          <span className="opacity-20">•</span>
-          <span className="flex items-center gap-1">
-            <MapPin className="w-2 h-2" />
-            City Hero
-          </span>
-        </div>
-      </div>
-
-      <div className="text-right flex flex-col items-end gap-1">
-        <div
-          className={`text-xl font-black font-mono leading-none tracking-tighter ${metric.color}`}
-        >
-          {metric.value}
-        </div>
-        <div className="text-[8px] text-gray-600 font-black uppercase tracking-[0.2em]">
-          {metric.label}
-        </div>
-      </div>
-
-      {/* Decorative RPG corner */}
-      <div className="absolute bottom-1 right-1 w-2 h-2 border-b-2 border-r-2 border-white/5 rounded-br" />
     </motion.div>
   );
 };

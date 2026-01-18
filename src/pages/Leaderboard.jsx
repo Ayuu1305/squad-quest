@@ -272,7 +272,7 @@ const Leaderboard = () => {
       />
 
       {/* Ranked List */}
-      <div className="px-6 mb-20">
+      <div className="px-2 sm:px-6 mb-20">
         {loading ? (
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -293,8 +293,8 @@ const Leaderboard = () => {
             </p>
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto px-6 md:px-8 z-10 relative">
-            <div className="bg-dark-bg/50 backdrop-blur-md rounded-3xl border border-white/5 p-2 shadow-2xl space-y-3">
+          <div className="max-w-2xl mx-auto px-0 sm:px-4 md:px-8 z-10 relative">
+            <div className="bg-dark-bg/50 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white/5 p-1.5 sm:p-2 shadow-2xl space-y-2 sm:space-y-3">
               <AnimatePresence mode="popLayout">
                 {loading ? (
                   <motion.div

@@ -49,8 +49,8 @@ const Profile = () => {
       </AnimatePresence>
 
       <div className="container mx-auto max-w-7xl px-4 md:px-8">
-        {/* Profile Header */}
-        <header className="py-8 flex items-center justify-between">
+        {/* Profile Header - Mobile Optimized */}
+        <header className="py-6 flex items-center justify-between sticky top-0 bg-dark-bg/80 backdrop-blur-md z-30 sm:relative sm:bg-transparent px-2 sm:px-0">
           <button
             onClick={() => navigate("/board")}
             className="p-3 glassmorphism rounded-xl hover:bg-white/10 transition-colors"
@@ -58,14 +58,14 @@ const Profile = () => {
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
 
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <button
               onClick={handleSwitchRealm}
               className="p-3 glassmorphism rounded-xl hover:text-neon-purple transition-colors flex items-center gap-2 group"
               title="Switch Realm"
             >
               <LogOut className="w-5 h-5 text-gray-400 group-hover:text-neon-purple" />
-              <span className="text-[10px] font-black uppercase hidden sm:inline">
+              <span className="hidden sm:inline text-[10px] font-black uppercase">
                 Realm
               </span>
             </button>
@@ -75,7 +75,7 @@ const Profile = () => {
               title="Sign Out"
             >
               <Power className="w-5 h-5 text-red-400" />
-              <span className="text-[10px] font-black uppercase hidden sm:inline text-red-400">
+              <span className="hidden sm:inline text-[10px] font-black uppercase text-red-400">
                 Exit
               </span>
             </button>

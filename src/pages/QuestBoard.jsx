@@ -275,74 +275,98 @@ const QuestBoard = () => {
             </div>
 
             {/* Daily Bounty + Private Channel Row */}
-            <div className="mb-6 flex flex-col lg:flex-row gap-4">
+            <div className="mb-8 flex flex-col lg:flex-row gap-6 md:gap-8">
               <div className="flex-1">
                 <DailyBounty />
               </div>
 
-              {/* Private Channel Access - Redesigned */}
-              <div className="p-1 rounded-2xl bg-gradient-to-br from-white/10 to-transparent border border-white/5 shadow-2xl lg:w-80 group hover:border-neon-purple/30 transition-colors duration-500">
-                <div className="h-full bg-black/40 backdrop-blur-xl rounded-xl p-5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity duration-500">
-                    <Lock className="w-12 h-12 text-neon-purple animate-pulse-slow" />
+              {/* Private Channel Access - Secure Terminal */}
+              <div className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-2xl lg:w-80 group overflow-hidden relative">
+                {/* Scanning Line Animation */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
+
+                <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col justify-between">
+                  {/* Glitch Overlay */}
+                  <div className="absolute inset-0 bg-[url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif')] opacity-[0.03] pointer-events-none mix-blend-screen" />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-red-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase text-red-500 tracking-[0.2em] relative">
+                          RESTRICTED
+                          <span className="absolute -inset-1 blur-sm text-red-500 opacity-50">
+                            RESTRICTED
+                          </span>
+                        </span>
+                      </div>
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                    </div>
+
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const code = e.target.code.value;
+                        if (!code || code.length < 6 || !user?.uid) return;
+                        try {
+                          const qId = await joinQuestByCode(code, user.uid);
+                          navigate(`/lobby/${qId}`);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="relative group/input"
+                    >
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neon-green font-black text-xs">
+                        {">"}
+                      </span>
+                      <input
+                        name="code"
+                        type="text"
+                        maxLength={6}
+                        placeholder="ENTER_PASSCODE"
+                        className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-4 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
+                      />
+                      {/* Blinking Cursor Effect */}
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-4 bg-neon-green animate-pulse pointer-events-none opacity-0 group-focus-within/input:opacity-100" />
+                    </form>
                   </div>
 
-                  <h3 className="text-[10px] font-black uppercase text-neon-purple tracking-[0.3em] mb-4 flex items-center gap-2">
-                    <Lock className="w-3 h-3 animate-pulse" /> Private Channel
-                  </h3>
-
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const code = e.target.code.value;
-                      if (!code || code.length < 6 || !user?.uid) return;
-                      try {
-                        const qId = await joinQuestByCode(code, user.uid);
-                        navigate(`/lobby/${qId}`);
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="relative"
-                  >
-                    <input
-                      name="code"
-                      type="text"
-                      maxLength={6}
-                      placeholder="ACCESS CODE"
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-center text-sm font-mono tracking-[0.4em] uppercase text-white placeholder-gray-700 focus:border-neon-purple focus:shadow-[0_0_15px_rgba(168,85,247,0.3)] outline-none transition-all duration-300"
-                    />
-                  </form>
+                  <div className="mt-3 flex justify-between gap-1 text-[8px] text-red-900 uppercase font-bold tracking-widest">
+                    <span>SECURE: AES-256</span>
+                    <span>V.9.0.1</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Search & Filter Component - Redesigned */}
-            <div className="mb-8">
-              <div className="bg-dark-bg/80 backdrop-blur-xl p-4 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-neon-purple/5 to-blue-500/5 pointer-events-none" />
+            {/* Search & Filter Component - Neon Glass Pill */}
+            <div className="mb-8 sticky top-20 z-40">
+              {/* Make sticky for better UX on scroll */}
+              <div className="bg-dark-bg/90 backdrop-blur-xl p-3 sm:p-4 rounded-full border border-white/5 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                {/* Search Pill */}
+                <div className="relative group w-full sm:w-auto sm:flex-1">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-neon-purple group-focus-within:drop-shadow-[0_0_5px_#a855f7] transition-all duration-300" />
+                  <input
+                    type="text"
+                    placeholder="SCAN FREQUENCIES..."
+                    className="w-full bg-black/40 border border-white/10 rounded-full pl-12 pr-4 py-2.5 text-xs font-bold tracking-wider text-white placeholder-gray-600 focus:border-neon-purple focus:bg-black/80 focus:shadow-[0_0_20px_rgba(168,85,247,0.2)] outline-none transition-all duration-300 uppercase"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
 
-                <div className="space-y-4 relative z-10">
-                  <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-neon-purple transition-colors duration-300" />
-                    <input
-                      type="text"
-                      placeholder="SEARCH MISSIONS..."
-                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-xs font-bold tracking-wider text-white placeholder-gray-600 focus:border-neon-purple/50 focus:bg-black/60 focus:shadow-[0_0_20px_rgba(168,85,247,0.1)] outline-none transition-all duration-300 uppercase"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {/* Filter Tags - Scrollable */}
+                <div className="w-full sm:w-auto overflow-x-auto no-scrollbar">
+                  <div className="flex gap-2 p-1">
                     {categories.map((cat) => (
                       <button
                         key={cat.name}
                         onClick={() => setFilter(cat.name)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg whitespace-nowrap transition-all duration-300 font-black text-[9px] uppercase tracking-widest border backdrop-blur-md ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 font-black text-[9px] uppercase tracking-widest border backdrop-blur-md ${
                           filter === cat.name
-                            ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-105"
-                            : "bg-black/20 text-gray-500 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20"
+                            ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105"
+                            : "bg-black/40 text-gray-500 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20"
                         }`}
                       >
                         <cat.icon
@@ -399,21 +423,27 @@ const QuestBoard = () => {
         <FloatingLiveFeed />
 
         {/* Floating Action Button - Optimized for Mobile Touch */}
-        <Link
-          to="/create-quest"
-          className="fixed bottom-28 right-6 z-50 group sm:bottom-8 sm:right-8"
-        >
-          {/* Extended Touch Area for Mobile */}
-          <div className="absolute inset-[-10px] rounded-full sm:hidden" />
+        {/* Floating Action Button - Nuclear Launch Style */}
+        <div className="fixed bottom-28 right-6 z-50 group sm:bottom-10 sm:right-10 flex flex-col items-center gap-2">
+          <div className="absolute inset-0 bg-black/50 blur-xl rounded-full scale-150 pointer-events-none" />{" "}
+          {/* Shadow Backdrop */}
+          <Link
+            to="/create-quest"
+            className="relative w-14 h-14 bg-gradient-to-br from-fuchsia-600 to-purple-800 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(192,38,211,0.5)] transform transition-transform hover:scale-110 active:scale-95 border-2 border-white/20"
+          >
+            {/* Ripple Effect */}
+            <div className="absolute inset-0 rounded-full border border-fuchsia-500/50 animate-ping opacity-75" />
+            <div className="absolute -inset-3 rounded-full bg-fuchsia-500/20 blur-xl animate-pulse" />
 
-          <div className="absolute inset-0 bg-neon-purple blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-          <div className="relative bg-black border border-neon-purple shadow-[0_0_30px_rgba(168,85,247,0.4)] px-6 py-4 rounded-2xl flex items-center gap-2 transition-transform duration-300 hover:scale-105 active:scale-95">
-            <Plus className="w-6 h-6 text-white" />
-            <span className="font-black italic text-xs text-white tracking-widest hidden sm:inline">
-              POST MISSION
-            </span>
-          </div>
-        </Link>
+            <Plus
+              className="w-8 h-8 text-white relative z-10 drop-shadow-md"
+              strokeWidth={3}
+            />
+          </Link>
+          <span className="text-[9px] font-black uppercase tracking-widest text-fuchsia-400 bg-black/80 px-2 py-0.5 rounded backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 whitespace-nowrap pointer-events-none">
+            Post Mission
+          </span>
+        </div>
 
         <TacticalErrorModal
           isOpen={errorModal.isOpen}
