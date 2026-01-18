@@ -12,6 +12,7 @@ const DailyBounty = () => {
   const [canClaim, setCanClaim] = useState(false);
   const [countdown, setCountdown] = useState("");
   const [loading, setLoading] = useState(false);
+  const [manualNextClaim, setManualNextClaim] = useState(null); // Track manual cooldown
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
@@ -27,20 +28,29 @@ const DailyBounty = () => {
 
   useEffect(() => {
     const updateStatus = () => {
-      if (!user?.last_claimed_at) {
+      // Use manual next claim time if set (from 403 error), otherwise use Firebase data
+      let nextAvailable;
+
+      if (manualNextClaim) {
+        // Use manual time set after 403 error
+        nextAvailable = manualNextClaim;
+      } else if (user?.last_claimed_at) {
+        // Use Firebase timestamp
+        const last = user.last_claimed_at.toDate();
+        nextAvailable = new Date(last.getTime() + 24 * 60 * 60 * 1000);
+      } else {
+        // No claim history - allow claim
         setCanClaim(true);
         return;
       }
 
       const now = new Date();
-      const last = user.last_claimed_at.toDate();
-      const nextAvailable = new Date(last.getTime() + 24 * 60 * 60 * 1000);
-
       const diff = nextAvailable - now;
 
       if (diff <= 0) {
         if (!canClaim) {
           setCanClaim(true);
+          setManualNextClaim(null); // Clear manual time
           // Trigger GSAP Flip Animation
           gsap.fromTo(
             buttonRef.current,
@@ -67,7 +77,7 @@ const DailyBounty = () => {
     updateStatus();
     const timer = setInterval(updateStatus, 1000);
     return () => clearInterval(timer);
-  }, [user?.last_claimed_at, canClaim]);
+  }, [user?.last_claimed_at, manualNextClaim, canClaim]);
 
   const triggerGoldBurst = () => {
     const canvas = canvasRef.current;
@@ -140,6 +150,10 @@ const DailyBounty = () => {
       ) {
         // Don't log as error - this is expected behavior
         setCanClaim(false);
+        // Set manual next claim time (current time + 24 hours)
+        const nextClaim = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        setManualNextClaim(nextClaim);
+
         toast("⏳ Daily Reward already claimed. Come back tomorrow!", {
           duration: 4000,
           icon: "⚠️",
