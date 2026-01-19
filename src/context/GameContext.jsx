@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import {
-  joinQuest as firebaseJoin,
-  leaveQuest as firebaseLeave,
+  leaveQuest as firebaseLeave, // We will deal with this later
   subscribeToQuest,
-} from "../backend/firebaseService";
+} from "../backend/firebaseService"; // ❌ Removed firebaseJoin import
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
@@ -40,20 +39,17 @@ export const GameProvider = ({ children }) => {
       doc(db, "users", user.uid),
       (docSnap) => {
         if (docSnap.exists()) {
-          setJoinedQuests(docSnap.data().joinedQuests || []);
+          setJoinedQuests(docSnap.data().joinedQuests || []); // ✅ Reads from subcollection or map
         }
       },
       (error) => {
-        // ✅ Ignore permission-denied during logout
         if (error?.code === "permission-denied") return;
-
-        // ✅ Check for network/blocked errors (Ad-blocker issue)
         if (
           error?.message?.includes("ERR_BLOCKED") ||
           error?.code === "unavailable"
         ) {
           console.warn(
-            "⚠️ GameContext: Connection blocked. If using an ad-blocker (uBlock, Brave Shields), try disabling it for this site.",
+            "⚠️ GameContext: Connection blocked. If using an ad-blocker, try disabling it.",
           );
         } else {
           console.error("GameContext: User listener error:", error);
@@ -70,49 +66,116 @@ export const GameProvider = ({ children }) => {
       try {
         const userRef = doc(db, "users", user.uid);
         await updateDoc(userRef, { city: cityName });
-        console.log("City synced to profile.");
       } catch (err) {
         console.warn("City sync failed:", err);
       }
     }
   };
 
-  const joinQuest = async (questId) => {
+  // ✅ SECURITY UPGRADE: Call the Node.js API instead of Firebase directly
+  const joinQuest = async (questId, secretCode = "") => {
     if (!user) return;
+    
+    // Optimistic UI check (optional)
+    if (isJoined(questId)) {
+        toast("You are already in this squad!", { icon: "🫡" });
+        return;
+    }
+
+    const loadingToast = toast.loading("Joining Squad...");
+
     try {
-      await firebaseJoin(questId, user.uid);
-      // Local state will be updated by the onSnapshot listener above
+      // 1. Get the Security Token (The ID Card)
+      const token = await user.getIdToken();
+
+      // 2. Call the Police (Your Backend API)
+      // Replace with your actual backend URL if not using a proxy
+      const response = await fetch("http://localhost:5000/api/quest/join", { 
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // 🔒 CRITICAL
+        },
+        body: JSON.stringify({ 
+            questId,
+            secretCode 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to join quest");
+      }
+
+      toast.success("Squad Joined! 🚀", { id: loadingToast });
+      
+      // Note: No need to update state manually. 
+      // The backend updates Firestore -> The onSnapshot above sees the change -> React re-renders.
+      
     } catch (error) {
       console.error("Failed to join quest:", error);
+      toast.error(error.message, { id: loadingToast });
     }
   };
 
-  const leaveQuest = async (questId) => {
+  // ⚠️ WARNING: If you applied strict rules, 'leaveQuest' might also break 
+  // if it uses updateDoc in firebaseService. 
+  // For now, we assume you haven't locked down 'leave' yet.
+ const leaveQuest = async (questId) => {
     if (!user) return;
-    try {
-      const result = await firebaseLeave(questId, user.uid);
+    
+    // Optimistic UI: Don't wait for server to remove from list visually? 
+    // Better to wait for confirmation to show the penalty toast correctly.
+    
+    const loadingToast = toast.loading("Processing...");
 
-      // Show XP penalty notification
-      if (result.xpPenalty > 0) {
-        toast.error(`Left quest. XP penalty: -${result.xpPenalty} XP`, {
-          icon: "⚠️",
-          duration: 4000,
+    try {
+      const token = await user.getIdToken();
+
+      const response = await fetch("http://localhost:5000/api/quest/leave", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ questId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to leave quest");
+      }
+
+      // Handle Success & Penalties
+      if (data.xpPenalty > 0) {
+        toast.error(`Left Quest. Penalty: -${data.xpPenalty} XP & Reputation Drop`, {
+            id: loadingToast,
+            icon: "📉",
+            duration: 5000
         });
       } else {
-        toast.success("Left quest successfully", {
-          icon: "✅",
+        toast.success("Left Quest Successfully", { 
+            id: loadingToast,
+            icon: "👋" 
         });
       }
 
-      // Local state will be updated by the onSnapshot listener above
     } catch (error) {
       console.error("Failed to leave quest:", error);
-      toast.error(error.message || "Failed to leave quest");
-      throw error;
+      toast.error(error.message || "Failed to leave", { id: loadingToast });
     }
   };
 
-  const isJoined = (questId) => joinedQuests.includes(questId);
+  const isJoined = (questId) => {
+      // Handle both array format and map/subcollection format
+      if (Array.isArray(joinedQuests)) {
+          return joinedQuests.includes(questId);
+      }
+      // If joinedQuests is an object (map), check for key existence
+      return !!joinedQuests[questId];
+  };
 
   return (
     <GameContext.Provider

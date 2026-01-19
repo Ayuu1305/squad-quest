@@ -194,63 +194,63 @@ export const resetHeroPassword = async (email) => {
 /**
  * SECURE JOIN: Uses Transaction + Subcollection
  */
-export const joinQuest = async (questId, secretCode = null) => {
-  try {
-    const token = await auth.currentUser.getIdToken();
+// export const joinQuest = async (questId, secretCode = null) => {
+//   try {
+//     const token = await auth.currentUser.getIdToken();
 
-    const response = await fetch(`${API_URL}/quest/join`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ questId, secretCode }),
-    });
+//     const response = await fetch(`${API_URL}/quest/join`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${token}`,
+//       },
+//       body: JSON.stringify({ questId, secretCode }),
+//     });
 
-    const data = await response.json();
+//     const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to join quest");
-    }
+//     if (!response.ok) {
+//       throw new Error(data.error || "Failed to join quest");
+//     }
 
-    console.log("✅ Joined quest successfully:", data);
-    return data;
-  } catch (error) {
-    console.error("❌ Join Quest Error:", error);
-    throw error;
-  }
-};
+//     console.log("✅ Joined quest successfully:", data);
+//     return data;
+//   } catch (error) {
+//     console.error("❌ Join Quest Error:", error);
+//     throw error;
+//   }
+// };
 
-export const leaveQuest = async (questId, userId) => {
-  try {
-    const token = await getAuthToken();
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// export const leaveQuest = async (questId, userId) => {
+//   try {
+//     const token = await getAuthToken();
+//     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-    const response = await fetch(`${API_URL}/quest/${questId}/leave`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+//     const response = await fetch(`${API_URL}/quest/${questId}/leave`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${token}`,
+//       },
+//     });
 
-    const result = await response.json();
+//     const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || "Failed to leave quest");
-    }
+//     if (!response.ok) {
+//       throw new Error(result.error || "Failed to leave quest");
+//     }
 
-    console.log(`✅ Left quest: ${questId}. XP penalty: -${result.xpPenalty}`);
-    return {
-      success: true,
-      xpPenalty: result.xpPenalty,
-      weeklyPenalty: result.weeklyPenalty,
-    };
-  } catch (error) {
-    console.error("❌ Leave quest failed:", error);
-    throw new Error(error.message || "Failed to leave quest");
-  }
-};
+//     console.log(`✅ Left quest: ${questId}. XP penalty: -${result.xpPenalty}`);
+//     return {
+//       success: true,
+//       xpPenalty: result.xpPenalty,
+//       weeklyPenalty: result.weeklyPenalty,
+//     };
+//   } catch (error) {
+//     console.error("❌ Leave quest failed:", error);
+//     throw new Error(error.message || "Failed to leave quest");
+//   }
+// };
 
 export const verifyQuestMember = async (questId, userId) => {
   // MVP Stub: Verification usually requires updates that might be restricted.

@@ -326,6 +326,113 @@ export const finalizeQuest = async (req, res) => {
   }
 };
 
+
+
+// Add this to backend/controllers/questController.js
+
+export const leaveQuest = async (req, res) => {
+  const { questId } = req.body;
+  const uid = req.user.uid;
+
+  if (!questId) return res.status(400).json({ error: "Missing questId" });
+
+  try {
+    const result = await db.runTransaction(async (t) => {
+      const questRef = db.collection("quests").doc(questId);
+      const userRef = db.collection("users").doc(uid);
+      const userStatsRef = db.collection("userStats").doc(uid);
+      
+      // References to the subcollections we need to delete
+      const memberRef = questRef.collection("members").doc(uid);
+      const joinedQuestRef = userRef.collection("joinedQuests").doc(questId);
+
+      const [questDoc, memberDoc, userStatsDoc] = await t.getAll(
+        questRef, 
+        memberRef,
+        userStatsRef
+      );
+
+      if (!questDoc.exists) throw new Error("Quest not found");
+      if (!memberDoc.exists) throw new Error("You are not a member of this quest");
+
+      const questData = questDoc.data();
+      
+      // 🛡️ SECURITY: Host cannot leave their own quest (must delete instead)
+      if (questData.hostId === uid) {
+        throw new Error("Hosts cannot leave. You must delete the quest.");
+      }
+
+      // ⚖️ PENALTY LOGIC
+      // If leaving less than 2 hours before start, apply penalty
+      let xpPenalty = 0;
+      const startTime = questData.startTime?.toDate();
+      const now = new Date();
+      
+      if (startTime) {
+        const hoursUntilStart = (startTime - now) / (1000 * 60 * 60);
+        
+        // If "flaking" last minute (less than 2 hours)
+        if (hoursUntilStart < 2 && hoursUntilStart > -1) { 
+           xpPenalty = 50; // Deduction amount
+        }
+      }
+
+      // 1. Remove from Quest Members Subcollection
+      t.delete(memberRef);
+
+      // 2. Remove from User's "My Missions" List
+      t.delete(joinedQuestRef);
+
+      // 3. Update Quest Document (Array & Count)
+      t.update(questRef, {
+        members: admin.firestore.FieldValue.arrayRemove(uid),
+        membersCount: admin.firestore.FieldValue.increment(-1)
+      });
+
+      // 4. Apply Penalty (if any)
+      if (xpPenalty > 0) {
+        t.update(userRef, {
+          xp: admin.firestore.FieldValue.increment(-xpPenalty),
+          reliabilityScore: admin.firestore.FieldValue.increment(-5) // Hit their reputation
+        });
+        
+        // Update private stats too
+        if (userStatsDoc.exists) {
+           t.update(userStatsRef, {
+             xp: admin.firestore.FieldValue.increment(-xpPenalty),
+             reliabilityScore: admin.firestore.FieldValue.increment(-5)
+           });
+        }
+      }
+
+      return { 
+        success: true, 
+        questTitle: questData.title,
+        hostId: questData.hostId,
+        leaverName: memberDoc.data().name || "A member",
+        xpPenalty 
+      };
+    });
+
+    res.json(result);
+
+    // 🔥 Fire & Forget: Notify the Host that someone bailed
+    if (result.success && result.hostId) {
+       sendNotification(
+         result.hostId,
+         "Squad Update ⚠️",
+         `${result.leaverName} has left "${result.questTitle}". A spot just opened up!`
+       ).catch(err => console.error("Leave notification failed:", err));
+    }
+
+  } catch (error) {
+    console.error("Leave Quest Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 /**
  * BADGE THRESHOLDS DEFINITION
  * Keys match frontend VibeReview.jsx vibetags IDs
