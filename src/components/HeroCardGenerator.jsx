@@ -25,8 +25,10 @@ import {
   getFeedbackBadges,
 } from "../utils/xp";
 
-const HeroCardGenerator = () => {
-  const { user } = useAuth();
+const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
+  const { user: authUser } = useAuth();
+  const user = propUser || authUser;
+
   const cardRef = useRef(null);
 
   const level = user?.level || 1;
@@ -35,7 +37,7 @@ const HeroCardGenerator = () => {
   const progressPercent = levelProgress(xp, level);
   const currentTier = getTier(level);
   const xpNeeded = getXPNeededForLevel(level);
-  const avatarSeed = user?.uid || "default";
+  const avatarSeed = user?.avatarSeed || user?.uid || "default";
 
   // Stats Grid - Using lucid icons that match the "Futuristic/Cyberpunk" vibe
   const stats = [
@@ -103,7 +105,7 @@ const HeroCardGenerator = () => {
 
   return (
     <div className="w-full h-full flex items-center justify-center p-4">
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-md">
         {/* Main Card Container */}
         <motion.div
           ref={cardRef}
@@ -115,7 +117,7 @@ const HeroCardGenerator = () => {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-80" />
 
           {/* Header Section */}
-          <div className="relative bg-gradient-to-r from-purple-900/50 to-transparent py-4 border-b border-purple-500/20">
+          <div className="relative bg-gradient-to-r from-purple-900/50 to-transparent py-3 border-b border-purple-500/20">
             <h2 className="text-center text-white/90 font-black tracking-[0.3em] text-sm uppercase font-['Orbitron'] drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]">
               IDENTITY MODULE
             </h2>
@@ -293,32 +295,34 @@ const HeroCardGenerator = () => {
         </motion.div>
 
         {/* --- ACTION BUTTONS --- */}
-        <div className="mt-8 space-y-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleDownload}
-            className="w-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white font-black py-4 rounded-xl uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(147,51,234,0.3)] border border-purple-400/30 relative overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-            <span className="relative z-10">Generate Operational Card</span>
-          </motion.button>
+        {showActions && (
+          <div className="mt-8 space-y-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleDownload}
+              className="w-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white font-black py-4 rounded-xl uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(147,51,234,0.3)] border border-purple-400/30 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <span className="relative z-10">Generate Operational Card</span>
+            </motion.button>
 
-          <div className="flex gap-3">
-            <button
-              onClick={shareToWhatsApp}
-              className="flex-1 bg-[#150a25] border border-purple-500/20 text-white/70 font-bold py-3 rounded-xl uppercase text-[10px] tracking-wider flex items-center justify-center gap-2 hover:bg-purple-900/20 transition-all hover:text-white"
-            >
-              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-            </button>
-            <button
-              onClick={shareToInstagram}
-              className="flex-1 bg-[#150a25] border border-purple-500/20 text-white/70 font-bold py-3 rounded-xl uppercase text-[10px] tracking-wider flex items-center justify-center gap-2 hover:bg-purple-900/20 transition-all hover:text-white"
-            >
-              <Instagram className="w-3.5 h-3.5" /> Instagram
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={shareToWhatsApp}
+                className="flex-1 bg-[#150a25] border border-purple-500/20 text-white/70 font-bold py-3 rounded-xl uppercase text-[10px] tracking-wider flex items-center justify-center gap-2 hover:bg-purple-900/20 transition-all hover:text-white"
+              >
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+              </button>
+              <button
+                onClick={shareToInstagram}
+                className="flex-1 bg-[#150a25] border border-purple-500/20 text-white/70 font-bold py-3 rounded-xl uppercase text-[10px] tracking-wider flex items-center justify-center gap-2 hover:bg-purple-900/20 transition-all hover:text-white"
+              >
+                <Instagram className="w-3.5 h-3.5" /> Instagram
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

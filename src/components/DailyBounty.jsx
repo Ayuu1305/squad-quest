@@ -129,31 +129,39 @@ const DailyBounty = () => {
 
   const handleClaim = async () => {
     if (!canClaim || loading || !user?.uid) return;
+
+    // ✅ OPTIMISTIC UI: Update state IMMEDIATELY
     setLoading(true);
+    setCanClaim(false);
+
+    // Trigger visual feedback INSTANTLY
+    triggerGoldBurst();
+    toast.success("🎉 Daily Bounty Claimed! +50 XP", {
+      duration: 3000,
+      style: {
+        background: "#1a1a2e",
+        color: "#fff",
+        border: "1px solid rgba(234,179,8,0.3)",
+      },
+    });
+
+    // Set manual countdown immediately (optimistic)
+    const nextClaim = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    setManualNextClaim(nextClaim);
+
     try {
+      // ✅ API call runs in background
       await claimDailyBounty();
-      triggerGoldBurst();
-      toast.success("🎉 Daily Bounty Claimed! +50 XP", {
-        duration: 3000,
-        style: {
-          background: "#1a1a2e",
-          color: "#fff",
-          border: "1px solid rgba(234,179,8,0.3)",
-        },
-      });
+      // Success - state already updated optimistically
     } catch (e) {
-      // Graceful handling for cooldown errors
+      // ✅ ROLLBACK on failure
       const errorMsg = e?.message?.toLowerCase() || "";
+
       if (
         errorMsg.includes("cooldown") ||
         errorMsg.includes("already claimed")
       ) {
-        // Don't log as error - this is expected behavior
-        setCanClaim(false);
-        // Set manual next claim time (current time + 24 hours)
-        const nextClaim = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        setManualNextClaim(nextClaim);
-
+        // Already claimed - keep the locked state
         toast("⏳ Daily Reward already claimed. Come back tomorrow!", {
           duration: 4000,
           icon: "⚠️",
@@ -163,26 +171,27 @@ const DailyBounty = () => {
             border: "1px solid rgba(251,191,36,0.3)",
           },
         });
-      } else if (
-        errorMsg.includes("failed to fetch") ||
-        errorMsg.includes("network")
-      ) {
-        // Network error - could be localhost backend not running
-        toast.error("🔌 Connection failed. Check if the server is running.", {
-          duration: 4000,
-          style: {
-            background: "#1a1a2e",
-            color: "#ef4444",
-            border: "1px solid rgba(239,68,68,0.3)",
-          },
-        });
-        console.warn(
-          "Daily Bounty: Network error - backend may not be running",
-        );
       } else {
-        // Unknown error - log it
-        console.error("Daily Bounty claim error:", e);
-        toast.error("Failed to claim bounty. Please try again.");
+        // ✅ REVERT optimistic update on error
+        setCanClaim(true);
+        setManualNextClaim(null);
+
+        if (
+          errorMsg.includes("failed to fetch") ||
+          errorMsg.includes("network")
+        ) {
+          toast.error("🔌 Connection failed. Please try again.", {
+            duration: 4000,
+            style: {
+              background: "#1a1a2e",
+              color: "#ef4444",
+              border: "1px solid rgba(239,68,68,0.3)",
+            },
+          });
+        } else {
+          console.error("Daily Bounty claim error:", e);
+          toast.error("Failed to claim bounty. Please try again.");
+        }
       }
     } finally {
       setLoading(false);

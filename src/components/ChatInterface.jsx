@@ -63,7 +63,7 @@ const ChatInterface = ({ quest, user, onLeave }) => {
       (error) => {
         console.warn("Squad members listener suppressed:", error);
         setLoading(false);
-      }
+      },
     );
 
     return () => {
@@ -155,9 +155,9 @@ const ChatInterface = ({ quest, user, onLeave }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Squad Members Horizontal List */}
-      <div className="p-4 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar flex items-center gap-3">
+      <div className="p-4 pt-6 md:pt-4 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar flex items-center gap-3 bg-black/20 shrink-0">
         {members.map((userId) => (
           <div key={userId} className="inline-flex flex-col items-center gap-1">
             <div className="relative">
@@ -179,7 +179,7 @@ const ChatInterface = ({ quest, user, onLeave }) => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/20 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/20 no-scrollbar relative z-10">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-2 opacity-50">
             <Zap className="w-8 h-8" />
@@ -262,7 +262,7 @@ const ChatInterface = ({ quest, user, onLeave }) => {
       </div>
 
       {/* Footer / Input */}
-      <div className="p-4 glassmorphism border-t border-white/10">
+      <div className="p-4 pb-6 md:pb-4 glassmorphism border-t border-white/10 relative z-20 shrink-0">
         <div className="flex gap-2 mb-3">
           <input
             type="text"

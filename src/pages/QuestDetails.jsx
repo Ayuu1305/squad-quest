@@ -444,50 +444,59 @@ const QuestDetails = () => {
           message={errorModal.message}
         />
 
-        {/* ✅ NEW: Delete Quest Modal */}
+        {/* ✅ Delete Quest Modal - Optimistic UI */}
         <DeleteQuestModal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
           onConfirm={async () => {
-            setIsDeleting(true);
+            // ✅ OPTIMISTIC: Close modal and navigate IMMEDIATELY
+            setShowDeleteModal(false);
+            toast.success("Quest deleted successfully!", {
+              icon: "🗑️",
+              duration: 3000,
+            });
+            navigate("/board");
+
+            // ✅ API call runs in background
             try {
               await deleteQuestAPI(id);
-              toast.success("Quest deleted successfully!", {
-                icon: "🗑️",
-                duration: 3000,
-              });
-              setTimeout(() => navigate("/board"), 500);
+              // Success - user already navigated
             } catch (error) {
+              // Show error feedback even though user navigated
               console.error("Delete quest failed:", error);
-              toast.error(error.message || "Failed to delete quest");
-            } finally {
-              setIsDeleting(false);
-              setShowDeleteModal(false);
+              toast.error("Delete failed. The quest may still exist.");
             }
           }}
           questTitle={quest?.title || "Unknown Quest"}
           isDeleting={isDeleting}
         />
 
-        {/* ✅ NEW: Edit Quest Modal */}
+        {/* ✅ Edit Quest Modal - Optimistic UI */}
         <EditQuestModal
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           onSave={async (updates) => {
-            setIsSaving(true);
+            // ✅ Store original for rollback
+            const originalQuest = { ...quest };
+
+            // ✅ OPTIMISTIC: Apply updates to local state IMMEDIATELY
+            setQuest((prev) => ({ ...prev, ...updates }));
+            setShowEditModal(false);
+            toast.success("Quest updated successfully!", {
+              icon: "✏️",
+              duration: 3000,
+            });
+
+            // ✅ API call runs in background
             try {
               await editQuestAPI(id, updates);
-              toast.success("Quest updated successfully!", {
-                icon: "✏️",
-                duration: 3000,
-              });
-              setShowEditModal(false);
-              window.location.reload();
+              // Success - state already updated
             } catch (error) {
+              // ✅ ROLLBACK on failure
               console.error("Edit quest failed:", error);
-              toast.error(error.message || "Failed to update quest");
-            } finally {
-              setIsSaving(false);
+              setQuest(originalQuest);
+              toast.error("Failed to save changes. Reverted.");
+              setShowEditModal(true); // Re-open modal
             }
           }}
           quest={quest}

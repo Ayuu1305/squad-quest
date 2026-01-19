@@ -1,4 +1,4 @@
-import { db } from "../server.js";
+import { db, admin } from "../server.js";
 
 function getStartOfWeek(date) {
   const d = new Date(date);
@@ -41,11 +41,18 @@ export const getWeeklyLeaderboard = async (req, res) => {
 
       if (!snapshot.empty) {
         const batch = db.batch();
+        const now = admin.firestore.FieldValue.serverTimestamp();
         snapshot.docs.forEach((doc) => {
-          batch.update(doc.ref, { thisWeekXP: 0 });
+          batch.update(doc.ref, {
+            thisWeekXP: 0,
+            lastWeeklyResetDate: now,
+          });
           // Also update userStats if we want perfect sync, but leaderboard reads 'users'
           const statsRef = db.collection("userStats").doc(doc.id);
-          batch.update(statsRef, { thisWeekXP: 0 });
+          batch.update(statsRef, {
+            thisWeekXP: 0,
+            lastWeeklyResetDate: now,
+          });
         });
         await batch.commit();
       }

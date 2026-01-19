@@ -27,25 +27,28 @@ export const deleteQuest = async (req, res) => {
       return res.status(403).json({ error: "Only quest host can delete" });
     }
 
-    // 2. Delete all subcollections
+    // 2. Delete all subcollections - PARALLEL FETCH
     const batch = db.batch();
 
+    // ✅ Fetch all subcollections in parallel (faster!)
+    const [membersSnapshot, chatSnapshot, verificationsSnapshot] =
+      await Promise.all([
+        questRef.collection("members").get(),
+        questRef.collection("chat").get(),
+        questRef.collection("verifications").get(),
+      ]);
+
     // Delete members subcollection
-    const membersSnapshot = await questRef.collection("members").get();
     membersSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
 
     // Delete chat subcollection
-    const chatSnapshot = await questRef.collection("chat").get();
     chatSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
 
     // Delete verifications subcollection
-    const verificationsSnapshot = await questRef
-      .collection("verifications")
-      .get();
     verificationsSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });

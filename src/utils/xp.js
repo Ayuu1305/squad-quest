@@ -36,6 +36,7 @@ const ATTR_THRESHOLDS = {
 export const BADGE_DEFINITIONS = {
   funny: {
     id: "funny",
+    firebaseKey: "funny", // feedbackCounts.funny
     label: "The Icebreaker",
     description: "Breaks the silence with good vibes.",
     icon: "❄️",
@@ -45,6 +46,7 @@ export const BADGE_DEFINITIONS = {
   },
   teamplayer: {
     id: "teamplayer",
+    firebaseKey: "team_player", // Common mismatch: teamplayer vs team_player
     label: "Social Catalyst",
     description: "The spark that ignites the squad.",
     icon: "🤝",
@@ -54,6 +56,7 @@ export const BADGE_DEFINITIONS = {
   },
   intellectual: {
     id: "intellectual",
+    firebaseKey: "intellectual",
     label: "The Philosopher",
     description: "Deep thinker with profound insights.",
     icon: "🦉",
@@ -63,6 +66,7 @@ export const BADGE_DEFINITIONS = {
   },
   listener: {
     id: "listener",
+    firebaseKey: "helpful", // Mapping 'helpful' feedback to Listener badge
     label: "Vibe Architect",
     description: "Builds the foundation of trust.",
     icon: "🏗️",
@@ -72,6 +76,7 @@ export const BADGE_DEFINITIONS = {
   },
   storyteller: {
     id: "storyteller",
+    firebaseKey: "storyteller",
     label: "Vibe Alchemist",
     description: "Transforms moments into legends.",
     icon: "⚗️",
@@ -81,6 +86,7 @@ export const BADGE_DEFINITIONS = {
   },
   leader: {
     id: "leader",
+    firebaseKey: "leader",
     label: "Master Tactician",
     description: "Born to lead the charge.",
     icon: "♟️",
@@ -283,9 +289,8 @@ export const checkBadgeUnlock = (feedbackCounts = {}) => {
   const unlockedBadges = [];
 
   Object.values(BADGE_DEFINITIONS).forEach((badgeDef) => {
-    // Map tag IDs (funny, listener) to feedbackCounts keys
-    // Assuming keys in feedbackCounts match badgeDef.id
-    const count = feedbackCounts[badgeDef.id] || 0;
+    const count =
+      feedbackCounts[badgeDef.firebaseKey] || feedbackCounts[badgeDef.id] || 0;
     if (count >= badgeDef.threshold) {
       unlockedBadges.push(badgeDef.label);
     }
@@ -297,7 +302,9 @@ export const checkBadgeUnlock = (feedbackCounts = {}) => {
 // Helper: Get all badge info with locked/unlocked status
 export const getFeedbackBadges = (feedbackCounts = {}) => {
   return Object.values(BADGE_DEFINITIONS).map((badge) => {
-    const count = feedbackCounts[badge.id] || 0;
+    // Use mapped firebaseKey, fallback to ID
+    const count =
+      feedbackCounts[badge.firebaseKey] || feedbackCounts[badge.id] || 0;
     const isUnlocked = count >= badge.threshold;
     return {
       ...badge,
@@ -311,7 +318,8 @@ export const getFeedbackBadges = (feedbackCounts = {}) => {
 // Helper: Check for near misses (1 away)
 export const getNearUnlockBadge = (feedbackCounts = {}) => {
   const nearMisses = Object.values(BADGE_DEFINITIONS).filter((badge) => {
-    const count = feedbackCounts[badge.id] || 0;
+    const count =
+      feedbackCounts[badge.firebaseKey] || feedbackCounts[badge.id] || 0;
     return count === badge.threshold - 1;
   });
 

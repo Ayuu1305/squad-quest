@@ -405,21 +405,56 @@ const HeroProfile = ({ user, onEdit }) => {
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {badgeList.map((badge) => (
-                    <div
-                      key={badge.id}
-                      className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-2 border transition-all ${
-                        badge.isUnlocked
-                          ? "bg-white/5 border-white/10 shadow-lg"
-                          : "bg-black/20 border-white/5 opacity-40 grayscale"
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{badge.icon}</div>
-                      <div className="text-[7px] text-center font-black uppercase text-gray-400 leading-tight">
-                        {badge.label}
+                  {badgeList.map((badge) => {
+                    const progress = Math.min(
+                      ((badge.current || 0) / (badge.needed || 1)) * 100,
+                      100,
+                    );
+                    return (
+                      <div
+                        key={badge.id}
+                        className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-2 border transition-all relative overflow-hidden group ${
+                          badge.isUnlocked
+                            ? "bg-white/5 border-white/10 shadow-lg"
+                            : "bg-black/20 border-white/5"
+                        }`}
+                      >
+                        <div
+                          className={`flex flex-col items-center justify-center flex-1 ${!badge.isUnlocked ? "grayscale opacity-60" : ""}`}
+                        >
+                          <div className="text-2xl mb-1">{badge.icon}</div>
+                          <div className="text-[7px] text-center font-black uppercase text-gray-400 leading-tight">
+                            {badge.label}
+                          </div>
+                        </div>
+
+                        {!badge.isUnlocked && (
+                          <div className="w-full mt-auto pt-2">
+                            <div className="flex justify-between items-center text-[6px] text-gray-500 font-mono mb-0.5 px-1">
+                              <span>
+                                {badge.current || 0}/{badge.needed}
+                              </span>
+                              <span>{Math.round(progress)}%</span>
+                            </div>
+                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                className="h-full bg-gradient-to-r from-purple-600 to-purple-400"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Lock Icon Overlay if 0 progress */}
+                        {!badge.isUnlocked && progress === 0 && (
+                          <div className="absolute top-2 right-2 opacity-20">
+                            <Lock className="w-3 h-3 text-gray-500" />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </motion.div>

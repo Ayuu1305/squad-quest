@@ -22,15 +22,33 @@ app.use(
 
 app.use(express.json());
 
-// ✅ Firebase Admin Init (Production - Render)
+// ✅ Firebase Admin Init (Local Dev + Production)
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 if (!admin.apps.length) {
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  let serviceAccount;
+
+  // Try local file first (for development)
+  const localKeyPath = join(__dirname, "serviceAccountKey.json");
+  if (fs.existsSync(localKeyPath)) {
+    serviceAccount = require(localKeyPath);
+    console.log("🔧 Using LOCAL serviceAccountKey.json");
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    // Production: use environment variable
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    console.log("☁️ Using PRODUCTION environment variable");
+  } else {
     throw new Error(
-      "❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required",
+      "❌ Firebase credentials not found. Add serviceAccountKey.json for local dev or set FIREBASE_SERVICE_ACCOUNT_KEY for production.",
     );
   }
-
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -56,6 +74,8 @@ import {
   editQuest,
   leaveQuest,
 } from "./controllers/questManagementController.js";
+import { adminForceReset } from "./controllers/weeklyResetController.js";
+import { initCronJobs } from "./services/cronService.js";
 
 // Routes
 app.post("/api/quest/finalize", verifyToken, finalizeQuest);
@@ -68,9 +88,15 @@ app.delete("/api/quest/:questId", verifyToken, deleteQuest);
 app.put("/api/quest/:questId", verifyToken, editQuest);
 app.post("/api/quest/:questId/leave", verifyToken, leaveQuest);
 
+// ✅ NEW: Admin Routes (Protected by x-admin-secret header)
+app.post("/api/admin/reset-weekly-xp", adminForceReset);
+
 app.get("/", (req, res) => {
   res.send("Squad Quest Backend is Running ✅");
 });
+
+// Initialize Cron Jobs
+initCronJobs();
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
