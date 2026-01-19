@@ -55,7 +55,7 @@ const Login = () => {
     try {
       const { resetHeroPassword } = await import("../backend/firebaseService");
       await resetHeroPassword(email);
-      toast.success("Recovery Comms Sent. Check your inbox, Hero.", {
+      toast.success("Mail Sent. Check your inbox as well as spam folder too, Hero.", {
         icon: "📧",
       });
     } catch (err) {

@@ -423,26 +423,28 @@ const QuestBoard = () => {
         <FloatingLiveFeed />
 
         {/* Floating Action Button - Optimized for Mobile Touch */}
-        {/* Floating Action Button - Nuclear Launch Style */}
-        <div className="fixed bottom-28 right-6 z-50 group sm:bottom-10 sm:right-10 flex flex-col items-center gap-2">
-          <div className="absolute inset-0 bg-black/50 blur-xl rounded-full scale-150 pointer-events-none" />{" "}
-          {/* Shadow Backdrop */}
+        {/* Floating Action Button - Extended Style (Premium Pill) */}
+        <div className="fixed bottom-28 right-6 z-50 group sm:bottom-10 sm:right-10">
           <Link
             to="/create-quest"
-            className="relative w-14 h-14 bg-gradient-to-br from-fuchsia-600 to-purple-800 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(192,38,211,0.5)] transform transition-transform hover:scale-110 active:scale-95 border-2 border-white/20"
+            className="relative flex items-center gap-3 pl-4 pr-6 py-3 bg-gradient-to-r from-fuchsia-600 to-purple-800 rounded-full shadow-[0_0_30px_rgba(192,38,211,0.5)] transform transition-transform hover:scale-105 active:scale-95 border-2 border-white/20 group overflow-hidden"
           >
-            {/* Ripple Effect */}
-            <div className="absolute inset-0 rounded-full border border-fuchsia-500/50 animate-ping opacity-75" />
-            <div className="absolute -inset-3 rounded-full bg-fuchsia-500/20 blur-xl animate-pulse" />
+            {/* Animated Glow Backdrop */}
+            <div className="absolute inset-0 bg-fuchsia-500/20 blur-xl group-hover:opacity-100 opacity-50 transition-opacity duration-500" />
 
-            <Plus
-              className="w-8 h-8 text-white relative z-10 drop-shadow-md"
-              strokeWidth={3}
-            />
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+
+            {/* Icon Container */}
+            <div className="relative z-10 bg-black/20 p-1.5 rounded-full border border-white/10">
+              <Plus className="w-5 h-5 text-white" strokeWidth={3} />
+            </div>
+
+            {/* Permanent Text */}
+            <span className="relative z-10 text-[10px] sm:text-xs font-black uppercase tracking-widest text-white font-['Orbitron']">
+              Post Mission
+            </span>
           </Link>
-          <span className="text-[9px] font-black uppercase tracking-widest text-fuchsia-400 bg-black/80 px-2 py-0.5 rounded backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 whitespace-nowrap pointer-events-none">
-            Post Mission
-          </span>
         </div>
 
         <TacticalErrorModal
