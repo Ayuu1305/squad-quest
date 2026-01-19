@@ -103,13 +103,14 @@ export const finalizeQuest = async (req, res) => {
           level: newLevel,
           reliabilityScore: newReliability,
           thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
+          questsCompleted: admin.firestore.FieldValue.increment(1), // ✅ NEW: Standardized Count
           badges: newBadges,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
 
-      // ✅ Sync into users (mandatory for leaderboard) - Use increment to prevent race conditions
+      // ✅ Sync into users (mandatory for leaderboard)
       t.set(
         userRef,
         {
@@ -117,6 +118,7 @@ export const finalizeQuest = async (req, res) => {
           level: newLevel,
           reliabilityScore: newReliability,
           thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
+          questsCompleted: admin.firestore.FieldValue.increment(1), // ✅ Public Profile Sync
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true },
@@ -180,9 +182,28 @@ export const finalizeQuest = async (req, res) => {
   }
 };
 
+/**
+ * BADGE THRESHOLDS DEFINITION
+ * Keys match frontend VibeReview.jsx vibetags IDs
+ */
+const BADGE_THRESHOLDS = {
+  leader: { count: 5, id: "SQUAD_LEADER" },
+  storyteller: { count: 5, id: "MASTER_STORYTELLER" },
+  funny: { count: 5, id: "ICEBREAKER" },
+  listener: { count: 5, id: "EMPATHETIC_SOUL" },
+  teamplayer: { count: 5, id: "TEAM_PLAYER" },
+  intellectual: { count: 5, id: "PHILOSOPHER" },
+};
+
 export const submitVibeCheck = async (req, res) => {
   const { questId, reviews } = req.body;
   const reviewerId = req.user.uid;
+
+  console.log("📝 [VibeCheck] Request received:", {
+    questId,
+    reviews,
+    reviewerId,
+  });
 
   if (!questId || !reviews) {
     return res.status(400).json({ error: "Missing questId or reviews" });
@@ -190,11 +211,19 @@ export const submitVibeCheck = async (req, res) => {
 
   try {
     const result = await db.runTransaction(async (t) => {
+      console.log("📝 [VibeCheck] Transaction started");
       // 1. Validate Quest
       const questRef = db.collection("quests").doc(questId);
       const questDoc = await t.get(questRef);
 
       if (!questDoc.exists) throw new Error("Quest not found");
+
+      // Verify reviewer was a member (security check)
+      const reviewerMemberRef = questRef.collection("members").doc(reviewerId);
+      const reviewerMemberSnap = await t.get(reviewerMemberRef);
+      if (!reviewerMemberSnap.exists) {
+        throw new Error("You were not a member of this quest");
+      }
 
       // 2. Process each review
       const userIds = Object.keys(reviews);
@@ -232,7 +261,7 @@ export const submitVibeCheck = async (req, res) => {
         reviewerXP + reviewerReward,
       );
 
-      // Update Reviewer - Use increment to prevent race conditions
+      // Update Reviewer
       const reviewerPayload = {
         xp: admin.firestore.FieldValue.increment(reviewerReward),
         level: newReviewerLevel,
@@ -245,15 +274,15 @@ export const submitVibeCheck = async (req, res) => {
       // Update Reviewed Users
       userIds.forEach((targetId) => {
         if (targetId === reviewerId) return;
-        const tags = reviews[targetId];
+        const tags = reviews[targetId]; // Array of tags e.g. ["leader", "tactician"]
         if (!tags || tags.length === 0) return;
 
         const targetRef = db.collection("users").doc(targetId);
         const targetStatsRef = db.collection("userStats").doc(targetId);
-        const targetData = snapMap.get(targetRef.path) || {};
+        const targetStatsData = snapMap.get(targetStatsRef.path) || {};
 
         const xpReward = tags.length * 5;
-        const currentXP = targetData.xp || 0;
+        const currentXP = targetStatsData.xp || 0;
         const newXP = currentXP + xpReward;
         const { level: newLevel } = calculateLevelFromXP(newXP);
 
@@ -264,17 +293,58 @@ export const submitVibeCheck = async (req, res) => {
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        // Add vibe tags increment
+        // ✅ FEEDBACK & BADGE LOGIC
+        const currentFeedback =
+          targetStatsData.feedbackCounts || targetStatsData.vibeTags || {};
+        const currentBadges = targetStatsData.badges || [];
+        const newBadges = [...currentBadges];
+        let badgeUnlocked = false;
+
         tags.forEach((tag) => {
-          targetPayload[`vibeTags.${tag}`] =
+          // 1. Increment Count
+          targetPayload[`feedbackCounts.${tag}`] =
             admin.firestore.FieldValue.increment(1);
+
+          // 2. Check Badge Threshold
+          const currentCount = (currentFeedback[tag] || 0) + 1; // +1 because we are adding one now
+          const threshold = BADGE_THRESHOLDS[tag];
+
+          if (threshold && currentCount >= threshold.count) {
+            if (!newBadges.includes(threshold.id)) {
+              newBadges.push(threshold.id);
+              badgeUnlocked = true;
+
+              // Log Activity for Badge
+              const logRef = db.collection("global_activity").doc();
+              t.set(logRef, {
+                type: "badge",
+                userId: targetId,
+                user: snapMap.get(targetRef.path)?.name || "Hero",
+                action: `earned ${threshold.id.replace("_", " ")} badge`,
+                target: threshold.id,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+              });
+            }
+          }
         });
 
+        if (badgeUnlocked) {
+          targetPayload.badges = newBadges;
+        }
+
+        console.log("📝 [VibeCheck] Writing feedback for user:", targetId);
+        console.log("📝 [VibeCheck] targetRef path:", targetRef.path);
+        console.log("📝 [VibeCheck] targetStatsRef path:", targetStatsRef.path);
+        console.log("📝 [VibeCheck] Payload:", JSON.stringify(targetPayload));
+
+        // Write to users collection (for leaderboard compatibility)
         t.set(targetRef, targetPayload, { merge: true });
+
+        // Write to userStats collection (for Profile page)
         t.set(targetStatsRef, targetPayload, { merge: true });
       });
 
-      // 4. Activity Log
+      // 4. Activity Log for Reviewer
       const activityRef = db.collection("global_activity").doc();
       t.set(activityRef, {
         type: "vibe_check",

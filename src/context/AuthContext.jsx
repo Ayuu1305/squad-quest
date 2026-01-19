@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
             unsubscribeStats = onSnapshot(
               doc(db, "userStats", authUser.uid),
               (statsSnap) => {
-                const statsData = statsSnap.exists()
+                const rawStatsData = statsSnap.exists()
                   ? statsSnap.data()
                   : {
                       xp: profileData.xp || 0,
@@ -40,6 +40,33 @@ export const AuthProvider = ({ children }) => {
                       reliabilityScore: profileData.reliabilityScore || 100,
                       badges: profileData.badges || [],
                     };
+
+                // ✅ Transform flat "feedbackCounts.X" keys into nested object
+                const feedbackCounts = {};
+                const statsData = { ...rawStatsData };
+
+                Object.keys(statsData).forEach((key) => {
+                  if (key.startsWith("feedbackCounts.")) {
+                    const tagName = key.replace("feedbackCounts.", "");
+                    feedbackCounts[tagName] = statsData[key];
+                    delete statsData[key]; // Remove flat key
+                  }
+                });
+
+                // Add the nested object
+                if (Object.keys(feedbackCounts).length > 0) {
+                  statsData.feedbackCounts = feedbackCounts;
+                }
+
+                // DEBUG: Log the transformed statsData
+                console.log(
+                  "🔍 [AuthContext] Transformed statsData:",
+                  statsData,
+                );
+                console.log(
+                  "🔍 [AuthContext] feedbackCounts:",
+                  statsData.feedbackCounts,
+                );
 
                 setUser({
                   ...authUser,

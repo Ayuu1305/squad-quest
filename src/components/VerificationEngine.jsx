@@ -24,6 +24,8 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showPhotoWarning, setShowPhotoWarning] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [compressionStatus, setCompressionStatus] = useState("idle"); // 'idle' | 'compressing' | 'ready'
 
   const [distance, setDistance] = useState(null);
   const [permissionError, setPermissionError] = useState(null);
@@ -56,7 +58,7 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
         // ✅ FIX: Normalize hub coordinates (coordinates first, fallback to lat/long)
         const hubLat = Number(hub?.coordinates?.latitude ?? hub?.lat);
         const hubLon = Number(
-          hub?.coordinates?.longitude ?? hub?.long ?? hub?.lng
+          hub?.coordinates?.longitude ?? hub?.long ?? hub?.lng,
         );
         console.log("GPS DEBUG:", {
           userLat: latitude,
@@ -103,8 +105,8 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
           if (isDev)
             console.warn(
               `DEV MODE FAIL: You are ${Math.round(
-                dist / 1000
-              )}km away! (Limit 20km)`
+                dist / 1000,
+              )}km away! (Limit 20km)`,
             );
         }
       },
@@ -112,13 +114,13 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
         setGpsStatus("error");
         if (error.code === error.PERMISSION_DENIED) {
           setPermissionError(
-            "GPS blocked. Enable Location Permission in browser settings."
+            "GPS blocked. Enable Location Permission in browser settings.",
           );
         } else {
           setPermissionError("Unable to retrieve your location.");
         }
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   };
 
@@ -159,17 +161,46 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // ✅ INSTANT PREVIEW: Show preview immediately using blob URL
+    const blobUrl = URL.createObjectURL(file);
+    setPhotoPreview(blobUrl);
     setIsCapturing(true);
+    setCompressionStatus("compressing");
+    setUploadProgress(0);
+
+    // Simulate progress during compression
+    const progressInterval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return prev + 10;
+      });
+    }, 100);
 
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const originalBase64 = event.target.result;
-        const compressedBase64 = await compressImage(originalBase64, 800, 0.6);
 
+        // ✅ OPTIMIZED COMPRESSION: Better quality/size balance
+        const compressedBase64 = await compressImage(originalBase64, 1024, 0.7);
+
+        // Complete progress
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+
+        // Replace blob URL with compressed base64
+        URL.revokeObjectURL(blobUrl);
         setPhotoPreview(compressedBase64);
         setPhotoUploaded(true);
         setIsSkipped(false);
+        setCompressionStatus("ready");
+      } catch (error) {
+        console.error("Compression failed:", error);
+        clearInterval(progressInterval);
+        setCompressionStatus("idle");
       } finally {
         setIsCapturing(false);
       }
@@ -222,8 +253,8 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
           gpsStatus === "checking"
             ? "bg-gray-800 text-gray-500"
             : gpsStatus === "success"
-            ? "bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.4)]"
-            : "btn-primary"
+              ? "bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.4)]"
+              : "btn-primary"
         }`}
       >
         {gpsStatus === "checking" ? (
@@ -360,11 +391,28 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
             />
 
             {isCapturing ? (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-3 w-full px-6">
                 <RefreshCw className="w-8 h-8 text-neon-purple animate-spin" />
-                <span className="text-[10px] text-gray-400 font-mono uppercase">
-                  Processing...
-                </span>
+                <div className="w-full space-y-2">
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-neon-purple to-purple-400"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                  {/* Progress Text */}
+                  <div className="flex justify-between text-[10px] text-gray-400 font-mono uppercase">
+                    <span>
+                      {compressionStatus === "compressing"
+                        ? "Compressing..."
+                        : "Processing..."}
+                    </span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                </div>
               </div>
             ) : (
               <>
@@ -508,8 +556,8 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
               activeLayer === layer
                 ? "bg-neon-purple"
                 : activeLayer > layer
-                ? "bg-green-500"
-                : "bg-gray-800"
+                  ? "bg-green-500"
+                  : "bg-gray-800"
             }`}
           />
         ))}

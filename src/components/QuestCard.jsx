@@ -6,8 +6,10 @@ import { db } from "../backend/firebaseConfig";
 import HeroAvatar from "./HeroAvatar";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { useAuth } from "../context/AuthContext";
 
 const QuestCard = ({ quest, hub, isMyMission = false }) => {
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const maxPlayers = quest.maxPlayers || 5;
   const cardRef = useRef(null);
@@ -165,7 +167,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
             </div>
           </div>
 
-          {isMyMission && (
+          {user?.uid === quest.hostId && (
             <div className="bg-neon-purple/20 border border-neon-purple/40 px-2 py-1 rounded-lg">
               <span className="text-[9px] font-black text-neon-purple uppercase tracking-widest">
                 HOST

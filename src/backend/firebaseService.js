@@ -81,6 +81,15 @@ export const onboardHero = async (user) => {
         reliabilityScore: 100,
         badges: [],
         daily_streak: 0,
+        questsCompleted: 0, // ✅ Standardized Count
+        feedbackCounts: {
+          // ✅ Standardized Feedback Map
+          leader: 0,
+          tactician: 0,
+          listener: 0,
+          fearless: 0,
+          mvp: 0,
+        },
         createdAt: serverTimestamp(),
       });
 

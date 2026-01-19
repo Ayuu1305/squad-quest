@@ -32,6 +32,7 @@ import AscensionNotification from "./AscensionNotification";
 import { getLevelProgress } from "../utils/leveling";
 
 import OnboardingGuide from "./OnboardingGuide";
+import ProfileOverview from "./ProfileOverview";
 
 const HeroicStatItem = ({
   label,
@@ -75,7 +76,12 @@ const HeroicStatItem = ({
 );
 
 const HeroProfile = ({ user, onEdit }) => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  // Default to "overview" for new users (Level 1, 0 XP)
+  const isNewUser =
+    (user?.level === 1 || !user?.level) && (user?.xp === 0 || !user?.xp);
+  const [activeTab, setActiveTab] = useState(
+    isNewUser ? "overview" : "dashboard",
+  );
   const [showGuide, setShowGuide] = useState(false);
   const [showBadgeHelp, setShowBadgeHelp] = useState(false);
 
@@ -242,6 +248,19 @@ const HeroProfile = ({ user, onEdit }) => {
               ID Card
             </span>
           </button>
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`p-2 sm:px-4 sm:py-2 rounded-xl transition-all ${
+              activeTab === "overview"
+                ? "bg-neon-purple text-white shadow-lg"
+                : "bg-white/5 text-gray-400"
+            }`}
+          >
+            <BookOpen className="w-5 h-5 sm:hidden" />
+            <span className="hidden sm:block text-xs font-black uppercase tracking-widest">
+              Overview
+            </span>
+          </button>
         </div>
       </div>
 
@@ -366,7 +385,7 @@ const HeroProfile = ({ user, onEdit }) => {
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <HeroicStatItem
                   label="Quests Done"
-                  value={user.totalQuests || 0}
+                  value={user.questsCompleted || user.totalQuests || 0}
                   sublabel="Completed"
                   icon={Target}
                   color="cyan"
@@ -404,7 +423,7 @@ const HeroProfile = ({ user, onEdit }) => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {badgeList.map((badge) => {
                     const progress = Math.min(
                       ((badge.current || 0) / (badge.needed || 1)) * 100,
@@ -413,7 +432,7 @@ const HeroProfile = ({ user, onEdit }) => {
                     return (
                       <div
                         key={badge.id}
-                        className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-2 border transition-all relative overflow-hidden group ${
+                        className={`aspect-square min-h-[100px] rounded-2xl flex flex-col items-center justify-center p-3 border transition-all relative overflow-hidden group $\{
                           badge.isUnlocked
                             ? "bg-white/5 border-white/10 shadow-lg"
                             : "bg-black/20 border-white/5"
@@ -422,8 +441,10 @@ const HeroProfile = ({ user, onEdit }) => {
                         <div
                           className={`flex flex-col items-center justify-center flex-1 ${!badge.isUnlocked ? "grayscale opacity-60" : ""}`}
                         >
-                          <div className="text-2xl mb-1">{badge.icon}</div>
-                          <div className="text-[7px] text-center font-black uppercase text-gray-400 leading-tight">
+                          <div className="text-2xl sm:text-3xl mb-1">
+                            {badge.icon}
+                          </div>
+                          <div className="text-[8px] sm:text-[9px] text-center font-black uppercase text-gray-400 leading-tight px-1">
                             {badge.label}
                           </div>
                         </div>
@@ -458,6 +479,8 @@ const HeroProfile = ({ user, onEdit }) => {
                 </div>
               </div>
             </motion.div>
+          ) : activeTab === "overview" ? (
+            <ProfileOverview />
           ) : (
             <motion.div
               key="card"

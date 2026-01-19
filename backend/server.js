@@ -22,33 +22,16 @@ app.use(
 
 app.use(express.json());
 
-// ✅ Firebase Admin Init (Local Dev + Production)
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import fs from "fs";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
+// ✅ Firebase Admin Init (Production only - uses environment variable)
 if (!admin.apps.length) {
-  let serviceAccount;
-
-  // Try local file first (for development)
-  const localKeyPath = join(__dirname, "serviceAccountKey.json");
-  if (fs.existsSync(localKeyPath)) {
-    serviceAccount = require(localKeyPath);
-    console.log("🔧 Using LOCAL serviceAccountKey.json");
-  } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    // Production: use environment variable
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    console.log("☁️ Using PRODUCTION environment variable");
-  } else {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     throw new Error(
-      "❌ Firebase credentials not found. Add serviceAccountKey.json for local dev or set FIREBASE_SERVICE_ACCOUNT_KEY for production.",
+      "❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable not found.",
     );
   }
+
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+  console.log("☁️ Using FIREBASE_SERVICE_ACCOUNT_KEY from environment");
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

@@ -5,12 +5,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCItLHoLCBCFJT_bNAuTmPpyo1VKjIsn8U",
-  authDomain: "squad-quest-ca9f2.firebaseapp.com",
-  projectId: "squad-quest-ca9f2",
-  storageBucket: "squad-quest-ca9f2.firebasestorage.app",
-  messagingSenderId: "673500736170",
-  appId: "1:673500736170:web:6eedfea21215c306693ed3",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
@@ -24,16 +24,14 @@ const shouldInitAppCheck =
 let appCheck;
 if (shouldInitAppCheck) {
   appCheck = initializeAppCheck(firebaseApp, {
-    provider: new ReCaptchaV3Provider(
-      "6LfnbUksAAAAABRUmqHmG6uhNZV-Td1wZ9ZA54x7"
-    ),
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
     isTokenAutoRefreshEnabled: true,
   });
 } else {
   if (import.meta.env.DEV) {
     self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
     console.log(
-      "⚠️ App Check: Disabled in DEV to prevent 403 errors. Set VITE_ENABLE_APP_CHECK=true to enable."
+      "⚠️ App Check: Disabled in DEV to prevent 403 errors. Set VITE_ENABLE_APP_CHECK=true to enable.",
     );
   }
 }

@@ -33,10 +33,11 @@ const ATTR_THRESHOLDS = {
 };
 
 // --- NEW: Badge Definitions with Rarity ---
+// Keys must match backend feedbackCounts keys AND VibeReview.jsx tag IDs
 export const BADGE_DEFINITIONS = {
   funny: {
     id: "funny",
-    firebaseKey: "funny", // feedbackCounts.funny
+    firebaseKey: "funny",
     label: "The Icebreaker",
     description: "Breaks the silence with good vibes.",
     icon: "❄️",
@@ -46,8 +47,8 @@ export const BADGE_DEFINITIONS = {
   },
   teamplayer: {
     id: "teamplayer",
-    firebaseKey: "team_player", // Common mismatch: teamplayer vs team_player
-    label: "Social Catalyst",
+    firebaseKey: "teamplayer",
+    label: "Team Player",
     description: "The spark that ignites the squad.",
     icon: "🤝",
     rarity: "COMMON",
@@ -62,37 +63,37 @@ export const BADGE_DEFINITIONS = {
     icon: "🦉",
     rarity: "RARE",
     color: "text-purple-400",
-    threshold: 10,
+    threshold: 5,
   },
   listener: {
     id: "listener",
-    firebaseKey: "helpful", // Mapping 'helpful' feedback to Listener badge
-    label: "Vibe Architect",
+    firebaseKey: "listener",
+    label: "Good Listener",
     description: "Builds the foundation of trust.",
-    icon: "🏗️",
+    icon: "👂",
     rarity: "EPIC",
     color: "text-pink-400",
-    threshold: 20,
+    threshold: 5,
   },
   storyteller: {
     id: "storyteller",
     firebaseKey: "storyteller",
-    label: "Vibe Alchemist",
+    label: "Great Storyteller",
     description: "Transforms moments into legends.",
-    icon: "⚗️",
+    icon: "🎭",
     rarity: "EPIC",
     color: "text-orange-400",
-    threshold: 10,
+    threshold: 5,
   },
   leader: {
     id: "leader",
     firebaseKey: "leader",
-    label: "Master Tactician",
+    label: "Squad Leader",
     description: "Born to lead the charge.",
-    icon: "♟️",
+    icon: "👑",
     rarity: "RARE",
     color: "text-yellow-400",
-    threshold: 10,
+    threshold: 5,
   },
 };
 

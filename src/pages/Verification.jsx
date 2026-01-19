@@ -64,7 +64,7 @@ const Verification = () => {
           (err) => {
             console.error("Hub fetch error:", err);
             setLoading(false);
-          }
+          },
         );
         return;
       }
@@ -86,7 +86,7 @@ const Verification = () => {
           (err) => {
             console.error("Hub query error:", err);
             setLoading(false);
-          }
+          },
         );
         return;
       }
@@ -263,7 +263,7 @@ const Verification = () => {
   const handleMissionClose = () => {
     console.log(
       "[DEBUG] Mission Close Triggered. Review Squad Size:",
-      reviewSquad.length
+      reviewSquad.length,
     );
     if (reviewSquad.length > 0) {
       setShowCelebration(false);
@@ -277,7 +277,17 @@ const Verification = () => {
 
   const handleReviewComplete = async (reviews) => {
     console.log("Vibe Checks Submitted:", reviews);
-    // TODO: Send to backend
+
+    // ✅ Send to backend API
+    try {
+      const { submitVibeChecks } = await import("../backend/firebaseService");
+      const result = await submitVibeChecks(id, reviews);
+      console.log("✅ Vibe Check API success:", result);
+    } catch (error) {
+      console.error("❌ Vibe Check API failed:", error);
+      // Continue anyway - don't block the user
+    }
+
     finishQuest();
   };
 

@@ -14,7 +14,11 @@ import {
 import { db } from "../backend/firebaseConfig";
 import AscensionNotification from "../components/AscensionNotification";
 import { getTier, checkBadgeUnlock } from "../utils/xp";
-import { awardXP, subscribeToQuest } from "../backend/firebaseService";
+import {
+  awardXP,
+  subscribeToQuest,
+  submitVibeChecks,
+} from "../backend/firebaseService";
 
 const Review = () => {
   const { id } = useParams();
@@ -52,7 +56,7 @@ const Review = () => {
             return userDoc.exists()
               ? { id: uid, ...userDoc.data() }
               : { id: uid, name: `Hero_${uid.slice(0, 4)}` };
-          })
+          }),
         );
         setSquadToReview(squadData);
         setStep("review");
@@ -72,22 +76,16 @@ const Review = () => {
   const handleReviewComplete = async (reviews) => {
     setSquadReviews(reviews);
 
-    // 1. Award XP to current user for giving tags (+2 XP per tag)
-    let totalTagsGiven = 0;
-    Object.values(reviews).forEach((tags) => (totalTagsGiven += tags.length));
-    // 1. Award XP (Shifted to Backend / Disabled for MVP)
-    // if (totalTagsGiven > 0) {
-    //   await awardXP(user.uid, totalTagsGiven * 2, lootData.wasShowdown);
-    // }
+    // ✅ Call secure backend API to submit vibe checks
+    try {
+      const result = await submitVibeChecks(id, reviews);
+      console.log("✅ Vibe Check submitted:", result);
+    } catch (error) {
+      console.error("❌ Vibe Check failed:", error);
+      // Continue anyway - the user can still navigate
+    }
 
-    // 2. Award XP to recipients and update their vibeTags (Removed for Security Compatibility)
-    // NOTE: Direct writes to other users documents are blocked by Firestore Spark Rules.
-    // Client-side UI will show "simulated" success, but no database write is attempted here.
-    console.log(
-      "🔒 Security: Vibe Tag writes to other heroes disabled on client."
-    );
-
-    // 3. Mark quest as reviewed by this user
+    // Mark quest as reviewed by this user
     try {
       const questRef = doc(db, "quests", id);
       await updateDoc(questRef, {
@@ -97,7 +95,7 @@ const Review = () => {
       console.warn("Review marker suppressed by rules or error:", error);
     }
 
-    // Direct navigation, skipping the "Mission Synced" screen
+    // Direct navigation
     navigate("/board");
   };
 
