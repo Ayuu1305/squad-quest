@@ -1,9 +1,10 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit"; // ✅ 1. Import the library
+import rateLimit from "express-rate-limit";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth"; // Added this for Auth
 
 // Load environment variables
 dotenv.config();
@@ -13,45 +14,60 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({ origin: true })); // Allow requests from your React Frontend
+app.use(cors({ origin: true }));
 app.use(express.json());
 
 // ----------------------------------------------------
-// 🔥 FIREBASE SETUP
+// 🔥 FIREBASE SETUP (The part that needs fixing)
 // ----------------------------------------------------
-// (Assuming you use a service account key or default credentials)
-// If you use a serviceAccountKey.json file, import it here:
-// import serviceAccount from './serviceAccountKey.json' assert { type: "json" };
 
+let serviceAccount;
+
+try {
+  // Option 1: Running on Render (Production)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.log("🔍 Checking Render Environment Variable...");
+    // We try to parse the JSON string from the Environment Variable
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    console.log("✅ Successfully parsed Service Account from Env Var.");
+  } 
+  // Option 2: Running Locally (Development)
+  else {
+    console.log("⚠️ No Render Env Var found. Looking for local file...");
+    // If you have a local file, you can uncomment this:
+    // serviceAccount = await import('./serviceAccountKey.json', { assert: { type: "json" } });
+  }
+
+} catch (error) {
+  console.error("❌ CRITICAL ERROR: Could not parse FIREBASE_SERVICE_ACCOUNT.");
+  console.error("Did you paste the WHOLE JSON content into the Render value?");
+  console.error("Error details:", error.message);
+}
+
+// Initialize Firebase
+// If serviceAccount is undefined, this will throw the "metadata.google.internal" error
 const firebaseApp = initializeApp({
-  // credential: cert(serviceAccount) // Uncomment if using key file
-  // If hosted on Render/Heroku/Google Cloud, it auto-detects credentials
+  credential: cert(serviceAccount) 
 });
 
-// Export DB and Admin so controllers can use them
+// Export DB and Admin
 export const db = getFirestore(firebaseApp);
 export const admin = firebaseApp;
+// export const auth = getAuth(firebaseApp); // Export auth if needed
 
 // ----------------------------------------------------
 // 🛡️ SECURITY: RATE LIMITING
 // ----------------------------------------------------
 
-// 1. General Limiter: Max 100 requests per 15 mins (Standard protection)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 100, 
-  standardHeaders: true, 
-  legacyHeaders: false,
   message: "Too many requests from this IP, please try again later."
 });
-
-// Apply global limiter to all routes
 app.use(globalLimiter);
 
-// 2. Strict Limiter: Max 10 requests per minute (For Join/Leave actions)
-// This prevents someone from spam-clicking buttons or using bots
 const actionLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000, 
   max: 10, 
   message: { error: "You are doing that too fast! Please slow down." }
 });
@@ -59,7 +75,7 @@ const actionLimiter = rateLimit({
 // ----------------------------------------------------
 // 📥 IMPORTS
 // ----------------------------------------------------
-// Import your controllers
+// Make sure these paths match your actual folders!
 import { 
   joinQuest, 
   leaveQuest, 
@@ -67,31 +83,19 @@ import {
   submitVibeCheck 
 } from "./controllers/questController.js";
 
-// Import your Auth Middleware
-// (Ensure you have this file created as discussed previously)
-import { verifyToken } from "./middleware/auth.js";
+import { verifyToken } from "./middleware/auth.js"; // Check this filename!
 
 // ----------------------------------------------------
 // 🛣️ ROUTES
 // ----------------------------------------------------
 
-// Health Check (To see if server is running)
 app.get("/", (req, res) => {
   res.send("Squad Quest API is Online 🚀");
 });
 
-// ✅ QUEST ROUTES (Protected by Token & Rate Limit)
-
-// Join Quest (Uses Strict Limiter)
 app.post("/api/quest/join", verifyToken, actionLimiter, joinQuest);
-
-// Leave Quest (Uses Strict Limiter)
 app.post("/api/quest/leave", verifyToken, actionLimiter, leaveQuest);
-
-// Finalize Quest / Claim Reward
 app.post("/api/quest/finalize", verifyToken, finalizeQuest);
-
-// Vibe Check / Peer Review
 app.post("/api/quest/vibe-check", verifyToken, submitVibeCheck);
 
 // ----------------------------------------------------

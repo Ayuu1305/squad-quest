@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
-import {
-  leaveQuest as firebaseLeave, // We will deal with this later
+import { // We will deal with this later
   subscribeToQuest,
 } from "../backend/firebaseService"; // ❌ Removed firebaseJoin import
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
