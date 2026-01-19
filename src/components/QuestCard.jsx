@@ -111,18 +111,45 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
     return () => hoverCtx.revert();
   }, [quest.difficulty]);
 
+  // Hot Zone Logic (High Demand / Urgency)
+  const isHotZone = () => {
+    // 1. High Capacity (>75%)
+    const capacityRatio = members.length / maxPlayers;
+    if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
+
+    // 2. Starts Soon (<30 mins)
+    if (quest.startTime) {
+      const now = new Date();
+      const startTime = quest.startTime.toDate
+        ? quest.startTime.toDate()
+        : new Date(quest.startTime);
+      const diffMins = (startTime - now) / 1000 / 60;
+      if (diffMins <= 30 && diffMins > -120) return true; // Active or starting soon
+    }
+
+    return false;
+  };
+
+  const hotZoneActive = isHotZone();
+
   return (
     <motion.div
       ref={cardRef}
       whileHover={{
         scale: 1.02,
         y: -5,
-        boxShadow: `0 0 30px ${rarity.color}40`,
+        boxShadow: hotZoneActive
+          ? `0 0 40px rgba(249, 115, 22, 0.4)` // Orange glow for Hot Zone
+          : `0 0 30px ${rarity.color}40`,
       }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       layout
-      className={`glassmorphism-dark rounded-[24px] p-1 relative group overflow-hidden transition-all duration-300 ${rarity.border}`}
+      className={`glassmorphism-dark rounded-[24px] p-1 relative group overflow-hidden transition-all duration-300 ${
+        hotZoneActive
+          ? "border-orange-500/50 animate-[pulse_3s_infinite]"
+          : rarity.border
+      }`}
     >
       {/* Mobile Swipe Hint */}
       <div className="absolute top-1/2 right-2 transform -translate-y-1/2 opacity-0 md:hidden animate-pulse pointer-events-none z-20">
@@ -134,11 +161,32 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
         ref={glowRef}
         className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 transition-opacity duration-300 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at center, ${rarity.color}20 0%, transparent 70%)`,
+          background: hotZoneActive
+            ? `radial-gradient(circle at center, rgba(249, 115, 22, 0.2) 0%, transparent 80%)` // Hot Zone Glow
+            : `radial-gradient(circle at center, ${rarity.color}20 0%, transparent 70%)`,
         }}
       />
 
-      <div className="bg-black/80 backdrop-blur-xl rounded-[20px] p-5 h-full relative z-10 flex flex-col justify-between">
+      {/* Hot Zone Badge */}
+      {hotZoneActive && (
+        <div className="absolute top-0 right-0 z-30 bg-orange-500/20 border-b border-l border-orange-500/50 rounded-bl-2xl px-3 py-1.5 flex items-center gap-1.5 backdrop-blur-md">
+          <Flame
+            className="w-3 h-3 text-orange-500 animate-[bounce_1s_infinite]"
+            fill="currentColor"
+          />
+          <span className="text-[9px] font-black uppercase tracking-widest text-orange-400">
+            Filling Fast
+          </span>
+        </div>
+      )}
+
+      <div
+        className={`backdrop-blur-xl rounded-[20px] p-5 h-full relative z-10 flex flex-col justify-between ${
+          hotZoneActive
+            ? "bg-gradient-to-br from-orange-900/20 to-black/90"
+            : "bg-black/80"
+        }`}
+      >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div>

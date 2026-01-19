@@ -417,15 +417,94 @@ const CreateQuest = () => {
               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2 flex items-center gap-2">
                 <Clock className="w-3 h-3" /> Start Time
               </label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.startTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, startTime: e.target.value })
-                }
-                className="w-full bg-black/40 border border-white/5 py-3.5 px-4 rounded-2xl text-white font-medium focus:border-neon-purple focus:outline-none transition-all [color-scheme:dark]"
-              />
+              <div className="flex items-center gap-4 bg-black/40 border border-white/5 p-3 rounded-2xl backdrop-blur-md focus-within:border-neon-purple focus-within:shadow-[0_0_15px_#a855f7] transition-all duration-300 group">
+                {/* DATE INPUT */}
+                <input
+                  type="date"
+                  required
+                  min={new Date().toISOString().split("T")[0]}
+                  value={
+                    formData.startTime
+                      ? (() => {
+                          const d = new Date(formData.startTime);
+                          // Ensure we get YYYY-MM-DD in local time
+                          // format: YYYY-MM-DD
+                          const year = d.getFullYear();
+                          const month = String(d.getMonth() + 1).padStart(
+                            2,
+                            "0",
+                          );
+                          const day = String(d.getDate()).padStart(2, "0");
+                          return `${year}-${month}-${day}`;
+                        })()
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const dateVal = e.target.value; // YYYY-MM-DD
+                    if (!dateVal) return;
+
+                    const currentStart = formData.startTime
+                      ? new Date(formData.startTime)
+                      : new Date();
+
+                    // Keep existing time or default to current time
+                    const hours = currentStart.getHours();
+                    const minutes = currentStart.getMinutes();
+
+                    const newDate = new Date(dateVal);
+                    newDate.setHours(hours, minutes);
+
+                    setFormData({
+                      ...formData,
+                      startTime: newDate.toISOString(),
+                    });
+                  }}
+                  className="bg-transparent text-white font-mono text-sm outline-none w-full uppercase cursor-pointer"
+                  style={{ colorScheme: "dark" }}
+                />
+
+                <div className="h-8 w-[1px] bg-white/10 group-focus-within:bg-neon-purple/50 transition-colors"></div>
+
+                {/* TIME INPUT (Any Minute) */}
+                <input
+                  type="time"
+                  required
+                  value={
+                    formData.startTime
+                      ? (() => {
+                          const d = new Date(formData.startTime);
+                          // format: HH:mm
+                          const hours = String(d.getHours()).padStart(2, "0");
+                          const minutes = String(d.getMinutes()).padStart(
+                            2,
+                            "0",
+                          );
+                          return `${hours}:${minutes}`;
+                        })()
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const timeVal = e.target.value; // HH:mm
+                    if (!timeVal) return;
+
+                    const [h, m] = timeVal.split(":").map(Number);
+
+                    const currentStart = formData.startTime
+                      ? new Date(formData.startTime)
+                      : new Date();
+
+                    // Set new time on existing date
+                    currentStart.setHours(h, m);
+
+                    setFormData({
+                      ...formData,
+                      startTime: currentStart.toISOString(),
+                    });
+                  }}
+                  className="bg-transparent text-white font-mono text-sm outline-none w-24 cursor-pointer text-center"
+                  style={{ colorScheme: "dark" }}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2 flex items-center gap-2">

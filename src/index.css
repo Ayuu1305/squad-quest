@@ -14,10 +14,15 @@
 
   @keyframes glow {
     0% {
-      box-shadow: 0 0 5px #a855f7, 0 0 10px #a855f7;
+      box-shadow:
+        0 0 5px #a855f7,
+        0 0 10px #a855f7;
     }
     100% {
-      box-shadow: 0 0 20px #a855f7, 0 0 30px #a855f7, 0 0 40px #a855f7;
+      box-shadow:
+        0 0 20px #a855f7,
+        0 0 30px #a855f7,
+        0 0 40px #a855f7;
     }
   }
 
@@ -178,17 +183,22 @@
 }
 
 .neon-glow {
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.3),
+  box-shadow:
+    0 0 10px rgba(168, 85, 247, 0.5),
+    0 0 20px rgba(168, 85, 247, 0.3),
     0 0 30px rgba(168, 85, 247, 0.1);
 }
 
 .neon-glow-green {
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5), 0 0 20px rgba(34, 197, 94, 0.3),
+  box-shadow:
+    0 0 10px rgba(34, 197, 94, 0.5),
+    0 0 20px rgba(34, 197, 94, 0.3),
     0 0 30px rgba(34, 197, 94, 0.1);
 }
 
 .neon-text {
-  text-shadow: 0 0 10px rgba(168, 85, 247, 0.8),
+  text-shadow:
+    0 0 10px rgba(168, 85, 247, 0.8),
     0 0 20px rgba(168, 85, 247, 0.5);
 }
 
@@ -213,7 +223,9 @@
 
 .quest-card:hover {
   transform: scale(1.02);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.3),
+  box-shadow:
+    0 0 10px rgba(168, 85, 247, 0.5),
+    0 0 20px rgba(168, 85, 247, 0.3),
     0 0 30px rgba(168, 85, 247, 0.1);
 }
 
@@ -471,4 +483,72 @@
   100% {
     transform: translateX(100%);
   }
+}
+
+/* React Datepicker Cyberpunk Theme */
+.cyberpunk-datepicker {
+  font-family: "Orbitron", sans-serif !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  background-color: #0f0f23 !important; /* Dark BG */
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.2) !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__header {
+  background-color: #1a1a2e !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__current-month,
+.cyberpunk-datepicker .react-datepicker-time__header,
+.cyberpunk-datepicker .react-datepicker-year-header {
+  color: #a855f7 !important; /* Neon Purple */
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__day-name {
+  color: #6b7280 !important;
+  font-weight: 700 !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__day {
+  color: #e5e7eb !important;
+  font-weight: 600 !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__day:hover {
+  background-color: rgba(168, 85, 247, 0.2) !important;
+  border-radius: 50% !important;
+  color: white !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__day--selected,
+.cyberpunk-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: #a855f7 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 10px #a855f7 !important;
+  color: white !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__time-container {
+  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: #0f0f23 !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__time-list-item {
+  color: #9ca3af !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__time-list-item:hover {
+  background-color: rgba(168, 85, 247, 0.2) !important;
+  color: white !important;
+}
+
+.cyberpunk-datepicker .react-datepicker__time-list-item--selected {
+  background-color: #a855f7 !important;
+  color: white !important;
+  font-weight: bold !important;
 }

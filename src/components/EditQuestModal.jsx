@@ -331,14 +331,107 @@ const EditQuestModal = ({
                 <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-wider">
                   Start Time
                 </label>
-                <input
-                  type="datetime-local"
-                  name="startTime"
-                  value={formData.startTime}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none [&::-webkit-calendar-picker-indicator]:invert"
-                />
+                <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-3 rounded-xl focus-within:border-blue-500 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all duration-300 group">
+                  {/* DATE INPUT */}
+                  <input
+                    type="date"
+                    required
+                    value={
+                      formData.startTime
+                        ? (() => {
+                            const d = new Date(formData.startTime);
+                            // Handle invalid dates gracefully
+                            if (isNaN(d.getTime())) return "";
+
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(
+                              2,
+                              "0",
+                            );
+                            const day = String(d.getDate()).padStart(2, "0");
+                            return `${year}-${month}-${day}`;
+                          })()
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const dateVal = e.target.value; // YYYY-MM-DD
+                      if (!dateVal) return;
+
+                      const currentStart = formData.startTime
+                        ? new Date(formData.startTime)
+                        : new Date();
+
+                      // Keep existing time or default to current time
+                      const hours = isNaN(currentStart.getTime())
+                        ? 12
+                        : currentStart.getHours();
+                      const minutes = isNaN(currentStart.getTime())
+                        ? 0
+                        : currentStart.getMinutes();
+
+                      const newDate = new Date(dateVal);
+                      newDate.setHours(hours, minutes);
+
+                      setFormData({
+                        ...formData,
+                        startTime: newDate.toISOString(),
+                      });
+                    }}
+                    className="bg-transparent text-white font-mono text-sm outline-none w-full uppercase cursor-pointer"
+                    style={{ colorScheme: "dark" }}
+                  />
+
+                  <div className="h-8 w-[1px] bg-white/10 group-focus-within:bg-blue-500/50 transition-colors"></div>
+
+                  {/* TIME INPUT */}
+                  <input
+                    type="time"
+                    required
+                    value={
+                      formData.startTime
+                        ? (() => {
+                            const d = new Date(formData.startTime);
+                            if (isNaN(d.getTime())) return "";
+                            const hours = String(d.getHours()).padStart(2, "0");
+                            const minutes = String(d.getMinutes()).padStart(
+                              2,
+                              "0",
+                            );
+                            return `${hours}:${minutes}`;
+                          })()
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const timeVal = e.target.value; // HH:mm
+                      if (!timeVal) return;
+
+                      const [h, m] = timeVal.split(":").map(Number);
+
+                      const currentStart = formData.startTime
+                        ? new Date(formData.startTime)
+                        : new Date();
+
+                      // Set new time on existing date
+                      if (!isNaN(currentStart.getTime())) {
+                        currentStart.setHours(h, m);
+                        setFormData({
+                          ...formData,
+                          startTime: currentStart.toISOString(),
+                        });
+                      } else {
+                        // Fallback if date is missing (unlikely if required)
+                        const now = new Date();
+                        now.setHours(h, m);
+                        setFormData({
+                          ...formData,
+                          startTime: now.toISOString(),
+                        });
+                      }
+                    }}
+                    className="bg-transparent text-white font-mono text-sm outline-none w-24 cursor-pointer text-center"
+                    style={{ colorScheme: "dark" }}
+                  />
+                </div>
               </div>
 
               {/* Privacy Toggle */}
