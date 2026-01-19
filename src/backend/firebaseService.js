@@ -195,64 +195,29 @@ export const resetHeroPassword = async (email) => {
  * SECURE JOIN: Uses Transaction + Subcollection
  */
 export const joinQuest = async (questId, userId, secretCode = null) => {
-  const questRef = doc(db, "quests", questId);
-  const userRef = doc(db, "users", userId);
-  const memberRef = doc(db, "quests", questId, "members", userId);
-
   try {
-    const questSnap = await getDoc(questRef);
-    const userSnap = await getDoc(userRef);
+    const token = await auth.currentUser.getIdToken();
 
-    if (!questSnap.exists()) throw new Error("Mission not found!");
-    if (!userSnap.exists()) throw new Error("Hero profile not found!");
-
-    const qData = questSnap.data();
-
-    // ✅ NEW: Check secret code for private quests
-    if (qData.isPrivate && qData.secretCode) {
-      if (!secretCode) {
-        throw new Error("This is a private quest. Secret code required!");
-      }
-      if (qData.secretCode.toUpperCase() !== secretCode.toUpperCase()) {
-        throw new Error("Invalid secret code! Access denied.");
-      }
-    }
-
-    const requirement = qData.genderRequirement || "Everyone";
-    const userGender = userSnap.data().gender;
-
-    if (requirement === "Female" && userGender !== "female")
-      throw new Error("Target location is female-only.");
-    if (requirement === "Male" && userGender !== "male")
-      throw new Error("Target location is male-only.");
-
-    // 2. Add to Quest Members
-    await setDoc(memberRef, {
-      uid: userId,
-      name: userSnap.data().name || "Hero",
-      joinedAt: serverTimestamp(),
+    const response = await fetch(`${API_URL}/quest/join`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ questId, secretCode }),
     });
 
-    // 3. Record in user's profile subcollection for MyMissions
-    try {
-      const joinedQuestRef = doc(db, "users", userId, "joinedQuests", questId);
-      await setDoc(joinedQuestRef, {
-        joinedAt: serverTimestamp(),
-        role: "member",
-      });
-    } catch (err) {
-      console.warn(
-        "MyMissions: JoinedQuest record failed (Permissions):",
-        err.code,
-      );
-      // We don't throw here to allow the user to still be a member of the quest
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to join quest");
     }
 
-    console.log(`✅ Joined quest ${questId} successfully.`);
-    return true;
+    console.log("✅ Joined quest successfully:", data);
+    return data;
   } catch (error) {
-    console.error("Error joining quest:", error);
-    return false;
+    console.error("❌ Join Quest Error:", error);
+    throw error;
   }
 };
 

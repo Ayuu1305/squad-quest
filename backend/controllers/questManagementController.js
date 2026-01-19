@@ -56,31 +56,42 @@ export const deleteQuest = async (req, res) => {
     // 3. Delete quest document
     batch.delete(questRef);
 
-    // 4. Commit all deletes
+    // 4. Commit all deletes (CRITICAL OPERATION)
     await batch.commit();
 
-    // 5. Clean up joinedQuests from all members (optional, on best-effort basis)
-    try {
-      if (questData.members && Array.isArray(questData.members)) {
-        const cleanupBatch = db.batch();
-        questData.members.forEach((memberId) => {
-          const joinedQuestRef = db
-            .collection("users")
-            .doc(memberId)
-            .collection("joinedQuests")
-            .doc(questId);
-          cleanupBatch.delete(joinedQuestRef);
-        });
-        await cleanupBatch.commit();
-      }
-    } catch (cleanupError) {
-      console.warn("Cleanup failed (non-critical):", cleanupError?.message);
-    }
-
-    return res.status(200).json({
+    // ✅ SEND SUCCESS RESPONSE IMMEDIATELY
+    res.status(200).json({
       success: true,
       message: `Quest ${questId} deleted successfully`,
     });
+
+    // 5. 🔥 Fire & Forget: Clean up joinedQuests from all members (background task)
+    if (questData.members && Array.isArray(questData.members)) {
+      const cleanupBatch = db.batch();
+      questData.members.forEach((memberId) => {
+        const joinedQuestRef = db
+          .collection("users")
+          .doc(memberId)
+          .collection("joinedQuests")
+          .doc(questId);
+        cleanupBatch.delete(joinedQuestRef);
+      });
+
+      // Run in background, don't await
+      cleanupBatch
+        .commit()
+        .then(() =>
+          console.log(
+            `✅ [Background] Cleaned up joinedQuests for quest ${questId}`,
+          ),
+        )
+        .catch((err) =>
+          console.error(
+            `⚠️ [Background] Cleanup failed (non-critical):`,
+            err?.message,
+          ),
+        );
+    }
   } catch (error) {
     console.error("❌ Delete Quest Error:", error);
     return res.status(500).json({

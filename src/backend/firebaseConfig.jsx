@@ -40,4 +40,9 @@ export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
 export const googleProvider = new GoogleAuthProvider();
 
+// Initialize Messaging (FCM) - Only supported in browser environments
+import { getMessaging } from "firebase/messaging";
+export const messaging =
+  typeof window !== "undefined" ? getMessaging(firebaseApp) : null;
+
 export default firebaseApp;

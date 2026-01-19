@@ -15,9 +15,13 @@ import MyMissions from "./pages/MyMissions";
 import WorldGuide from "./pages/WorldGuide";
 import HeroJourney from "./pages/HeroJourney";
 import Navbar from "./components/Navbar";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast"; // Added toast
 import { useGame } from "./context/GameContext";
 import { useAuth } from "./context/AuthContext";
+import { useEffect } from "react"; // Added useEffect
+import { messaging, db } from "./backend/firebaseConfig"; // Added Messaging & DB
+import { getToken, onMessage } from "firebase/messaging"; // Added FCM functions
+import { doc, updateDoc } from "firebase/firestore"; // Added Firestore functions
 
 // Protects routes that require both login AND city selection
 const ProtectedRoute = ({ children }) => {
@@ -80,6 +84,67 @@ function App() {
       "/world-guide",
       "/journey",
     ].includes(location.pathname) && user;
+
+  // ✅ FCM Token Management
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (!user || !messaging) return;
+
+      try {
+        console.log("🔔 [FCM] Requesting notification permission...");
+        const permission = await Notification.requestPermission();
+        console.log("🔔 [FCM] Permission result:", permission);
+
+        if (permission === "granted") {
+          console.log("🔔 [FCM] Generating token...");
+          const currentToken = await getToken(messaging, {
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY, // User must provide this
+          });
+
+          if (currentToken) {
+            console.log(
+              "✅ [FCM] Token generated:",
+              currentToken.substring(0, 20) + "...",
+            );
+            // Save token to user profile
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, { fcmToken: currentToken });
+            console.log(
+              "✅ [FCM] Token saved to Firestore for user:",
+              user.uid,
+            );
+          } else {
+            console.warn("⚠️ [FCM] No token received");
+          }
+        }
+      } catch (err) {
+        console.error("❌ [FCM] Permission/token error:", err);
+      }
+    };
+
+    setupNotifications();
+  }, [user]);
+
+  // ✅ Foreground Message Listener
+  useEffect(() => {
+    if (!messaging) return;
+
+    console.log("🔔 [FCM] Foreground listener initialized");
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log("🔔 [FCM] Foreground message received!", payload);
+      toast(payload.notification.body, {
+        icon: "📣",
+        style: {
+          background: "#0f0f23",
+          color: "#ffffff",
+          border: "1px solid #a855f7",
+        },
+        duration: 5000,
+      });
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="bg-dark-bg min-h-screen text-white font-['Inter'] selection:bg-neon-purple selection:text-white">

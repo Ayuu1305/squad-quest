@@ -22,16 +22,32 @@ app.use(
 
 app.use(express.json());
 
-// ✅ Firebase Admin Init (Production only - uses environment variable)
+// ✅ Firebase Admin Init (supports both local file and environment variable)
+import { existsSync, readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 if (!admin.apps.length) {
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  let serviceAccount;
+  const localKeyPath = join(__dirname, "serviceAccountKey.json");
+
+  // Try local file first (for local development)
+  if (existsSync(localKeyPath)) {
+    serviceAccount = JSON.parse(readFileSync(localKeyPath, "utf8"));
+    console.log("🔑 Using local serviceAccountKey.json file");
+  }
+  // Fall back to environment variable (for production/Render)
+  else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    console.log("☁️ Using FIREBASE_SERVICE_ACCOUNT_KEY from environment");
+  } else {
     throw new Error(
-      "❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable not found.",
+      "❌ No Firebase credentials found. Please add serviceAccountKey.json or set FIREBASE_SERVICE_ACCOUNT_KEY environment variable.",
     );
   }
-
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-  console.log("☁️ Using FIREBASE_SERVICE_ACCOUNT_KEY from environment");
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -49,6 +65,7 @@ import { verifyToken } from "./middleware/auth.js";
 import {
   finalizeQuest,
   submitVibeCheck,
+  joinQuest,
 } from "./controllers/questController.js";
 import { claimBounty } from "./controllers/bountyController.js";
 import { getWeeklyLeaderboard } from "./controllers/leaderboardController.js";
@@ -61,6 +78,7 @@ import { adminForceReset } from "./controllers/weeklyResetController.js";
 import { initCronJobs } from "./services/cronService.js";
 
 // Routes
+app.post("/api/quest/join", verifyToken, joinQuest);
 app.post("/api/quest/finalize", verifyToken, finalizeQuest);
 app.post("/api/quest/vibe-check", verifyToken, submitVibeCheck);
 app.post("/api/bounty/claim", verifyToken, claimBounty);
@@ -78,8 +96,15 @@ app.get("/", (req, res) => {
   res.send("Squad Quest Backend is Running ✅");
 });
 
+// Keep-Alive Endpoint
+app.get("/ping", (req, res) => {
+  res.status(200).send("Server is awake!");
+});
+
 // Initialize Cron Jobs
 initCronJobs();
+import setupDailyReminder from "./jobs/dailyReminder.js";
+setupDailyReminder();
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
