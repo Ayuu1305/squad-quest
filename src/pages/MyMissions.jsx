@@ -36,10 +36,21 @@ const MyMissions = () => {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const myQuests = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const myQuests = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .sort((a, b) => {
+            // Sort by startTime descending (Newest first)
+            const timeA = a.startTime?.toDate
+              ? a.startTime.toDate()
+              : new Date(a.startTime);
+            const timeB = b.startTime?.toDate
+              ? b.startTime.toDate()
+              : new Date(b.startTime);
+            return timeB - timeA;
+          });
         console.log("📋 [MyMissions] Fetched quests:", myQuests.length);
         setQuests(myQuests);
         setLoading(false);

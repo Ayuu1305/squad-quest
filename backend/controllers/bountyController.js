@@ -24,12 +24,17 @@ export const claimBounty = async (req, res) => {
       const now = new Date();
 
       // ✅ Defensive Date Parsing
-      let lastClaimed = null;
+      // ✅ Defensive Date Parsing (Default to Epoch 1970 if missing)
+      let lastClaimed = new Date(0); // 1970-01-01 (Allows immediate claim)
+
       if (stats.last_claimed_at) {
         if (typeof stats.last_claimed_at.toDate === "function") {
           lastClaimed = stats.last_claimed_at.toDate();
         } else {
-          lastClaimed = new Date(stats.last_claimed_at);
+          const timestamp = new Date(stats.last_claimed_at);
+          if (!isNaN(timestamp.getTime())) {
+            lastClaimed = timestamp;
+          }
         }
       }
 

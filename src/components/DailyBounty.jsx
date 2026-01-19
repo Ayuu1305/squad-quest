@@ -157,6 +157,19 @@ const DailyBounty = () => {
       // ✅ ROLLBACK on failure
       const errorMsg = e?.message?.toLowerCase() || "";
 
+      // ✅ Specific 403 Cooldown Check
+      if (e.status === 403 && errorMsg.includes("cooldown")) {
+        toast("⏳ Bounty on cooldown. Come back tomorrow!", {
+          icon: "⏳",
+          style: {
+            background: "#1a1a2e",
+            color: "#fbbf24", // Yellow/Info
+            border: "1px solid rgba(251, 191, 36, 0.3)",
+          },
+        });
+        return;
+      }
+
       if (
         errorMsg.includes("cooldown") ||
         errorMsg.includes("already claimed")

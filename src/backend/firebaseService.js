@@ -460,7 +460,9 @@ export const claimDailyBounty = async () => {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || "Failed to claim bounty");
+    const error = new Error(data.error || "Failed to claim bounty");
+    error.status = response.status;
+    throw error;
   }
   return data;
 };
