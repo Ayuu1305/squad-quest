@@ -144,26 +144,48 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
           <div>
             <h3
               ref={titleRef}
-              className="text-xl font-black font-['Orbitron'] text-white italic tracking-tighter mb-1 transition-colors group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400"
+              className="text-xl font-black font-['Orbitron'] text-white italic tracking-tighter mb-2 transition-colors group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400"
             >
               {quest.title}
             </h3>
-            <div
-              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${rarity.border} ${rarity.bg}`}
-            >
+            {/* Tags Row */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Rarity + Level Badge */}
               <div
-                className="w-1.5 h-1.5 rounded-full animate-pulse"
-                style={{ backgroundColor: rarity.color }}
-              />
-              <span
-                className="text-[9px] font-black uppercase tracking-widest"
-                style={{ color: rarity.color }}
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${rarity.border} ${rarity.bg}`}
               >
-                {rarity.msg}
-              </span>
-              <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest ml-1 pl-1 border-l border-white/10">
-                LVL {quest.difficulty || 1}
-              </span>
+                <div
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{ backgroundColor: rarity.color }}
+                />
+                <span
+                  className="text-[9px] font-black uppercase tracking-widest"
+                  style={{ color: rarity.color }}
+                >
+                  {rarity.msg}
+                </span>
+                <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest ml-1 pl-1 border-l border-white/10">
+                  LVL {quest.difficulty || 1}
+                </span>
+              </div>
+
+              {/* Gender Tag */}
+              {quest.genderPreference === "male" && (
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider border bg-cyan-500/10 border-cyan-500/30 text-cyan-400 uppercase">
+                  MALE ONLY
+                </span>
+              )}
+              {quest.genderPreference === "female" && (
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider border bg-pink-500/10 border-pink-500/30 text-pink-400 uppercase">
+                  FEMALE ONLY
+                </span>
+              )}
+              {(quest.genderPreference === "everyone" ||
+                !quest.genderPreference) && (
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 uppercase">
+                  OPEN FOR ALL
+                </span>
+              )}
             </div>
           </div>
 

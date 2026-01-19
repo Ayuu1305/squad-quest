@@ -173,6 +173,7 @@ const CreateQuest = () => {
         isPrivate: !!formData.isPrivate,
         genderRequirement:
           genderRequirementMap[formData.genderPreference] || "Everyone",
+        genderPreference: formData.genderPreference || "everyone",
         maxPlayers: maxCapacityNum,
         startTime: startTimeDate, // Firestore Timestamp via SDK
         hostId: user.uid,
