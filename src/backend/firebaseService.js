@@ -194,7 +194,7 @@ export const resetHeroPassword = async (email) => {
 /**
  * SECURE JOIN: Uses Transaction + Subcollection
  */
-export const joinQuest = async (questId, userId, secretCode = null) => {
+export const joinQuest = async (questId, secretCode = null) => {
   try {
     const token = await auth.currentUser.getIdToken();
 
@@ -354,8 +354,8 @@ export const createQuest = async (questData) => {
 
   const docRef = await addDoc(questsRef, newQuest);
 
-  // Auto-join host
-  await joinQuest(docRef.id, questData.hostId);
+  // Auto-join host (backend API gets userId from JWT token)
+  await joinQuest(docRef.id);
 
   // ✅ NEW: Log quest creation to global activity
   try {
@@ -374,7 +374,7 @@ export const createQuest = async (questData) => {
   return docRef.id;
 };
 
-export const joinQuestByCode = async (code, userId) => {
+export const joinQuestByCode = async (code) => {
   const questsRef = collection(db, "quests");
   const cleanCode = code.trim().toUpperCase();
 
@@ -408,9 +408,9 @@ export const joinQuestByCode = async (code, userId) => {
 
   // For private quests with secret code, pass the code for validation
   if (questData.isPrivate && questData.secretCode) {
-    await joinQuest(questId, userId, cleanCode);
+    await joinQuest(questId, cleanCode);
   } else {
-    await joinQuest(questId, userId);
+    await joinQuest(questId);
   }
 
   return questId;

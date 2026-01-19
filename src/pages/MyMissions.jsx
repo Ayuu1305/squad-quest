@@ -4,7 +4,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, ChevronRight, Trophy } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import QuestCard from "../components/QuestCard";
-import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  getDoc,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 
 const MyMissions = () => {
@@ -16,51 +23,35 @@ const MyMissions = () => {
   const [hubs, setHubs] = useState({}); // ✅ Map: { [hubId]: hubData }
   const [loading, setLoading] = useState(true);
 
-  // ✅ Source of Truth: users/{uid}/joinedQuests subcollection
-  // Then fetch each quest document individually
+  // ✅ Direct Query: Fetch quests where user is in members array
   useEffect(() => {
     if (!user?.uid) return;
 
-    const joinedRef = collection(db, "users", user.uid, "joinedQuests");
+    // Query main collection directly - most robust method
+    const q = query(
+      collection(db, "quests"),
+      where("members", "array-contains", user.uid),
+    );
 
-    const unsubJoined = onSnapshot(
-      joinedRef,
-      async (snapshot) => {
-        const questIds = snapshot.docs.map((doc) => doc.id);
-
-        if (questIds.length === 0) {
-          setQuests([]);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch each quest document
-        const questPromises = questIds.map(async (questId) => {
-          try {
-            const questSnap = await getDoc(doc(db, "quests", questId));
-            if (questSnap.exists()) {
-              return { id: questSnap.id, ...questSnap.data() };
-            }
-          } catch (err) {
-            console.warn("Quest fetch failed:", questId, err?.code);
-          }
-          return null;
-        });
-
-        const fetchedQuests = (await Promise.all(questPromises)).filter(
-          Boolean,
-        );
-        setQuests(fetchedQuests);
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const myQuests = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        console.log("📋 [MyMissions] Fetched quests:", myQuests.length);
+        setQuests(myQuests);
         setLoading(false);
       },
       (error) => {
         if (error?.code === "permission-denied") return;
-        console.warn("MyMissions: JoinedQuests listener error:", error?.code);
+        console.warn("MyMissions: Query error:", error?.code);
         setLoading(false);
       },
     );
 
-    return () => unsubJoined();
+    return () => unsubscribe();
   }, [user?.uid]);
 
   // ✅ Fetch hubs per-quest (avoids collection-wide subscription and permission issues)
@@ -93,27 +84,30 @@ const MyMissions = () => {
   const now = new Date();
 
   const isPast = (q) => {
-    // ✅ User specific completion check
+    // ✅ User-specific completion check
     if (q.completedBy?.includes(user?.uid)) return true;
 
-    // Fallback: Global completion (legacy) or Time-based expiry
-    if (q?.status === "completed" && !q.completedBy) return true;
+    // ✅ Quest explicitly marked as completed
+    if (q?.status === "completed") return true;
 
-    const startTimeParsed = q?.startTime?.toDate
-      ? q.startTime.toDate()
-      : q?.startTime
-        ? new Date(q.startTime)
-        : null;
+    // ✅ Quest was cancelled or deleted
+    if (q?.status === "cancelled" || q?.status === "deleted") return true;
 
-    if (!startTimeParsed || Number.isNaN(startTimeParsed.getTime()))
-      return false;
-
-    // ✅ treat as past if started > 2 hour ago (extended duration)
-    return now - startTimeParsed > 2 * 60 * 60 * 1000;
+    // Everything else is "upcoming" (active)
+    return false;
   };
 
   const upcomingMissions = quests.filter((q) => !isPast(q));
   const pastMissions = quests.filter((q) => isPast(q));
+
+  // Debug: Log filter results
+  console.log(
+    "📋 [MyMissions] Upcoming:",
+    upcomingMissions.length,
+    "Past:",
+    pastMissions.length,
+  );
+  console.log("📋 [MyMissions] Active Tab:", activeTab);
 
   const displayQuests =
     activeTab === "upcoming" ? upcomingMissions : pastMissions;

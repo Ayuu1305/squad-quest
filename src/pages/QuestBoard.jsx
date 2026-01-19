@@ -309,7 +309,7 @@ const QuestBoard = () => {
                         const code = e.target.code.value;
                         if (!code || code.length < 6 || !user?.uid) return;
                         try {
-                          const qId = await joinQuestByCode(code, user.uid);
+                          const qId = await joinQuestByCode(code);
                           navigate(`/lobby/${qId}`);
                         } catch (err) {
                           console.error(err);
@@ -461,7 +461,7 @@ const QuestBoard = () => {
             setIsJoining(true);
             try {
               const { joinQuest } = await import("../backend/firebaseService");
-              await joinQuest(secretCodeModal.quest.id, user.uid, secretCode);
+              await joinQuest(secretCodeModal.quest.id, secretCode);
 
               // Success - navigate to lobby
               navigate(`/lobby/${secretCodeModal.quest.id}`);

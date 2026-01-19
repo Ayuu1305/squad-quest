@@ -412,7 +412,7 @@ const CreateQuest = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2 flex items-center gap-2">
                 <Clock className="w-3 h-3" /> Start Time

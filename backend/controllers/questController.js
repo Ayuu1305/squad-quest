@@ -42,7 +42,7 @@ export const joinQuest = async (req, res) => {
       // Check if already joined
       if (memberDoc.exists) return { success: true, alreadyJoined: true };
 
-      // Add Member
+      // Add Member to quest
       t.set(memberRef, {
         uid,
         name: userDoc.data()?.name || "Unknown Hero",
@@ -50,8 +50,20 @@ export const joinQuest = async (req, res) => {
         role: "member",
       });
 
-      // Update Quest Counts
+      // ✅ Add to user's joinedQuests subcollection (for MyMissions page)
+      const joinedQuestRef = db
+        .collection("users")
+        .doc(uid)
+        .collection("joinedQuests")
+        .doc(questId);
+      t.set(joinedQuestRef, {
+        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        role: "member",
+      });
+
+      // Update Quest - Add to members array AND increment count
       t.update(questRef, {
+        members: admin.firestore.FieldValue.arrayUnion(uid),
         membersCount: admin.firestore.FieldValue.increment(1),
       });
 
@@ -66,7 +78,10 @@ export const joinQuest = async (req, res) => {
       };
     });
 
-    // ✅ NOTIFICATIONS (Outside Transaction to avoid blocking)
+    // ✅ SEND SUCCESS RESPONSE IMMEDIATELY (DB transaction is complete)
+    res.json(result);
+
+    // 🔥 Fire & Forget: Send notifications in background (don't await)
     if (result.success && !result.alreadyJoined) {
       const {
         hostId,
@@ -77,33 +92,37 @@ export const joinQuest = async (req, res) => {
       } = result;
       const joinerName = req.user.name || "A Hero";
 
-      // Event B: Host Alert (New Member)
+      // Event B: Host Alert (New Member) - Background
       if (hostId && hostId !== uid) {
-        await sendNotification(
+        sendNotification(
           hostId,
           "New Squad Member! 🚀",
           `${joinerName} just joined "${questTitle}". Check the lobby.`,
+        ).catch((err) =>
+          console.error("⚠️ [Background] Host notification failed:", err),
         );
       }
 
-      // Event C: Hot Zone Alert (75% Capacity)
+      // Event C: Hot Zone Alert (75% Capacity) - Background
       const usage = currentMembers / maxPlayers;
       if (usage >= 0.75 && !hotZoneNotified) {
-        // Notify Host
-        await sendNotification(
+        sendNotification(
           hostId,
           "🔥 Hot Zone Active!",
           `Your quest "${questTitle}" is ${Math.round(usage * 100)}% full! It's filling up fast.`,
+        ).catch((err) =>
+          console.error("⚠️ [Background] Hot Zone notification failed:", err),
         );
 
-        // Update flag to prevent spam
-        await db.collection("quests").doc(questId).update({
-          hotZoneNotified: true,
-        });
+        // Update flag to prevent spam (also background)
+        db.collection("quests")
+          .doc(questId)
+          .update({ hotZoneNotified: true })
+          .catch((err) =>
+            console.error("⚠️ [Background] Hot Zone flag update failed:", err),
+          );
       }
     }
-
-    res.json(result);
   } catch (error) {
     console.error("Join Quest Error:", error);
     res.status(500).json({ error: error.message });
