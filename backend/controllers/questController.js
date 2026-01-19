@@ -263,45 +263,61 @@ export const finalizeQuest = async (req, res) => {
         { merge: true },
       );
 
-      // ✅ global activity log - Quest Completion
-      const activityRef = db.collection("global_activity").doc();
-      t.set(activityRef, {
-        type: "quest",
-        userId: uid,
-        user: memberDoc.data().name || "Unknown Hero",
-        action: `completed ${qData.title || "a quest"}`,
-        target: qData.title || "Quest",
-        earnedXP,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // ✅ NEW: Log badge unlocks
-      const newlyUnlockedBadges = newBadges.filter(
-        (badge) => !currentStats.badges || !currentStats.badges.includes(badge),
-      );
-
-      newlyUnlockedBadges.forEach((badge) => {
-        const badgeActivityRef = db.collection("global_activity").doc();
-        t.set(badgeActivityRef, {
-          type: "badge",
-          userId: uid,
-          user: memberDoc.data().name || "Unknown Hero",
-          action: `unlocked ${badge} badge`,
-          target: badge,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      });
-
       return {
         success: true,
         earnedXP,
         newLevel: newLevel,
         bonuses,
         newBadges,
+        questTitle: qData.title,
+        memberName: memberDoc.data().name,
+        currentStats,
       };
     });
 
+    // ✅ SEND RESPONSE IMMEDIATELY (Critical data saved)
     res.json(result);
+
+    // 🔥 Fire & Forget: Background activity logging
+    if (result.success && !result.alreadyClaimed) {
+      const { questTitle, memberName, earnedXP, newBadges, currentStats } =
+        result;
+
+      // Log quest completion in background
+      db.collection("global_activity")
+        .add({
+          type: "quest",
+          userId: uid,
+          user: memberName || "Unknown Hero",
+          action: `completed ${questTitle || "a quest"}`,
+          target: questTitle || "Quest",
+          earnedXP,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        })
+        .catch((err) =>
+          console.error("⚠️ [Background] Quest activity log failed:", err),
+        );
+
+      // Log badge unlocks in background
+      const newlyUnlockedBadges = result.newBadges.filter(
+        (badge) => !currentStats.badges || !currentStats.badges.includes(badge),
+      );
+
+      newlyUnlockedBadges.forEach((badge) => {
+        db.collection("global_activity")
+          .add({
+            type: "badge",
+            userId: uid,
+            user: memberName || "Unknown Hero",
+            action: `unlocked ${badge} badge`,
+            target: badge,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          })
+          .catch((err) =>
+            console.error("⚠️ [Background] Badge activity log failed:", err),
+          );
+      });
+    }
   } catch (err) {
     console.error("Finalize Quest Error:", err);
     return res

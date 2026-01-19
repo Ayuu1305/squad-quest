@@ -193,13 +193,7 @@ const MyMissions = () => {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="relative group"
                 >
-                  <Link
-                    to={
-                      quest.completedBy?.includes(user?.uid)
-                        ? `/review/${quest.id}`
-                        : `/lobby/${quest.id}`
-                    }
-                  >
+                  <Link to={`/lobby/${quest.id}`}>
                     <QuestCard quest={quest} hub={hub} isMyMission={true} />
 
                     {/* Status Badge */}

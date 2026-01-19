@@ -199,33 +199,41 @@ const Lobby = () => {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <button
-                disabled={isLocked || isCompleted}
-                onClick={() => {
-                  if (isCompleted) {
-                    navigate(`/board/${liveQuest.id}`);
-                  } else {
-                    navigate(`/verify/${liveQuest.id}`);
-                  }
-                }}
-                className={`w-full py-4 rounded-xl font-black italic tracking-[0.2em] text-sm uppercase flex items-center justify-center gap-3 transition-all duration-500 ${
-                  isLocked || isCompleted
-                    ? "bg-gray-800 text-gray-600 border border-white/5 cursor-not-allowed opacity-50"
-                    : "btn-primary shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-100 hover:scale-105 active:scale-95"
-                }`}
-              >
-                {isCompleted ? (
-                  "Mission Completed"
-                ) : isLocked ? (
-                  "Verify Squad (Locked)"
-                ) : (
-                  <>
-                    Commence Scan
-                    <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+              {/* Action Button or Mission Cleared Badge */}
+              {liveQuest.status === "completed" ||
+              liveQuest.completedBy?.includes(user?.uid) ? (
+                <div className="w-full py-6 rounded-xl font-black italic tracking-[0.2em] text-sm uppercase flex items-center justify-center gap-3 glassmorphism border border-green-500/30 bg-green-500/10 backdrop-blur-xl shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span className="text-green-400">Mission Cleared</span>
+                </div>
+              ) : (
+                <button
+                  disabled={isLocked || isCompleted}
+                  onClick={() => {
+                    if (isCompleted) {
+                      navigate(`/board/${liveQuest.id}`);
+                    } else {
+                      navigate(`/verify/${liveQuest.id}`);
+                    }
+                  }}
+                  className={`w-full py-4 rounded-xl font-black italic tracking-[0.2em] text-sm uppercase flex items-center justify-center gap-3 transition-all duration-500 ${
+                    isLocked || isCompleted
+                      ? "bg-gray-800 text-gray-600 border border-white/5 cursor-not-allowed opacity-50"
+                      : "btn-primary shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-100 hover:scale-105 active:scale-95"
+                  }`}
+                >
+                  {isCompleted ? (
+                    "Mission Completed"
+                  ) : isLocked ? (
+                    "Verify Squad (Locked)"
+                  ) : (
+                    <>
+                      Commence Scan
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -235,6 +243,10 @@ const Lobby = () => {
           <ChatInterface
             quest={liveQuest}
             user={user}
+            isReadOnly={
+              liveQuest.status === "completed" ||
+              liveQuest.completedBy?.includes(user?.uid)
+            }
             onLeave={async () => {
               try {
                 await leaveQuest(liveQuest.id);

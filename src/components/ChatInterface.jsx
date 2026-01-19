@@ -20,7 +20,7 @@ import { db } from "../backend/firebaseConfig";
 import HeroAvatar from "./HeroAvatar";
 import { getTier } from "../utils/xp";
 
-const ChatInterface = ({ quest, user, onLeave }) => {
+const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
@@ -266,15 +266,23 @@ const ChatInterface = ({ quest, user, onLeave }) => {
         <div className="flex gap-2 mb-3">
           <input
             type="text"
-            className="input-field py-2"
-            placeholder="Squad Chat..."
+            className={`input-field py-2 ${isReadOnly ? "cursor-not-allowed opacity-50" : ""}`}
+            placeholder={
+              isReadOnly
+                ? "Chat is read-only (Mission completed)"
+                : "Squad Chat..."
+            }
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            onChange={(e) => !isReadOnly && setInputText(e.target.value)}
+            onKeyPress={(e) => !isReadOnly && e.key === "Enter" && handleSend()}
+            disabled={isReadOnly}
           />
           <button
             onClick={handleSend}
-            className="bg-neon-purple p-3 rounded-lg hover:scale-105 transition-transform"
+            disabled={isReadOnly}
+            className={`bg-neon-purple p-3 rounded-lg transition-transform ${
+              isReadOnly ? "opacity-30 cursor-not-allowed" : "hover:scale-105"
+            }`}
           >
             <Send className="w-5 h-5" />
           </button>
