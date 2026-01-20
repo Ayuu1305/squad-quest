@@ -385,6 +385,34 @@ export const createQuest = async (questData) => {
   return docRef.id;
 };
 
+// --- BACKEND API CONNECTOR ---
+// ✅ MOVED ABOVE joinQuestByCode to fix ReferenceError (hoisting)
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const getAuthToken = async () => {
+  if (!auth.currentUser) throw new Error("User not authenticated");
+  return await auth.currentUser.getIdToken();
+};
+
+// ✅ Join Quest via Backend API
+export const joinQuest = async (questId, secretCode = null) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ questId, secretCode }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to join quest");
+  }
+  return data;
+};
+
 export const joinQuestByCode = async (code) => {
   const questsRef = collection(db, "quests");
   const cleanCode = code.trim().toUpperCase();
@@ -427,33 +455,7 @@ export const joinQuestByCode = async (code) => {
   return questId;
 };
 
-// --- BACKEND API CONNECTOR ---
-// Change to your deployed URL in production
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-const getAuthToken = async () => {
-  if (!auth.currentUser) throw new Error("User not authenticated");
-  return await auth.currentUser.getIdToken();
-};
-
-// ✅ Join Quest via Backend API
-export const joinQuest = async (questId, secretCode = null) => {
-  const token = await getAuthToken();
-  const response = await fetch(`${API_URL}/quest/join`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ questId, secretCode }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to join quest");
-  }
-  return data;
-};
+// (API_URL, getAuthToken, and joinQuest moved above joinQuestByCode)
 
 // ✅ Leave Quest via Backend API
 export const leaveQuest = async (questId) => {

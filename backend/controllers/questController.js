@@ -31,13 +31,25 @@ export const joinQuest = async (req, res) => {
       if (currentMembers >= questData.maxPlayers)
         throw new Error("Quest is full");
 
-      // Private Quest Check
-      if (
-        questData.isPrivate &&
-        questData.secretCode !== secretCode &&
-        questData.hostId !== uid
-      ) {
-        throw new Error("Invalid secret code");
+      // Private Quest Check (Robust Secret Code Validation)
+      if (questData.isPrivate && questData.hostId !== uid) {
+        const storedCode = String(questData.secretCode || "")
+          .trim()
+          .toUpperCase();
+        const receivedCode = String(secretCode || "")
+          .trim()
+          .toUpperCase();
+
+        // 🔍 DEBUG: Log the actual comparison for troubleshooting
+        console.log("🔐 Secret Code Check:", {
+          received: receivedCode,
+          stored: storedCode,
+          match: receivedCode === storedCode,
+        });
+
+        if (receivedCode !== storedCode) {
+          throw new Error("Invalid secret code");
+        }
       }
 
       // Level Gating Check
