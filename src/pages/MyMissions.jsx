@@ -155,7 +155,7 @@ const MyMissions = () => {
                 : "text-gray-500"
             }`}
           >
-            Tactical (Active)
+            Active Missions
           </button>
 
           <button
@@ -164,7 +164,7 @@ const MyMissions = () => {
               activeTab === "past" ? "bg-white/10 text-white" : "text-gray-500"
             }`}
           >
-            Archives (Past)
+            Past Missions
           </button>
         </div>
       </header>

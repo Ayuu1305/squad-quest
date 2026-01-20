@@ -17,19 +17,14 @@ import {
   Lock,
   Globe,
   Shield,
+  Tag,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGame } from "../context/GameContext";
 import { createQuest } from "../backend/firebaseService";
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
+import HubSelectionModal from "../components/HubSelectionModal";
 
 const CreateQuest = () => {
   const { user } = useAuth();
@@ -54,40 +49,8 @@ const CreateQuest = () => {
     secretCode: "",
   });
 
-  const [hubs, setHubs] = useState([]);
-  const [selectedHubId, setSelectedHubId] = useState("");
-  const [loadingHubs, setLoadingHubs] = useState(false);
-  const [hubError, setHubError] = useState("");
-
-  // Fetch hubs based on user city
-  useEffect(() => {
-    const fetchHubs = async () => {
-      try {
-        setLoadingHubs(true);
-        setHubError("");
-
-        const hubsRef = collection(db, "hubs");
-        let snap;
-
-        // Use user.city from AuthContext (mapped from hero?.city)
-        if (user?.city) {
-          const q = query(hubsRef, where("city", "==", user.city));
-          snap = await getDocs(q);
-        } else {
-          snap = await getDocs(hubsRef);
-        }
-
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setHubs(list);
-      } catch (err) {
-        setHubError(err?.message || "Failed to load hubs");
-      } finally {
-        setLoadingHubs(false);
-      }
-    };
-
-    fetchHubs();
-  }, [user?.city]);
+  const [selectedHub, setSelectedHub] = useState(null);
+  const [showHubSelector, setShowHubSelector] = useState(false);
 
   const categories = [
     { name: "Café", icon: Coffee, color: "text-orange-400" },
@@ -98,25 +61,25 @@ const CreateQuest = () => {
 
   const vibes = ["Neutral", "Chill", "Competitive", "Intellectual"];
 
-  const handleHubChange = (e) => {
-    const selectedHub = hubs.find((h) => h.id === e.target.value);
+  const handleHubSelect = (hub) => {
+    setSelectedHub(hub);
     setFormData({
       ...formData,
-      hubId: e.target.value,
-      hubName: selectedHub ? selectedHub.name : "",
+      hubId: hub.id,
+      hubName: hub.name,
     });
+    setShowHubSelector(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // 1. Strict Validation
-    if (!selectedHubId) {
+    if (!selectedHub) {
       alert("CRITICAL: Tactical Hub selection required.");
       return;
     }
-    const selectedHub = hubs.find((h) => h.id === selectedHubId);
-    if (!selectedHub) {
+    if (!selectedHub.id) {
       alert("CRITICAL: Selected Hub data is invalid. Please re-select.");
       return;
     }
@@ -361,34 +324,78 @@ const CreateQuest = () => {
         {/* Hub / Location */}
         <section className="space-y-3">
           <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-2 flex items-center gap-2">
-            <MapPin className="w-3 h-3" /> Tactical Hub (Cafe/Turf)
+            <MapPin className="w-3 h-3" /> Select For Hangout(Cafe/Turf)
           </label>
-          <div className="relative">
-            <select
-              value={selectedHubId}
-              onChange={(e) => setSelectedHubId(e.target.value)}
-              required
-              className="w-full bg-black/40 border border-white/5 py-4 pl-4 pr-10 rounded-2xl text-white font-medium focus:border-neon-purple focus:outline-none transition-all appearance-none cursor-pointer"
+
+          {!selectedHub ? (
+            /* State A: No Hub Selected - Show Selection Button */
+            <button
+              type="button"
+              onClick={() => setShowHubSelector(true)}
+              className="w-full p-6 rounded-2xl border-2 border-dashed border-neon-purple/30 bg-black/20 hover:bg-neon-purple/10 hover:border-neon-purple transition-all group"
             >
-              <option value="">Select a hub</option>
-              {hubs.map((hub) => (
-                <option key={hub.id} value={hub.id} className="bg-[#0b0c10]">
-                  {hub.name} - {hub.category}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Plus className="w-4 h-4 text-gray-500" />
+              <div className="flex flex-col items-center gap-3">
+                <div className="p-4 rounded-full bg-neon-purple/20 group-hover:bg-neon-purple/30 transition-all">
+                  <MapPin className="w-8 h-8 text-neon-purple" />
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-black text-white uppercase tracking-wider mb-1">
+                    📍 Select Mission Location
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono">
+                    Choose from verified hubs in {user?.city || "your city"}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ) : (
+            /* State B: Hub Selected - Show Hub Card */
+            <div className="relative overflow-hidden rounded-2xl border-2 border-neon-purple bg-gradient-to-br from-neon-purple/10 to-blue-600/10">
+              {/* Hub Image */}
+              <div className="relative h-32 bg-gradient-to-br from-neon-purple/20 to-blue-600/20 overflow-hidden">
+                {selectedHub.image ? (
+                  <img
+                    src={selectedHub.image}
+                    alt={selectedHub.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <MapPin className="w-16 h-16 text-neon-purple/30" />
+                  </div>
+                )}
+
+                {/* Category Tag */}
+                <div className="absolute top-2 left-2 px-3 py-1 bg-black/60 backdrop-blur-sm rounded-full border border-white/20">
+                  <span className="text-[9px] font-black uppercase text-white tracking-wider flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    {selectedHub.category}
+                  </span>
+                </div>
+              </div>
+
+              {/* Hub Info */}
+              <div className="p-4">
+                <h3 className="font-bold text-white text-base mb-1">
+                  {selectedHub.name}
+                </h3>
+                <p className="text-sm text-gray-400 flex items-start gap-1 mb-3">
+                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  {selectedHub.address}
+                </p>
+
+                {/* Change Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowHubSelector(true)}
+                  className="w-full py-2 px-4 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
+                >
+                  Change Location
+                </button>
+              </div>
             </div>
-          </div>
-          {loadingHubs && (
-            <p className="text-[10px] text-neon-purple italic px-2">
-              Loading hubs...
-            </p>
           )}
-          {hubError && (
-            <p className="text-[10px] text-red-400 italic px-2">{hubError}</p>
-          )}
+
           <p className="text-[9px] text-gray-600 italic px-2">
             *Only verified hubs in {user?.city || "your sector"} are visible.
           </p>
@@ -551,21 +558,66 @@ const CreateQuest = () => {
               Threat Level (1-5)
             </label>
             <div className="flex gap-2 p-2 glassmorphism rounded-2xl border border-white/5 justify-center">
-              {[1, 2, 3, 4, 5].map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, difficulty: lvl })}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-all ${
-                    formData.difficulty >= lvl
-                      ? "bg-neon-purple text-white shadow-[0_0_8px_rgba(168,85,247,0.4)]"
-                      : "bg-white/5 text-gray-600"
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
+              {[1, 2, 3, 4, 5].map((lvl) => {
+                // Host Access Level Thresholds
+                const THREAT_UNLOCK_LEVELS = {
+                  1: 0,
+                  2: 10,
+                  3: 25,
+                  4: 40,
+                  5: 50,
+                };
+                const requiredLevel = THREAT_UNLOCK_LEVELS[lvl] || 0;
+                const userLevel = user?.level || 1;
+                const isLocked = userLevel < requiredLevel;
+
+                return (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => {
+                      if (isLocked) {
+                        toast.error(
+                          `🔒 Reach Level ${requiredLevel} to unlock Threat Level ${lvl}`,
+                          {
+                            duration: 3000,
+                            style: {
+                              background: "#0f0f23",
+                              color: "#ffffff",
+                              border: "1px solid #ef4444",
+                            },
+                          },
+                        );
+                      } else {
+                        setFormData({ ...formData, difficulty: lvl });
+                      }
+                    }}
+                    disabled={isLocked}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-all relative ${
+                      isLocked
+                        ? "bg-gray-800 text-gray-600 cursor-not-allowed opacity-40"
+                        : formData.difficulty >= lvl
+                          ? "bg-neon-purple text-white shadow-[0_0_8px_rgba(168,85,247,0.4)]"
+                          : "bg-white/5 text-gray-600 hover:bg-white/10"
+                    }`}
+                  >
+                    {isLocked ? <Lock className="w-3 h-3" /> : lvl}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Threat Level Warning */}
+            {formData.difficulty >= 4 && (
+              <p className="text-xs text-amber-400 mt-2 px-2 flex items-start gap-2">
+                <span>⚠️</span>
+                <span>
+                  <strong>RESTRICTED:</strong> Only Level{" "}
+                  {formData.difficulty === 5 ? "50" : "40"}+ Agents can join
+                  this mission.
+                </span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -607,6 +659,13 @@ const CreateQuest = () => {
           )}
         </button>
       </form>
+
+      {/* Hub Selection Modal */}
+      <HubSelectionModal
+        isOpen={showHubSelector}
+        onClose={() => setShowHubSelector(false)}
+        onSelect={handleHubSelect}
+      />
     </div>
   );
 };

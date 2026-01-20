@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import SpaceParticles from "../components/SpaceParticles";
 import MilestoneNode from "../components/MilestoneNode";
+import HowToPlayGuide from "../components/HowToPlayGuide";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 
@@ -127,6 +128,11 @@ const HeroJourney = () => {
         </div>
       </div>
 
+      {/* How to Play Guide */}
+      <div className="px-6 mb-8">
+        <HowToPlayGuide />
+      </div>
+
       {/* The Roadmap */}
       <div className="relative px-8 pt-12 pb-24 max-w-lg mx-auto">
         {/* SVG Journey Path */}
@@ -137,7 +143,7 @@ const HeroJourney = () => {
                 (_, i) =>
                   `Q ${i % 2 === 0 ? 100 : -100} ${150 + i * 200}, 0 ${
                     250 + i * 200
-                  }`
+                  }`,
               )
               .join(" ")}`}
             fill="none"

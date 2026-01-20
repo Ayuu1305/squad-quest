@@ -106,13 +106,17 @@ function App() {
               "✅ [FCM] Token generated:",
               currentToken.substring(0, 20) + "...",
             );
-            // Save token to user profile
-            const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, { fcmToken: currentToken });
-            console.log(
-              "✅ [FCM] Token saved to Firestore for user:",
-              user.uid,
-            );
+            if (user?.fcmToken !== currentToken) {
+              // Save token to user profile ONLY if different
+              const userRef = doc(db, "users", user.uid);
+              await updateDoc(userRef, { fcmToken: currentToken });
+              console.log(
+                "✅ [FCM] Token updated in Firestore for user:",
+                user.uid,
+              );
+            } else {
+              console.log("✅ [FCM] Token already up-to-date.");
+            }
           } else {
             console.warn("⚠️ [FCM] No token received");
           }

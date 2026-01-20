@@ -17,6 +17,7 @@ import {
   runTransaction,
   writeBatch,
   limit,
+  startAfter,
   deleteDoc,
 } from "firebase/firestore";
 import {
@@ -529,17 +530,33 @@ export const getUserVerificationStatus = async (questId, uid) => {
   }
 };
 
-export const subscribeToAllQuests = (callback) => {
+// ✅ Modified for Pagination (Initial Load)
+export const subscribeToAllQuests = (callback, cityFilter = null) => {
   const questsRef = collection(db, "quests");
 
+  // ✅ LIMIT 10 for Initial Load (Faster)
+  let q = query(questsRef, orderBy("createdAt", "desc"), limit(10));
+
+  if (cityFilter) {
+    q = query(
+      questsRef,
+      where("city", "==", cityFilter),
+      where("status", "==", "open"),
+      orderBy("createdAt", "desc"),
+      limit(10),
+    );
+  }
+
   return onSnapshot(
-    questsRef,
+    q,
     (snapshot) => {
       const quests = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      callback(quests);
+      // ✅ Pass lastVisible doc to callback securely
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      callback(quests, lastVisible);
     },
     (error) => {
       // ✅ Ignore permission denied spam
@@ -550,6 +567,39 @@ export const subscribeToAllQuests = (callback) => {
       console.error("Error subscribing to all quests:", error);
     },
   );
+};
+
+// ✅ NEW: Pagination Service
+export const fetchMoreQuests = async (lastDoc, cityFilter = null) => {
+  if (!lastDoc) return { quests: [], lastVisible: null };
+
+  const questsRef = collection(db, "quests");
+  let q = query(
+    questsRef,
+    orderBy("createdAt", "desc"),
+    startAfter(lastDoc),
+    limit(10),
+  );
+
+  if (cityFilter) {
+    q = query(
+      questsRef,
+      where("city", "==", cityFilter),
+      where("status", "==", "open"),
+      orderBy("createdAt", "desc"),
+      startAfter(lastDoc),
+      limit(10),
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const quests = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+  const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
+  return { quests, lastVisible };
 };
 
 /**

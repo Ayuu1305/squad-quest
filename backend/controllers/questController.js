@@ -39,6 +39,18 @@ export const joinQuest = async (req, res) => {
         throw new Error("Invalid secret code");
       }
 
+      // Level Gating Check
+      const THREAT_LEVEL_REQUIREMENTS = { 1: 0, 2: 10, 3: 25, 4: 40, 5: 50 };
+      const requiredLevel =
+        THREAT_LEVEL_REQUIREMENTS[questData.difficulty || 1] || 0;
+      const userLevel = userDoc.data()?.level || 1;
+
+      if (userLevel < requiredLevel) {
+        throw new Error(
+          `Clearance Denied: You need to be Level ${requiredLevel} to join this mission.`,
+        );
+      }
+
       // Check if already joined
       if (memberDoc.exists) return { success: true, alreadyJoined: true };
 
@@ -326,8 +338,6 @@ export const finalizeQuest = async (req, res) => {
   }
 };
 
-
-
 // Add this to backend/controllers/questController.js
 
 export const leaveQuest = async (req, res) => {
@@ -341,22 +351,23 @@ export const leaveQuest = async (req, res) => {
       const questRef = db.collection("quests").doc(questId);
       const userRef = db.collection("users").doc(uid);
       const userStatsRef = db.collection("userStats").doc(uid);
-      
+
       // References to the subcollections we need to delete
       const memberRef = questRef.collection("members").doc(uid);
       const joinedQuestRef = userRef.collection("joinedQuests").doc(questId);
 
       const [questDoc, memberDoc, userStatsDoc] = await t.getAll(
-        questRef, 
+        questRef,
         memberRef,
-        userStatsRef
+        userStatsRef,
       );
 
       if (!questDoc.exists) throw new Error("Quest not found");
-      if (!memberDoc.exists) throw new Error("You are not a member of this quest");
+      if (!memberDoc.exists)
+        throw new Error("You are not a member of this quest");
 
       const questData = questDoc.data();
-      
+
       // 🛡️ SECURITY: Host cannot leave their own quest (must delete instead)
       if (questData.hostId === uid) {
         throw new Error("Hosts cannot leave. You must delete the quest.");
@@ -367,13 +378,13 @@ export const leaveQuest = async (req, res) => {
       let xpPenalty = 0;
       const startTime = questData.startTime?.toDate();
       const now = new Date();
-      
+
       if (startTime) {
         const hoursUntilStart = (startTime - now) / (1000 * 60 * 60);
-        
+
         // If "flaking" last minute (less than 2 hours)
-        if (hoursUntilStart < 2 && hoursUntilStart > -1) { 
-           xpPenalty = 50; // Deduction amount
+        if (hoursUntilStart < 2 && hoursUntilStart > -1) {
+          xpPenalty = 50; // Deduction amount
         }
       }
 
@@ -386,31 +397,31 @@ export const leaveQuest = async (req, res) => {
       // 3. Update Quest Document (Array & Count)
       t.update(questRef, {
         members: admin.firestore.FieldValue.arrayRemove(uid),
-        membersCount: admin.firestore.FieldValue.increment(-1)
+        membersCount: admin.firestore.FieldValue.increment(-1),
       });
 
       // 4. Apply Penalty (if any)
       if (xpPenalty > 0) {
         t.update(userRef, {
           xp: admin.firestore.FieldValue.increment(-xpPenalty),
-          reliabilityScore: admin.firestore.FieldValue.increment(-5) // Hit their reputation
+          reliabilityScore: admin.firestore.FieldValue.increment(-5), // Hit their reputation
         });
-        
+
         // Update private stats too
         if (userStatsDoc.exists) {
-           t.update(userStatsRef, {
-             xp: admin.firestore.FieldValue.increment(-xpPenalty),
-             reliabilityScore: admin.firestore.FieldValue.increment(-5)
-           });
+          t.update(userStatsRef, {
+            xp: admin.firestore.FieldValue.increment(-xpPenalty),
+            reliabilityScore: admin.firestore.FieldValue.increment(-5),
+          });
         }
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         questTitle: questData.title,
         hostId: questData.hostId,
         leaverName: memberDoc.data().name || "A member",
-        xpPenalty 
+        xpPenalty,
       };
     });
 
@@ -418,20 +429,17 @@ export const leaveQuest = async (req, res) => {
 
     // 🔥 Fire & Forget: Notify the Host that someone bailed
     if (result.success && result.hostId) {
-       sendNotification(
-         result.hostId,
-         "Squad Update ⚠️",
-         `${result.leaverName} has left "${result.questTitle}". A spot just opened up!`
-       ).catch(err => console.error("Leave notification failed:", err));
+      sendNotification(
+        result.hostId,
+        "Squad Update ⚠️",
+        `${result.leaverName} has left "${result.questTitle}". A spot just opened up!`,
+      ).catch((err) => console.error("Leave notification failed:", err));
     }
-
   } catch (error) {
     console.error("Leave Quest Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
-
 
 /**
  * BADGE THRESHOLDS DEFINITION

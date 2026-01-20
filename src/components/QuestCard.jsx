@@ -1,4 +1,4 @@
-import { Users, MapPin, Clock, Gift, Flame } from "lucide-react";
+import { Users, MapPin, Clock, Gift, Flame, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -82,6 +82,12 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
   };
 
   const rarity = getRarity(quest.difficulty || 1);
+
+  // Level Gating
+  const THREAT_LEVEL_REQUIREMENTS = { 1: 0, 2: 10, 3: 25, 4: 40, 5: 50 };
+  const requiredLevel = THREAT_LEVEL_REQUIREMENTS[quest.difficulty || 1] || 0;
+  const userLevel = user?.level || 1;
+  const isLocked = userLevel < requiredLevel;
 
   // GSAP Animations
   useGSAP(() => {
@@ -176,6 +182,16 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
           />
           <span className="text-[9px] font-black uppercase tracking-widest text-orange-400">
             Filling Fast
+          </span>
+        </div>
+      )}
+
+      {/* Level Lock Badge */}
+      {isLocked && (
+        <div className="absolute top-0 left-0 z-30 bg-red-500/20 border-b border-r border-red-500/50 rounded-br-2xl px-3 py-1.5 flex items-center gap-1.5 backdrop-blur-md">
+          <Lock className="w-3 h-3 text-red-500" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-red-400">
+            LVL {requiredLevel}
           </span>
         </div>
       )}

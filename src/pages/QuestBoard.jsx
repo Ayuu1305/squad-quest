@@ -18,6 +18,7 @@ import { collection, onSnapshot } from "firebase/firestore";
 import {
   subscribeToAllQuests,
   joinQuestByCode,
+  fetchMoreQuests, // ✅ Imported
 } from "../backend/firebaseService";
 import useShowdown from "../hooks/useShowdown";
 import {
@@ -32,6 +33,7 @@ import {
   BookOpen,
   Plus,
   AlertCircle,
+  ArrowDown, // ✅ Added
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -41,7 +43,12 @@ const QuestBoard = () => {
   const navigate = useNavigate();
   const { isActive: activeShowdown, nextReset } = useShowdown();
 
-  const [quests, setQuests] = useState([]);
+  // ✅ Hybrid Pagination State
+  const [realtimeQuests, setRealtimeQuests] = useState([]);
+  const [olderQuests, setOlderQuests] = useState([]);
+  // Derived state for rendering
+  const quests = [...realtimeQuests, ...olderQuests];
+
   const [hubs, setHubs] = useState([]);
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,26 +63,63 @@ const QuestBoard = () => {
   });
   const [isJoining, setIsJoining] = useState(false);
 
+  // ✅ Pagination State
+  const [lastDoc, setLastDoc] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const containerRef = useRef(null);
 
   // Subscriptions & Live Ticker
+ // ✅ FIXED: Realtime Listener for Top Quests
   useEffect(() => {
-    if (!user?.uid) return; // ✅ Stop if logged out
+    if (!user?.uid) return;
 
-    // Force re-render every 10 seconds to update expired status
+    // Force re-render every 10 seconds
     const timer = setInterval(() => {
       setTimeTick(Date.now());
     }, 10000);
 
-    const unsubQuests = subscribeToAllQuests((data) => {
-      setQuests(data);
-    });
+    const unsubQuests = subscribeToAllQuests((newTopQuests, newLastDoc) => {
+      // Error 1 Fix: Use 'setRealtimeQuests', not 'setQuests'
+      setRealtimeQuests(newTopQuests);
+
+      // Error 2 Fix: Removed duplicate code & fixed closing brackets
+      if (olderQuests.length === 0) {
+        setLastDoc(newLastDoc);
+      }
+    }, city);
 
     return () => {
       clearInterval(timer);
       unsubQuests();
     };
-  }, [user?.uid]);
+  }, [user?.uid, city, olderQuests.length]);
+
+  // ✅ Load More Function
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore || !lastDoc) return;
+    
+    setLoadingMore(true);
+    try {
+      // Fetch next batch using lastDoc
+      const { quests: newQuests, lastVisible } = await fetchMoreQuests(lastDoc, city);
+      
+      if (newQuests.length < 10) {
+        setHasMore(false); // No more to load
+      }
+      
+      if (newQuests.length > 0) {
+        setOlderQuests((prev) => [...prev, ...newQuests]);
+        setLastDoc(lastVisible);
+      }
+    } catch (err) {
+      console.error("Pagination error:", err);
+      toast.error("Could not load more quests");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const categories = [
     { name: "All", icon: Zap },
@@ -234,7 +278,7 @@ const QuestBoard = () => {
             >
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-mono text-blue-400 uppercase tracking-widest">
-                  Weekly Reset:
+                  Weekly Quests:
                 </span>
                 <span className="text-[10px] font-black font-mono text-white tracking-widest">
                   {nextReset}
@@ -294,9 +338,9 @@ const QuestBoard = () => {
                       <div className="flex items-center gap-2">
                         <Lock className="w-4 h-4 text-red-500 animate-pulse" />
                         <span className="text-[10px] font-black uppercase text-red-500 tracking-[0.2em] relative">
-                          RESTRICTED
+                          Private Room Code
                           <span className="absolute -inset-1 blur-sm text-red-500 opacity-50">
-                            RESTRICTED
+                          Private Room Code 
                           </span>
                         </span>
                       </div>
@@ -416,6 +460,32 @@ const QuestBoard = () => {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* ✅ Pagination Load More Button */}
+            {hasMore && filteredQuests.length > 0 && (
+              <div className="flex justify-center pb-20">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="group relative px-8 py-3 bg-neon-purple/10 border border-neon-purple/30 rounded-full overflow-hidden transition-all hover:bg-neon-purple/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="absolute inset-0 bg-neon-purple/20 blur-lg group-hover:opacity-75 transition-opacity opacity-0" />
+                  <span className="relative z-10 text-xs font-bold uppercase tracking-widest text-neon-purple group-hover:text-white transition-colors flex items-center gap-2">
+                    {loadingMore ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Scanning Sector...
+                      </>
+                    ) : (
+                      <>
+                        Load More Missions
+                        <ArrowDown className="w-4 h-4" />
+                      </>
+                    )}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -452,6 +522,7 @@ const QuestBoard = () => {
         />
 
         {/* ✅ NEW: Secret Code Modal for Private Quests */}
+        {/* ✅ FIXED: Secret Code Modal uses Context API */}
         <SecretCodeModal
           isOpen={secretCodeModal.isOpen}
           onClose={() => setSecretCodeModal({ isOpen: false, quest: null })}
@@ -460,10 +531,12 @@ const QuestBoard = () => {
 
             setIsJoining(true);
             try {
-              const { joinQuest } = await import("../backend/firebaseService");
-              await joinQuest(secretCodeModal.quest.id, secretCode);
+              // Error 3 Fix: Don't import from firebaseService. 
+              // Use the 'joinQuest' we already got from useGame() on line 48!
+              
+              // Note: Ensure your GameContext joinQuest supports secretCode as 2nd arg
+              await joinQuest(secretCodeModal.quest.id, secretCode); 
 
-              // Success - navigate to lobby
               navigate(`/lobby/${secretCodeModal.quest.id}`);
             } catch (error) {
               console.error("Join quest error:", error);

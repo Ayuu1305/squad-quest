@@ -10,9 +10,12 @@ import {
 import { db } from "../backend/firebaseConfig";
 import { Zap, UserPlus, Target, Award, Gift } from "lucide-react";
 
+// Track shown notifications for the session (persists across navigation)
+const shownNotificationIds = new Set();
+
 const FloatingLiveFeed = () => {
   const [notifications, setNotifications] = useState([]);
-  const [lastTimestamp, setLastTimestamp] = useState(null);
+  const [lastTimestamp, setLastTimestamp] = useState(Date.now());
 
   useEffect(() => {
     const q = query(
@@ -26,30 +29,37 @@ const FloatingLiveFeed = () => {
         if (change.type === "added") {
           const data = change.doc.data();
           const timestamp = data.timestamp?.toMillis?.() || Date.now();
+          const id = change.doc.id;
+
+          // Deduplication: Check if we've already shown this ID
+          if (shownNotificationIds.has(id)) return;
 
           // Only show truly new notifications (within last 30 seconds)
-          if (!lastTimestamp || timestamp > lastTimestamp) {
+          if (timestamp > lastTimestamp) {
             const notification = {
-              id: change.doc.id,
+              id: id,
               ...data,
               timestamp,
             };
 
+            // Mark as shown so it doesn't pop up again on navigation
+            shownNotificationIds.add(id);
+
             // Add to notifications
             setNotifications((prev) => {
-              // Prevent duplicates
+              // Double check against local state just in case
               if (prev.some((n) => n.id === notification.id)) return prev;
               return [notification, ...prev].slice(0, 5);
             });
 
             setLastTimestamp(timestamp);
 
-            // Auto-remove after 4 seconds
+            // Auto-remove after 3 seconds (was 4s)
             setTimeout(() => {
               setNotifications((prev) =>
                 prev.filter((n) => n.id !== notification.id),
               );
-            }, 4000);
+            }, 3000);
           }
         }
       });
