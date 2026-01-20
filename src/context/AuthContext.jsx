@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "../backend/firebaseConfig";
 
 const AuthContext = createContext();
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     let unsubscribeStats = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-      // ✅ IMMEDIATE CLEANUP: Unsubscribe previous listeners BEFORE processing new state
+      // ✅ IMMEDIATE CLEANUP
       unsubscribeFirestore();
       unsubscribeStats();
       unsubscribeFirestore = () => {};
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
                       badges: profileData.badges || [],
                     };
 
-                // ✅ Transform flat "feedbackCounts.X" keys into nested object
+                // ✅ Transform flat "feedbackCounts.X" keys
                 const feedbackCounts = {};
                 const statsData = { ...rawStatsData };
 
@@ -49,24 +49,41 @@ export const AuthProvider = ({ children }) => {
                   if (key.startsWith("feedbackCounts.")) {
                     const tagName = key.replace("feedbackCounts.", "");
                     feedbackCounts[tagName] = statsData[key];
-                    delete statsData[key]; // Remove flat key
+                    delete statsData[key];
                   }
                 });
 
-                // Add the nested object
                 if (Object.keys(feedbackCounts).length > 0) {
                   statsData.feedbackCounts = feedbackCounts;
                 }
 
-                // DEBUG: Log the transformed statsData
-                console.log(
-                  "🔍 [AuthContext] Transformed statsData:",
-                  statsData,
-                );
-                console.log(
-                  "🔍 [AuthContext] feedbackCounts:",
-                  statsData.feedbackCounts,
-                );
+                // 🔄 SELF-HEALING SYNC: If private stats are ahead, update public profile
+                // This fixes Leaderboard vs Profile mismatches caused by legacy data
+                const privateXP = statsData.xp || 0;
+                const publicXP = profileData.xp || 0;
+
+                if (privateXP > publicXP) {
+                  console.log(
+                    "🔄 [AuthContext] Syncing Public Profile with Private Stats...",
+                    {
+                      private: privateXP,
+                      public: publicXP,
+                    },
+                  );
+                  setDoc(
+                    doc(db, "users", authUser.uid),
+                    {
+                      xp: statsData.xp,
+                      level: statsData.level,
+                      reliabilityScore: statsData.reliabilityScore,
+                      questsCompleted:
+                        statsData.questsCompleted ||
+                        profileData.questsCompleted,
+                      updatedAt: statsData.updatedAt || new Date(),
+                    },
+                    { merge: true },
+                  ).catch((err) => console.error("Sync Failed:", err));
+                }
 
                 setUser({
                   ...authUser,
