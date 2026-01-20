@@ -16,6 +16,9 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({ origin: true }));
 app.use(express.json());
+app.use("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
 
 // ----------------------------------------------------
 // 🔥 FIREBASE SETUP (The part that needs fixing)

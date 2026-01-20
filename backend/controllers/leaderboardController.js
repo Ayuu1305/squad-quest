@@ -81,6 +81,8 @@ export const getWeeklyLeaderboard = async (req, res) => {
         thisWeekXP: data.thisWeekXP || 0, // Ensure specific fields
         xp: data.xp || 0,
         level: data.level || 1,
+        badges: data.badges || [],
+        feedbackCounts: data.feedbackCounts || {},
       };
     });
 
