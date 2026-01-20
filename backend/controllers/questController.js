@@ -212,8 +212,15 @@ export const finalizeQuest = async (req, res) => {
       let earnedXP = 100;
       let bonuses = [];
 
-      const startTime = qData.startTime?.toDate?.();
-      if (startTime) {
+      // Robust Date Parsing
+      let startTime = qData.startTime;
+      if (startTime && typeof startTime.toDate === "function") {
+        startTime = startTime.toDate();
+      } else if (startTime) {
+        startTime = new Date(startTime);
+      }
+
+      if (startTime && !isNaN(startTime.getTime())) {
         const now = new Date();
         const diffMinutes = (now - startTime) / 1000 / 60;
         if (diffMinutes <= 5 && diffMinutes >= -15) {
@@ -409,10 +416,18 @@ export const leaveQuest = async (req, res) => {
       // ⚖️ PENALTY LOGIC
       // If leaving less than 2 hours before start, apply penalty
       let xpPenalty = 0;
-      const startTime = questData.startTime?.toDate();
+
+      // Robust Date Parsing for startTime
+      let startTime = questData.startTime;
+      if (startTime && typeof startTime.toDate === "function") {
+        startTime = startTime.toDate();
+      } else if (startTime) {
+        startTime = new Date(startTime);
+      }
+
       const now = new Date();
 
-      if (startTime) {
+      if (startTime && !isNaN(startTime.getTime())) {
         const hoursUntilStart = (startTime - now) / (1000 * 60 * 60);
 
         // If "flaking" last minute (less than 2 hours)

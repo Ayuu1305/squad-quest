@@ -28,14 +28,21 @@ messaging.onBackgroundMessage((payload) => {
     payload,
   );
 
-  const notificationTitle = payload.notification.title;
+  // ⚠️ FIX: Do NOT manually show notification if 'notification' key exists.
+  // The browser automatically handles this for FCM messages with 'notification' payload.
+  // We only manually show if it's a DATA-ONLY message.
+
+  if (payload.notification) {
+    return; // Let browser handle it
+  }
+
+  const notificationTitle = payload.data?.title || "Squad Update";
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/logo.png", // Update if you have a logo
+    body: payload.data?.body || "New activity in your squad.",
+    icon: "/logo.png",
     badge: "/logo.png",
     vibrate: [200, 100, 200],
-    tag: "squad-quest-notification",
-    requireInteraction: false,
+    tag: "squad-quest-data-notification",
     data: payload.data,
   };
 
