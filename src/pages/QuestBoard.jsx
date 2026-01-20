@@ -71,7 +71,7 @@ const QuestBoard = () => {
   const containerRef = useRef(null);
 
   // Subscriptions & Live Ticker
- // ✅ FIXED: Realtime Listener for Top Quests
+  // ✅ FIXED: Realtime Listener for Top Quests
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -99,16 +99,19 @@ const QuestBoard = () => {
   // ✅ Load More Function
   const handleLoadMore = async () => {
     if (loadingMore || !hasMore || !lastDoc) return;
-    
+
     setLoadingMore(true);
     try {
       // Fetch next batch using lastDoc
-      const { quests: newQuests, lastVisible } = await fetchMoreQuests(lastDoc, city);
-      
+      const { quests: newQuests, lastVisible } = await fetchMoreQuests(
+        lastDoc,
+        city,
+      );
+
       if (newQuests.length < 10) {
         setHasMore(false); // No more to load
       }
-      
+
       if (newQuests.length > 0) {
         setOlderQuests((prev) => [...prev, ...newQuests]);
         setLastDoc(lastVisible);
@@ -312,7 +315,7 @@ const QuestBoard = () => {
                     Operative Status
                   </span>
                   <div className="bg-black/40 backdrop-blur-md border border-neon-purple/50 rounded-xl px-4 py-2 text-sm font-black text-neon-purple italic shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                    LV. {user?.level || 1}
+                    {(user?.xp || 0).toLocaleString()} XP
                   </div>
                 </div>
               </header>
@@ -340,7 +343,7 @@ const QuestBoard = () => {
                         <span className="text-[10px] font-black uppercase text-red-500 tracking-[0.2em] relative">
                           Private Room Code
                           <span className="absolute -inset-1 blur-sm text-red-500 opacity-50">
-                          Private Room Code 
+                            Private Room Code
                           </span>
                         </span>
                       </div>
@@ -531,11 +534,11 @@ const QuestBoard = () => {
 
             setIsJoining(true);
             try {
-              // Error 3 Fix: Don't import from firebaseService. 
+              // Error 3 Fix: Don't import from firebaseService.
               // Use the 'joinQuest' we already got from useGame() on line 48!
-              
+
               // Note: Ensure your GameContext joinQuest supports secretCode as 2nd arg
-              await joinQuest(secretCodeModal.quest.id, secretCode); 
+              await joinQuest(secretCodeModal.quest.id, secretCode);
 
               navigate(`/lobby/${secretCodeModal.quest.id}`);
             } catch (error) {

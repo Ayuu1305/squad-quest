@@ -1,4 +1,5 @@
-import { db, admin } from "../server.js";
+import { db } from "../server.js";
+import { FieldValue } from "firebase-admin/firestore";
 import { calculateLevelFromXP } from "../utils/leveling.js";
 
 export const claimBounty = async (req, res) => {
@@ -10,7 +11,7 @@ export const claimBounty = async (req, res) => {
   const publicUserRef = db.collection("users").doc(userId);
 
   try {
-    await db.runTransaction(async (t) => {
+    const resultUserName = await db.runTransaction(async (t) => {
       // ✅ 1. FETCH ALL DATA FIRST using t.getAll
       const [statsSnap, publicSnap] = await t.getAll(
         userStatsRef,
@@ -68,12 +69,12 @@ export const claimBounty = async (req, res) => {
       const { level: newLevel } = calculateLevelFromXP(newXP);
 
       const updatePayload = {
-        xp: admin.firestore.FieldValue.increment(earnedXP),
-        thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
+        xp: FieldValue.increment(earnedXP),
+        thisWeekXP: FieldValue.increment(earnedXP),
         level: newLevel,
         daily_streak: streak,
-        last_claimed_at: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        last_claimed_at: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
       // 5. Commit Updates
@@ -89,10 +90,16 @@ export const claimBounty = async (req, res) => {
         action: "claimed daily bounty",
         target: `${earnedXP} XP`,
         userAura: "gold",
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
       });
+
+      return userName;
     });
 
+    console.log(
+      "✅ [LiveFeed] Bounty claimed and logged to global_activity for user:",
+      resultUserName,
+    );
     res.json({ success: true, message: "Bounty claimed" });
   } catch (error) {
     if (error.message === "Cooldown active") {

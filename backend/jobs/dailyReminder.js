@@ -1,5 +1,6 @@
 import cron from "node-cron";
-import { db, admin } from "../server.js";
+import { db, FieldValue } from "../server.js";
+import { Timestamp } from "firebase-admin/firestore";
 import { sendNotification } from "../services/notificationService.js";
 
 const setupDailyReminder = () => {
@@ -18,11 +19,7 @@ const setupDailyReminder = () => {
 
       const usersRef = db.collection("users");
       const snapshot = await usersRef
-        .where(
-          "lastClaimed",
-          "<=",
-          admin.firestore.Timestamp.fromDate(twentyFourHoursAgo),
-        )
+        .where("lastClaimed", "<=", Timestamp.fromDate(twentyFourHoursAgo))
         .get();
 
       let count = 0;
@@ -49,8 +46,7 @@ const setupDailyReminder = () => {
         // Update lastDailyNotificationSent to NOW
         // using db.collection...doc.update() directly to avoid concurrency issues with other writes if possible
         await db.collection("users").doc(doc.id).update({
-          lastDailyNotificationSent:
-            admin.firestore.FieldValue.serverTimestamp(),
+          lastDailyNotificationSent: FieldValue.serverTimestamp(),
         });
 
         count++;

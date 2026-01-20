@@ -1,4 +1,5 @@
-import { db, admin } from "../server.js";
+import { db } from "../server.js";
+import { FieldValue } from "firebase-admin/firestore";
 
 /**
  * DELETE QUEST - Host only
@@ -147,7 +148,7 @@ export const editQuest = async (req, res) => {
     });
 
     // 3. Add updatedAt timestamp
-    filteredUpdates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    filteredUpdates.updatedAt = FieldValue.serverTimestamp();
 
     // 4. Update quest
     await questRef.update(filteredUpdates);
@@ -253,9 +254,9 @@ export const leaveQuest = async (req, res) => {
 
     // Update quest - remove from members array and decrement count
     batch.update(questRef, {
-      members: admin.firestore.FieldValue.arrayRemove(userId),
-      membersCount: admin.firestore.FieldValue.increment(-1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      members: FieldValue.arrayRemove(userId),
+      membersCount: FieldValue.increment(-1),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     // Delete member document
@@ -272,9 +273,9 @@ export const leaveQuest = async (req, res) => {
     // Apply XP penalty to user (both xp and thisWeekXP)
     if (xpPenalty > 0) {
       batch.update(userRef, {
-        xp: admin.firestore.FieldValue.increment(-xpPenalty),
-        thisWeekXP: admin.firestore.FieldValue.increment(-weeklyPenalty),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        xp: FieldValue.increment(-xpPenalty),
+        thisWeekXP: FieldValue.increment(-weeklyPenalty),
+        updatedAt: FieldValue.serverTimestamp(),
       });
       console.log(
         `📉 Applying penalty to user: xp=-${xpPenalty}, thisWeekXP=-${weeklyPenalty}`,

@@ -1,4 +1,4 @@
-import { db, admin } from "../server.js";
+import { db } from "../server.js";
 
 /**
  * Get the start of the current week (last Monday 00:00 IST)
@@ -41,7 +41,7 @@ export const resetAllWeeklyXP = async () => {
     for (const doc of usersSnapshot.docs) {
       currentBatch.update(doc.ref, {
         thisWeekXP: 0,
-        lastWeeklyResetDate: admin.firestore.FieldValue.serverTimestamp(),
+        lastWeeklyResetDate: FieldValue.serverTimestamp(),
       });
       opCount++;
 

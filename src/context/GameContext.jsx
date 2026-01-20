@@ -5,7 +5,7 @@ import {
   subscribeToQuest,
 } from "../backend/firebaseService"; // ❌ Removed firebaseJoin import
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-import { db } from "../backend/firebaseConfig";
+import { db, auth } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
 
 const GameContext = createContext({
@@ -90,7 +90,8 @@ export const GameProvider = ({ children }) => {
 
     try {
       // 1. Get the Security Token (The ID Card)
-      const token = await user.getIdToken();
+      if (!auth.currentUser) throw new Error("User not authenticated");
+      const token = await auth.currentUser.getIdToken();
 
       // 2. Call the Police (Your Backend API)
       // Replace with your actual backend URL if not using a proxy
@@ -134,7 +135,8 @@ export const GameProvider = ({ children }) => {
     const loadingToast = toast.loading("Processing...");
 
     try {
-      const token = await user.getIdToken();
+      if (!auth.currentUser) throw new Error("User not authenticated");
+      const token = await auth.currentUser.getIdToken();
 
       const response = await fetch("http://localhost:5000/api/quest/leave", {
         method: "POST",

@@ -1,4 +1,5 @@
-import { db, admin } from "../server.js";
+import { db } from "../server.js";
+import { FieldValue } from "firebase-admin/firestore";
 import { calculateLevelFromXP } from "../utils/leveling.js";
 import { sendNotification } from "../services/notificationService.js";
 
@@ -58,7 +59,7 @@ export const joinQuest = async (req, res) => {
       t.set(memberRef, {
         uid,
         name: userDoc.data()?.name || "Unknown Hero",
-        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        joinedAt: FieldValue.serverTimestamp(),
         role: "member",
       });
 
@@ -69,14 +70,14 @@ export const joinQuest = async (req, res) => {
         .collection("joinedQuests")
         .doc(questId);
       t.set(joinedQuestRef, {
-        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        joinedAt: FieldValue.serverTimestamp(),
         role: "member",
       });
 
       // Update Quest - Add to members array AND increment count
       t.update(questRef, {
-        members: admin.firestore.FieldValue.arrayUnion(uid),
-        membersCount: admin.firestore.FieldValue.increment(1),
+        members: FieldValue.arrayUnion(uid),
+        membersCount: FieldValue.increment(1),
       });
 
       return {
@@ -134,6 +135,29 @@ export const joinQuest = async (req, res) => {
             console.error("⚠️ [Background] Hot Zone flag update failed:", err),
           );
       }
+
+      // 🔔 Live Feed: Log hero_joined activity
+      const userName = req.user.name || "A Hero";
+      console.log("🔔 [LiveFeed] Attempting to log hero_joined:", {
+        uid,
+        userName,
+        questTitle,
+      });
+      db.collection("global_activity")
+        .add({
+          type: "hero_joined",
+          userId: uid,
+          user: userName,
+          action: `joined ${questTitle}`,
+          target: questTitle,
+          timestamp: FieldValue.serverTimestamp(),
+        })
+        .then(() =>
+          console.log("✅ [LiveFeed] hero_joined logged successfully"),
+        )
+        .catch((err) =>
+          console.error("❌ [LiveFeed] hero_joined log FAILED:", err),
+        );
     }
   } catch (error) {
     console.error("Join Quest Error:", error);
@@ -242,10 +266,10 @@ export const finalizeQuest = async (req, res) => {
           xp: newXP,
           level: newLevel,
           reliabilityScore: newReliability,
-          thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
-          questsCompleted: admin.firestore.FieldValue.increment(1), // ✅ NEW: Standardized Count
+          thisWeekXP: FieldValue.increment(earnedXP),
+          questsCompleted: FieldValue.increment(1), // ✅ NEW: Standardized Count
           badges: newBadges,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
@@ -254,12 +278,12 @@ export const finalizeQuest = async (req, res) => {
       t.set(
         userRef,
         {
-          xp: admin.firestore.FieldValue.increment(earnedXP),
+          xp: FieldValue.increment(earnedXP),
           level: newLevel,
           reliabilityScore: newReliability,
-          thisWeekXP: admin.firestore.FieldValue.increment(earnedXP),
-          questsCompleted: admin.firestore.FieldValue.increment(1), // ✅ Public Profile Sync
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          thisWeekXP: FieldValue.increment(earnedXP),
+          questsCompleted: FieldValue.increment(1), // ✅ Public Profile Sync
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
@@ -270,7 +294,7 @@ export const finalizeQuest = async (req, res) => {
         {
           rewarded: true,
           earnedXP,
-          rewardedAt: admin.firestore.FieldValue.serverTimestamp(),
+          rewardedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
@@ -296,6 +320,12 @@ export const finalizeQuest = async (req, res) => {
         result;
 
       // Log quest completion in background
+      console.log("🔔 [LiveFeed] Attempting to log quest completion:", {
+        uid,
+        memberName,
+        questTitle,
+        earnedXP,
+      });
       db.collection("global_activity")
         .add({
           type: "quest",
@@ -304,10 +334,13 @@ export const finalizeQuest = async (req, res) => {
           action: `completed ${questTitle || "a quest"}`,
           target: questTitle || "Quest",
           earnedXP,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          timestamp: FieldValue.serverTimestamp(),
         })
+        .then(() =>
+          console.log("✅ [LiveFeed] Quest completion logged successfully"),
+        )
         .catch((err) =>
-          console.error("⚠️ [Background] Quest activity log failed:", err),
+          console.error("❌ [LiveFeed] Quest completion log FAILED:", err),
         );
 
       // Log badge unlocks in background
@@ -323,7 +356,7 @@ export const finalizeQuest = async (req, res) => {
             user: memberName || "Unknown Hero",
             action: `unlocked ${badge} badge`,
             target: badge,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: FieldValue.serverTimestamp(),
           })
           .catch((err) =>
             console.error("⚠️ [Background] Badge activity log failed:", err),
@@ -396,22 +429,22 @@ export const leaveQuest = async (req, res) => {
 
       // 3. Update Quest Document (Array & Count)
       t.update(questRef, {
-        members: admin.firestore.FieldValue.arrayRemove(uid),
-        membersCount: admin.firestore.FieldValue.increment(-1),
+        members: FieldValue.arrayRemove(uid),
+        membersCount: FieldValue.increment(-1),
       });
 
       // 4. Apply Penalty (if any)
       if (xpPenalty > 0) {
         t.update(userRef, {
-          xp: admin.firestore.FieldValue.increment(-xpPenalty),
-          reliabilityScore: admin.firestore.FieldValue.increment(-5), // Hit their reputation
+          xp: FieldValue.increment(-xpPenalty),
+          reliabilityScore: FieldValue.increment(-5), // Hit their reputation
         });
 
         // Update private stats too
         if (userStatsDoc.exists) {
           t.update(userStatsRef, {
-            xp: admin.firestore.FieldValue.increment(-xpPenalty),
-            reliabilityScore: admin.firestore.FieldValue.increment(-5),
+            xp: FieldValue.increment(-xpPenalty),
+            reliabilityScore: FieldValue.increment(-5),
           });
         }
       }
@@ -522,10 +555,10 @@ export const submitVibeCheck = async (req, res) => {
 
       // Update Reviewer
       const reviewerPayload = {
-        xp: admin.firestore.FieldValue.increment(reviewerReward),
+        xp: FieldValue.increment(reviewerReward),
         level: newReviewerLevel,
-        thisWeekXP: admin.firestore.FieldValue.increment(reviewerReward),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        thisWeekXP: FieldValue.increment(reviewerReward),
+        updatedAt: FieldValue.serverTimestamp(),
       };
       t.update(reviewerRef, reviewerPayload);
       t.set(reviewerStatsRef, reviewerPayload, { merge: true });
@@ -546,10 +579,10 @@ export const submitVibeCheck = async (req, res) => {
         const { level: newLevel } = calculateLevelFromXP(newXP);
 
         const targetPayload = {
-          xp: admin.firestore.FieldValue.increment(xpReward),
+          xp: FieldValue.increment(xpReward),
           level: newLevel,
-          thisWeekXP: admin.firestore.FieldValue.increment(xpReward),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          thisWeekXP: FieldValue.increment(xpReward),
+          updatedAt: FieldValue.serverTimestamp(),
         };
 
         // ✅ FEEDBACK & BADGE LOGIC
@@ -561,8 +594,7 @@ export const submitVibeCheck = async (req, res) => {
 
         tags.forEach((tag) => {
           // 1. Increment Count
-          targetPayload[`feedbackCounts.${tag}`] =
-            admin.firestore.FieldValue.increment(1);
+          targetPayload[`feedbackCounts.${tag}`] = FieldValue.increment(1);
 
           // 2. Check Badge Threshold
           const currentCount = (currentFeedback[tag] || 0) + 1; // +1 because we are adding one now
@@ -581,7 +613,7 @@ export const submitVibeCheck = async (req, res) => {
                 user: snapMap.get(targetRef.path)?.name || "Hero",
                 action: `earned ${threshold.id.replace("_", " ")} badge`,
                 target: threshold.id,
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                timestamp: FieldValue.serverTimestamp(),
               });
             }
           }
@@ -612,7 +644,7 @@ export const submitVibeCheck = async (req, res) => {
         action: "completed squad review",
         target: "Vibe Check",
         earnedXP: reviewerReward,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
       });
 
       return { success: true, earnedXP: reviewerReward };

@@ -67,7 +67,7 @@ export const onboardHero = async (user) => {
         thisWeekXP: 0,
         level: 1,
         reliabilityScore: 100,
-        totalQuests: 0,
+        questsCompleted: 0,
 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -346,19 +346,29 @@ export const createQuest = async (questData) => {
     roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
+  // ✅ FIX: Include host in members directly instead of calling joinQuest
   const newQuest = {
     ...questData,
     roomCode: roomCode || null,
-    members: [questData.hostId],
+    members: [questData.hostId], // Host is already a member
+    currentPlayers: 1, // Start with 1 player (the host)
+    status: "open",
     createdAt: serverTimestamp(),
   };
 
   const docRef = await addDoc(questsRef, newQuest);
 
-  // Auto-join host (backend API gets userId from JWT token)
-  await joinQuest(docRef.id);
+  // ✅ CRITICAL FIX: Add Host to 'members' subcollection so QuestCard UI updates!
+  const membersRef = collection(db, "quests", docRef.id, "members");
+  await setDoc(doc(membersRef, questData.hostId), {
+    uid: questData.hostId,
+    joinedAt: serverTimestamp(),
+    role: "host",
+    name: questData.hostName || "Host",
+    avatar: questData.hostAvatar || "",
+  });
 
-  // ✅ NEW: Log quest creation to global activity
+  // ✅ Log quest creation to global activity
   try {
     await addDoc(collection(db, "global_activity"), {
       type: "quest_created",
@@ -424,6 +434,44 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getAuthToken = async () => {
   if (!auth.currentUser) throw new Error("User not authenticated");
   return await auth.currentUser.getIdToken();
+};
+
+// ✅ Join Quest via Backend API
+export const joinQuest = async (questId, secretCode = null) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ questId, secretCode }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to join quest");
+  }
+  return data;
+};
+
+// ✅ Leave Quest via Backend API
+export const leaveQuest = async (questId) => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/quest/leave`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ questId }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to leave quest");
+  }
+  return data;
 };
 
 export const finalizeQuest = async (questId, verificationData) => {

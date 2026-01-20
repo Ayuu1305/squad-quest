@@ -1,4 +1,4 @@
-import { admin } from "../server.js";
+import { db, messaging, FieldValue } from "../server.js";
 
 /**
  * Sends an FCM notification to a specific user.
@@ -13,11 +13,7 @@ export const sendNotification = async (userId, title, body, data = {}) => {
     if (!userId) return;
 
     // Fetch user's FCM token
-    const userDoc = await admin
-      .firestore()
-      .collection("users")
-      .doc(userId)
-      .get();
+    const userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) return;
 
     const userData = userDoc.data();
@@ -41,7 +37,7 @@ export const sendNotification = async (userId, title, body, data = {}) => {
     };
 
     // Send the message
-    await admin.messaging().send(message);
+    await messaging.send(message);
     console.log(`🔔 [Notification] Sent to ${userId}: "${title}"`);
   } catch (error) {
     if (error.code === "messaging/registration-token-not-registered") {
@@ -49,8 +45,8 @@ export const sendNotification = async (userId, title, body, data = {}) => {
         `⚠️ [Notification] Invalid Token for user ${userId}. Cleaning up...`,
       );
       // Optional: Delete the invalid token from Firestore
-      await admin.firestore().collection("users").doc(userId).update({
-        fcmToken: admin.firestore.FieldValue.delete(),
+      await db.collection("users").doc(userId).update({
+        fcmToken: FieldValue.delete(),
       });
     } else {
       console.error(`❌ [Notification] Failed to send:`, error);

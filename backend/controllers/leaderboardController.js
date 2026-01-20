@@ -1,4 +1,5 @@
-import { db, admin } from "../server.js";
+import { db } from "../server.js";
+import { FieldValue } from "firebase-admin/firestore";
 
 function getStartOfWeek(date) {
   const d = new Date(date);
@@ -41,7 +42,7 @@ export const getWeeklyLeaderboard = async (req, res) => {
 
       if (!snapshot.empty) {
         const batch = db.batch();
-        const now = admin.firestore.FieldValue.serverTimestamp();
+        const now = FieldValue.serverTimestamp();
         snapshot.docs.forEach((doc) => {
           batch.update(doc.ref, {
             thisWeekXP: 0,
