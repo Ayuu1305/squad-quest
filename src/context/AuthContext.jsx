@@ -150,13 +150,23 @@ export const AuthProvider = ({ children }) => {
     const privateXP = Number(stats.xp) || 0;
     const publicXP = Number(profile.xp) || 0;
 
-    // ✅ CRITICAL FIX: Only sync if truly ahead AND not already synced
-    if (privateXP > publicXP && lastSyncedXP.current !== privateXP) {
+    // ✅ BADGES SYNC CHECK: Compare array lengths (primitives) not arrays (objects)
+    const badgesMismatch =
+      (stats.badges?.length || 0) !== (profile.badges?.length || 0);
+
+    // ✅ CRITICAL FIX: Only sync if truly ahead OR badges changed AND not already synced
+    if (
+      (privateXP > publicXP || badgesMismatch) &&
+      lastSyncedXP.current !== privateXP
+    ) {
       console.log(
         "🔄 [AuthContext] Self-Healing Sync: Updating Public Profile",
         {
           private: privateXP,
           public: publicXP,
+          badgesMismatch,
+          statsBadges: stats.badges?.length || 0,
+          profileBadges: profile.badges?.length || 0,
         },
       );
 
@@ -170,6 +180,7 @@ export const AuthProvider = ({ children }) => {
           level: stats.level,
           reliabilityScore: stats.reliabilityScore,
           questsCompleted: stats.questsCompleted || profile.questsCompleted,
+          badges: stats.badges || [], // ✅ Sync badges array for Leaderboard visibility
           updatedAt: new Date(),
         },
         { merge: true },
@@ -181,11 +192,19 @@ export const AuthProvider = ({ children }) => {
         {
           private: privateXP,
           public: publicXP,
+          badgesMismatch,
           lastSynced: lastSyncedXP.current,
         },
       );
     }
-  }, [stats?.xp, stats?.level, profile?.xp, profile?.uid]); // ✅ FIXED: Use primitive values only, not entire objects
+  }, [
+    stats?.xp,
+    stats?.level,
+    stats?.badges?.length,
+    profile?.xp,
+    profile?.uid,
+    profile?.badges?.length,
+  ]); // ✅ ZERO-LOOP PROTOCOL: Use .length primitives, NOT array objects
 
   return (
     <AuthContext.Provider

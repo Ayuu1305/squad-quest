@@ -37,11 +37,11 @@ service cloud.firestore {
       // This enables the "xp sync" feature while still blocking critical fields
       allow update: if isOwner(userId)
         && notUpdating([
-          'badges',         // ❌ Backend-only (earned via achievements)
-          'daily_streak',   // ❌ Backend-only (managed by bounty logic)
-          'last_claimed_at',// ❌ Backend-only (bounty timestamp)
-          'roles',          // ❌ Security: Prevent privilege escalation
-          'isAdmin'         // ❌ Security: Prevent users from making themselves Admin
+          // 'badges',          // 🟢 ENABLED: Commented out so users CAN sync badges
+          'daily_streak',    // ❌ Backend-only (managed by bounty logic)
+          'last_claimed_at', // ❌ Backend-only (bounty timestamp)
+          'roles',           // ❌ Security: Prevent privilege escalation
+          'isAdmin'          // ❌ Security: Prevent users from making themselves Admin
         ]);
 
       allow delete: if false;
@@ -65,7 +65,6 @@ service cloud.firestore {
       allow write: if false; 
     }
 
-    // ✅ QUESTS
     // ✅ QUESTS
     match /quests/{questId} {
       // 1. Everyone can read quests
@@ -91,8 +90,8 @@ service cloud.firestore {
         // 'participants', 'currentPlayers' (Your specific frontend fields)
         // 'members', 'membersCount' (Your old fields)
         (
-           request.resource.data.diff(resource.data).affectedKeys()
-           .hasAny(['participants', 'currentPlayers', 'members', 'membersCount', 'status', 'updatedAt', 'completedBy'])
+            request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['participants', 'currentPlayers', 'members', 'membersCount', 'status', 'updatedAt', 'completedBy'])
         )
       );
 
