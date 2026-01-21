@@ -18,22 +18,36 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
 
   // Subscribe to Members Subcollection
   useEffect(() => {
-    if (!quest.id) return;
+    if (!quest?.id) return; // ✅ Guard against undefined
+
+    console.log(`🔔 [QuestCard] Subscribing to members for quest: ${quest.id}`);
+
     const membersRef = collection(db, "quests", quest.id, "members");
     const unsubscribe = onSnapshot(
       membersRef,
       (snapshot) => {
         const memberIds = snapshot.docs.map((doc) => doc.id);
         setMembers(memberIds);
+        console.log(
+          `✅ [QuestCard] Members updated for ${quest.id}: ${memberIds.length}`,
+        );
       },
       (error) => {
         if (error?.code !== "permission-denied") {
-          console.warn("Members listener error:", error);
+          console.warn(
+            `❌ [QuestCard] Members listener error for ${quest.id}:`,
+            error,
+          );
         }
       },
     );
-    return unsubscribe;
-  }, [quest.id]);
+
+    // ✅ CRITICAL: Explicitly return cleanup function
+    return () => {
+      console.log(`🔕 [QuestCard] Unsubscribing from quest: ${quest.id}`);
+      unsubscribe();
+    };
+  }, [quest?.id]); // ✅ Use optional chaining to prevent crashes
 
   // Rarity styling logic - Cyberpunk Dark Theme
   const getRarity = (difficulty = 1) => {

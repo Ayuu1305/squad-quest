@@ -22,6 +22,7 @@ import { useEffect } from "react"; // Added useEffect
 import { messaging, db } from "./backend/firebaseConfig"; // Added Messaging & DB
 import { getToken, onMessage } from "firebase/messaging"; // Added FCM functions
 import { doc, updateDoc } from "firebase/firestore"; // Added Firestore functions
+import MaintenanceBanner from "./components/MaintenanceBanner"; // ✅ Quota exhaustion banner
 
 // Protects routes that require both login AND city selection
 const ProtectedRoute = ({ children }) => {
@@ -152,6 +153,9 @@ function App() {
 
   return (
     <div className="bg-dark-bg min-h-screen text-white font-['Inter'] selection:bg-neon-purple selection:text-white">
+      {/* ✅ QUOTA EXHAUSTION WARNING - Shows on ALL pages */}
+      <MaintenanceBanner />
+
       {user && !loading && user.emailVerified && !user.gender && (
         <GenderSelectionModal />
       )}

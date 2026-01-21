@@ -34,7 +34,7 @@ const Leaderboard = () => {
   // ✅ Auto-refresh every 60s during showdown
   useEffect(() => {
     if (!activeShowdown) return;
-    const interval = setInterval(() => setRefreshTick((p) => p + 1), 60000);
+    const interval = setInterval(() => setRefreshTick((p) => p + 1), 300000);
     return () => clearInterval(interval);
   }, [activeShowdown]);
 

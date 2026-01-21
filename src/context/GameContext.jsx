@@ -7,6 +7,7 @@ import {
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db, auth } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
+import { trackRead } from "../utils/firestoreMonitor"; // ✅ ADD TRACKING
 
 const GameContext = createContext({
   city: "",
@@ -38,6 +39,7 @@ export const GameProvider = ({ children }) => {
     const unsub = onSnapshot(
       doc(db, "users", user.uid),
       (docSnap) => {
+        trackRead("GameContext.joinedQuests"); // ✅ TRACK READ
         if (docSnap.exists()) {
           setJoinedQuests(docSnap.data().joinedQuests || []); // ✅ Reads from subcollection or map
         }

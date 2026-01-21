@@ -70,31 +70,32 @@ const QuestBoard = () => {
 
   const containerRef = useRef(null);
 
-  // Subscriptions & Live Ticker
   // ✅ FIXED: Realtime Listener for Top Quests
   useEffect(() => {
     if (!user?.uid) return;
 
+    let isSubscribed = true; // ✅ Prevent state updates after unmount
+
     // Force re-render every 10 seconds
     const timer = setInterval(() => {
-      setTimeTick(Date.now());
+      if (isSubscribed) setTimeTick(Date.now());
     }, 10000);
 
     const unsubQuests = subscribeToAllQuests((newTopQuests, newLastDoc) => {
-      // Error 1 Fix: Use 'setRealtimeQuests', not 'setQuests'
+      if (!isSubscribed) return; // ✅ Guard against stale updates
+
       setRealtimeQuests(newTopQuests);
 
-      // Error 2 Fix: Removed duplicate code & fixed closing brackets
-      if (olderQuests.length === 0) {
-        setLastDoc(newLastDoc);
-      }
+      // ✅ CRITICAL FIX: Use callback form to avoid dependency on olderQuests
+      setLastDoc((prevLastDoc) => prevLastDoc || newLastDoc);
     }, city);
 
     return () => {
+      isSubscribed = false; // ✅ Mark as unsubscribed
       clearInterval(timer);
       unsubQuests();
     };
-  }, [user?.uid, city, olderQuests.length]);
+  }, [user?.uid, city]); // ✅ REMOVED olderQuests.length - prevents re-subscription!
 
   // ✅ Load More Function
   const handleLoadMore = async () => {

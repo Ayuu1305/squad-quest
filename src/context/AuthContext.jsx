@@ -1,118 +1,73 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "../backend/firebaseConfig";
+import { trackRead, trackWrite } from "../utils/firestoreMonitor"; // ✅ ADD TRACKING
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isOverloaded, setIsOverloaded] = useState(false); // ✅ Quota exhaustion flag
 
+  // ✅ COMBINER: Merge profile + stats into unified user object
+  const user = useMemo(() => {
+    if (!profile) return null;
+    return {
+      ...profile,
+      ...stats,
+    };
+  }, [profile, stats]);
+
+  // ✅ EFFECT 1: Listen to Firebase Auth + Public Profile (users/{uid})
   useEffect(() => {
     let unsubscribeFirestore = () => {};
-    let unsubscribeStats = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-      // ✅ IMMEDIATE CLEANUP
+      // Cleanup previous profile listener
       unsubscribeFirestore();
-      unsubscribeStats();
       unsubscribeFirestore = () => {};
-      unsubscribeStats = () => {};
 
       if (authUser) {
-        // 1. Subscribe to Public Profile (users/{uid})
+        // Subscribe to Public Profile
         unsubscribeFirestore = onSnapshot(
           doc(db, "users", authUser.uid),
           (docSnap) => {
+            trackRead("AuthContext.profile"); // ✅ TRACK READ
             const profileData = docSnap.exists() ? docSnap.data() : {};
-
-            // 2. Subscribe to Secure Stats (userStats/{uid})
-            unsubscribeStats();
-            unsubscribeStats = onSnapshot(
-              doc(db, "userStats", authUser.uid),
-              (statsSnap) => {
-                const rawStatsData = statsSnap.exists()
-                  ? statsSnap.data()
-                  : {
-                      xp: profileData.xp || 0,
-                      level: profileData.level || 1,
-                      reliabilityScore: profileData.reliabilityScore || 100,
-                      badges: profileData.badges || [],
-                    };
-
-                // ✅ Transform flat "feedbackCounts.X" keys
-                const feedbackCounts = {};
-                const statsData = { ...rawStatsData };
-
-                Object.keys(statsData).forEach((key) => {
-                  if (key.startsWith("feedbackCounts.")) {
-                    const tagName = key.replace("feedbackCounts.", "");
-                    feedbackCounts[tagName] = statsData[key];
-                    delete statsData[key];
-                  }
-                });
-
-                if (Object.keys(feedbackCounts).length > 0) {
-                  statsData.feedbackCounts = feedbackCounts;
-                }
-
-                // 🔄 SELF-HEALING SYNC: If private stats are ahead, update public profile
-                // This fixes Leaderboard vs Profile mismatches caused by legacy data
-                const privateXP = statsData.xp || 0;
-                const publicXP = profileData.xp || 0;
-
-                if (privateXP > publicXP) {
-                  console.log(
-                    "🔄 [AuthContext] Syncing Public Profile with Private Stats...",
-                    {
-                      private: privateXP,
-                      public: publicXP,
-                    },
-                  );
-                  setDoc(
-                    doc(db, "users", authUser.uid),
-                    {
-                      xp: statsData.xp,
-                      level: statsData.level,
-                      reliabilityScore: statsData.reliabilityScore,
-                      questsCompleted:
-                        statsData.questsCompleted ||
-                        profileData.questsCompleted,
-                      updatedAt: statsData.updatedAt || new Date(),
-                    },
-                    { merge: true },
-                  ).catch((err) => console.error("Sync Failed:", err));
-                }
-
-                setUser({
-                  ...authUser,
-                  ...profileData,
-                  ...statsData,
-                });
-                setLoading(false);
-              },
-              (error) => {
-                // ✅ Ignore permission-denied during logout
-                if (error?.code === "permission-denied") return;
-                console.warn("Stats Helper (restricted):", error);
-                setUser({
-                  ...authUser,
-                  ...profileData,
-                });
-                setLoading(false);
-              },
-            );
+            setProfile({
+              ...authUser,
+              ...profileData,
+            });
+            setLoading(false);
           },
           (error) => {
-            // ✅ Ignore permission-denied during logout
             if (error?.code === "permission-denied") return;
+
+            // ✅ QUOTA EXHAUSTION DETECTION
+            if (error?.code === "resource-exhausted") {
+              console.warn(
+                "⚠️ [AuthContext] Quota Exceeded. Enabling Maintenance Mode.",
+              );
+              setIsOverloaded(true);
+            }
+
             console.error("User profile listener error:", error);
             setLoading(false);
           },
         );
       } else {
-        setUser(null);
+        setProfile(null);
+        setStats(null);
         setLoading(false);
       }
     });
@@ -120,12 +75,128 @@ export const AuthProvider = ({ children }) => {
     return () => {
       unsubscribeAuth();
       unsubscribeFirestore();
-      unsubscribeStats();
     };
   }, []);
 
+  // ✅ EFFECT 2: Listen to Private Stats (userStats/{uid}) - PARALLEL
+  useEffect(() => {
+    if (!profile?.uid) {
+      setStats(null);
+      return;
+    }
+
+    const unsubscribeStats = onSnapshot(
+      doc(db, "userStats", profile.uid),
+      (statsSnap) => {
+        trackRead("AuthContext.stats"); // ✅ TRACK READ
+        const rawStatsData = statsSnap.exists()
+          ? statsSnap.data()
+          : {
+              xp: profile.xp || 0,
+              level: profile.level || 1,
+              reliabilityScore: profile.reliabilityScore || 100,
+              badges: profile.badges || [],
+            };
+
+        // ✅ Transform flat "feedbackCounts.X" keys
+        const feedbackCounts = {};
+        const statsData = { ...rawStatsData };
+
+        Object.keys(statsData).forEach((key) => {
+          if (key.startsWith("feedbackCounts.")) {
+            const tagName = key.replace("feedbackCounts.", "");
+            feedbackCounts[tagName] = statsData[key];
+            delete statsData[key];
+          }
+        });
+
+        if (Object.keys(feedbackCounts).length > 0) {
+          statsData.feedbackCounts = feedbackCounts;
+        }
+
+        setStats(statsData);
+      },
+      (error) => {
+        if (error?.code === "permission-denied") return;
+
+        // ✅ QUOTA EXHAUSTION DETECTION
+        if (error?.code === "resource-exhausted") {
+          console.warn(
+            "⚠️ [AuthContext] Quota Exceeded. Enabling Maintenance Mode.",
+          );
+          setIsOverloaded(true);
+        }
+
+        console.warn("Stats listener error:", error);
+        // Fallback to profile data
+        setStats({
+          xp: profile.xp || 0,
+          level: profile.level || 1,
+          reliabilityScore: profile.reliabilityScore || 100,
+          badges: profile.badges || [],
+        });
+      },
+    );
+
+    return () => unsubscribeStats();
+  }, [profile?.uid]); // Only resubscribe if UID changes
+
+  // ✅ EFFECT 3: Safe Self-Healing Sync (ONLY when stats > profile)
+  const lastSyncedXP = useRef(null);
+
+  useEffect(() => {
+    if (!profile?.uid || !stats?.xp) return;
+
+    const privateXP = Number(stats.xp) || 0;
+    const publicXP = Number(profile.xp) || 0;
+
+    // ✅ CRITICAL FIX: Only sync if truly ahead AND not already synced
+    if (privateXP > publicXP && lastSyncedXP.current !== privateXP) {
+      console.log(
+        "🔄 [AuthContext] Self-Healing Sync: Updating Public Profile",
+        {
+          private: privateXP,
+          public: publicXP,
+        },
+      );
+
+      lastSyncedXP.current = privateXP; // ✅ Mark as synced BEFORE writing
+
+      trackWrite("AuthContext.syncProfile"); // ✅ TRACK WRITE
+      setDoc(
+        doc(db, "users", profile.uid),
+        {
+          xp: stats.xp,
+          level: stats.level,
+          reliabilityScore: stats.reliabilityScore,
+          questsCompleted: stats.questsCompleted || profile.questsCompleted,
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      ).catch((err) => console.error("Sync Failed:", err));
+    } else {
+      // ✅ CRUCIAL: Log when sync is blocked (proves loop is dead)
+      console.log(
+        "✅ [AuthContext] SYNC BLOCKED - Values equal or public ahead",
+        {
+          private: privateXP,
+          public: publicXP,
+          lastSynced: lastSyncedXP.current,
+        },
+      );
+    }
+  }, [stats?.xp, stats?.level, profile?.xp, profile?.uid]); // ✅ FIXED: Use primitive values only, not entire objects
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser: setProfile,
+        loading,
+        isOverloaded,
+        setIsOverloaded,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

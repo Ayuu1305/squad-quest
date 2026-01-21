@@ -34,6 +34,7 @@ import { db, auth, googleProvider } from "./firebaseConfig";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { updateClass } from "../utils/xp";
 import { isShowdownActive } from "../utils/showdownUtils";
+import { trackRead, trackWrite } from "../utils/firestoreMonitor"; // ✅ ADD TRACKING
 
 /**
  * Creates a User profile if it doesn't exist.
@@ -540,6 +541,7 @@ export const subscribeToQuest = (questId, callback) => {
   return onSnapshot(
     questRef,
     (docSnap) => {
+      trackRead("subscribeToQuest"); // ✅ TRACK READ
       if (docSnap.exists()) {
         callback({ id: docSnap.id, ...docSnap.data() });
       }
@@ -600,6 +602,7 @@ export const subscribeToAllQuests = (callback, cityFilter = null) => {
   return onSnapshot(
     q,
     (snapshot) => {
+      trackRead("subscribeToAllQuests"); // ✅ TRACK READ
       const quests = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -689,6 +692,7 @@ export const subscribeToSquadChat = (questId, callback) => {
   return onSnapshot(
     q,
     (snapshot) => {
+      trackRead("subscribeToSquadChat"); // ✅ TRACK READ
       const messages = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
