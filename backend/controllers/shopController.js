@@ -308,10 +308,17 @@ export const buyItem = async (req, res) => {
       // 5. Sync Public Profile (Leaderboard)
       // Leaderboard reads from 'users' collection, sync BOTH xp fields!
       const publicUserRef = db.collection("users").doc(userId);
-      t.update(publicUserRef, {
+      const publicUpdate = {
         xp: newXP,
         thisWeekXP: newThisWeekXP,
-      });
+      };
+
+      // If purchasing a badge, sync it to public profile for leaderboard visibility
+      if (item.type === "badge") {
+        publicUpdate["inventory.badges"] = FieldValue.arrayUnion(itemId);
+      }
+
+      t.update(publicUserRef, publicUpdate);
 
       return resultData;
     });

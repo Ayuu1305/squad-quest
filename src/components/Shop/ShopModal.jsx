@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { auth } from "../../backend/firebaseConfig";
-import { getAuth } from "firebase/auth";  
+// import { getAuth } from "firebase/auth";
 import toast from "react-hot-toast";
 import { ShoppingBag, Gift } from "lucide-react";
 
@@ -298,12 +298,12 @@ const ShopModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-//   const auth = getAuth();
-// if (auth.currentUser) {
-//   auth.currentUser.getIdToken().then(token => {
-//     console.log("🔑 YOUR TOKEN:", token);
-//   });
-// }
+  //   const auth = getAuth();
+  // if (auth.currentUser) {
+  //   auth.currentUser.getIdToken().then(token => {
+  //     console.log("🔑 YOUR TOKEN:", token);
+  //   });
+  // }
 
   return (
     <div
@@ -380,9 +380,28 @@ const ShopModal = ({ isOpen, onClose }) => {
             </div>
           )}
 
+          {/* Custom Scrollbar Styles */}
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 6px;
+              height: 6px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: rgba(168, 85, 247, 0.5);
+              border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: rgba(168, 85, 247, 0.8);
+            }
+          `}</style>
+
           {/* Category Pills (Buy Tab Only) */}
           {activeTab === "buy" && (
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar shrink-0">
               {[
                 { id: "all", label: "All", icon: "🛍️" },
                 { id: "real-world", label: "Vouchers", icon: "🎟️" },
@@ -393,10 +412,10 @@ const ShopModal = ({ isOpen, onClose }) => {
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
+                  className={`px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all border ${
                     activeCategory === cat.id
-                      ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg scale-105"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg border-transparent translate-y-[-1px]"
+                      : "bg-white/5 text-gray-400 hover:bg-white/10 border-transparent hover:border-white/10"
                   }`}
                 >
                   {cat.icon} {cat.label}

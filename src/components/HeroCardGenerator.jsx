@@ -241,6 +241,7 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
 
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#1a1a2e] shadow-[0_0_30px_rgba(168,85,247,0.5)] z-10 bg-black">
                   <HeroAvatar
+                    user={user} // ✅ Pass user prop so avatarConfig is accessible
                     seed={avatarSeed}
                     tierName={currentTier.name}
                     size={128}

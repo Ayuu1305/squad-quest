@@ -20,17 +20,22 @@ export const updateAvatar = async (req, res) => {
   try {
     console.log(`🎨 Updating avatar for user: ${uid}`);
 
-    // Update userStats with the new config
-    // We use userStats because that's where the secure/private data lives
+    // Update BOTH collections for consistency
     const userStatsRef = db.collection("userStats").doc(uid);
+    const publicUserRef = db.collection("users").doc(uid);
 
-    await userStatsRef.set(
-      {
-        avatarConfig,
-        updatedAt: new Date(),
-      },
-      { merge: true },
-    );
+    const updatePayload = {
+      avatarConfig,
+      updatedAt: new Date(),
+    };
+
+    // Dual-write to ensure leaderboard shows correct avatar
+    await Promise.all([
+      userStatsRef.set(updatePayload, { merge: true }),
+      publicUserRef.set(updatePayload, { merge: true }),
+    ]);
+
+    console.log(`✅ Avatar synced to both userStats and users collections`);
 
     return res.status(200).json({ success: true, message: "Avatar updated" });
   } catch (error) {

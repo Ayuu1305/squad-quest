@@ -79,11 +79,16 @@ export const getWeeklyLeaderboard = async (req, res) => {
         uid: doc.id,
         name: data.name || "Unknown",
         avatar: data.avatar || "",
+        avatarConfig: data.avatarConfig || null, // Include avatar config for proper display
+        equippedFrame: data.equippedFrame || null, // Include equipped frame
         thisWeekXP: data.thisWeekXP || 0, // Ensure specific fields
         xp: data.xp || 0,
         level: data.level || 1,
         badges: data.badges || [],
         feedbackCounts: data.feedbackCounts || {},
+        inventory: {
+          badges: data.inventory?.badges || [], // Include shop badges for ID Card display
+        },
       };
     });
 

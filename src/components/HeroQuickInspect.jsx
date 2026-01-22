@@ -48,8 +48,16 @@ const HeroQuickInspect = ({ hero, onClose }) => {
           transformedHero.feedbackCounts = feedbackCounts;
         }
 
+        // ✅ AVATAR FIX: Explicitly prioritize avatarConfig from leaderboard
+        // Ensure avatarConfig is passed through (already in transformedHero from hero prop)
+        // The leaderboard now includes avatarConfig, so this should be present
+
         console.log(`📊 [HeroQuickInspect] Transformed public data:`, {
           badges: transformedHero.badges?.length || 0,
+          inventoryBadges: transformedHero.inventory?.badges?.length || 0,
+          avatarConfig: transformedHero.avatarConfig
+            ? "✅ Present"
+            : "❌ Missing", // ✅ Debug avatar
           feedbackCounts: Object.keys(transformedHero.feedbackCounts || {})
             .length,
         });

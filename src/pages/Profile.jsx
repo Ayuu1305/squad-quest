@@ -44,6 +44,25 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-dark-bg pb-32">
+      {/* Global Scrollbar Theme for Profile Page */}
+      <style>{`
+        ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: rgba(168, 85, 247, 0.5);
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(168, 85, 247, 0.8);
+        }
+      `}</style>
+
       <AnimatePresence>
         {showEditModal && (
           <EditProfileModal

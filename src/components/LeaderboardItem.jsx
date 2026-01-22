@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { getTier, getRarity } from "../utils/xp";
+import { getLevelProgress } from "../utils/leveling"; // ✅ Import for level calculation
 import HeroAvatar from "./HeroAvatar";
 import { MapPin } from "lucide-react";
 
@@ -11,7 +12,9 @@ const LeaderboardItem = ({
   category = "xp",
   isGlitch = false,
 }) => {
-  const tier = getTier(hero.level || 1);
+  // ✅ Calculate level from lifetimeXP (not cached hero.level)
+  const { level } = getLevelProgress(hero.lifetimeXP || hero.xp || 0);
+  const tier = getTier(level);
   const rarity = getRarity(hero.xp || 0);
 
   const getMetricDisplay = () => {
@@ -31,7 +34,7 @@ const LeaderboardItem = ({
       default:
         // 🎖️ Use lifetimeXP for ranking (fallback to xp for old users)
         const totalXP = hero.lifetimeXP || hero.xp || 0;
-        
+
         return {
           value: totalXP.toLocaleString(),
           label: "Total XP",
@@ -97,7 +100,7 @@ const LeaderboardItem = ({
           <div className="absolute -bottom-1 -right-1 bg-dark-bg rounded-md px-1 py-0.5 border border-white/10 shadow-lg flex items-center gap-0.5">
             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             <span className="text-[8px] font-black text-white px-0.5">
-              L{hero.level || 1}
+              L{level}
             </span>
           </div>
         </div>

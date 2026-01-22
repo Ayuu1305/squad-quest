@@ -147,7 +147,11 @@ import { syncStreak } from "./controllers/streakController.js";
 import { updateAvatar } from "./controllers/userController.js"; // [NEW]
 import { verifyToken } from "./middleware/auth.js";
 import { initArchiver } from "./jobs/questArchiver.js";
-import { fixLifetimeXP } from "./controllers/migrationController.js";
+import {
+  fixLifetimeXP,
+  syncInventoryBadges,
+  syncPublicAvatars,
+} from "./controllers/migrationController.js";
 
 // ----------------------------------------------------
 // 🛣️ API ROUTES
@@ -169,6 +173,8 @@ app.get("/api/shop/redemptions", verifyToken, getUserRedemptions);
 // 🔧 Migration Routes
 
 app.post("/api/admin/fix-lifetime-xp", verifyToken, fixLifetimeXP); // Admin only
+app.post("/api/admin/sync-inventory-badges", verifyToken, syncInventoryBadges); // Admin only
+app.post("/api/admin/sync-public-avatars", verifyToken, syncPublicAvatars); // Admin only
 
 // 🔥 Streak Management
 app.post("/api/user/sync-streak", verifyToken, syncStreak);
