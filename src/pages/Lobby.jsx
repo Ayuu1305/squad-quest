@@ -37,14 +37,45 @@ const Lobby = () => {
   // ✅ NEW: Verification status
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // Subscribe to real-time quest updates
+  // Subscribe to real-time quest updates + Auto-Eject on deletion
   useEffect(() => {
     if (!id) return;
+
+    let hasLoaded = false; // ✅ Guard against false triggers during initial load
+
     const unsubscribe = subscribeToQuest(id, (updatedQuest) => {
+      // ✅ DELETION DETECTION: Check if quest no longer exists
+      if (!updatedQuest || updatedQuest === null) {
+        // Only trigger auto-eject if we've already loaded the quest once
+        if (hasLoaded) {
+          console.warn(
+            "🚫 [Lobby] Quest deleted by host - Auto-ejecting members",
+          );
+
+          // Show toast notification
+          toast.error("🚫 This Quest has been disbanded by the Host.", {
+            duration: 4000,
+            position: "top-center",
+            style: {
+              background: "#1a0f2e",
+              color: "#fff",
+              border: "1px solid #ef4444",
+            },
+          });
+
+          // Redirect to quest board
+          navigate("/board");
+        }
+        return; // Stop processing if quest doesn't exist
+      }
+
+      // Quest exists - mark as loaded and update state
+      hasLoaded = true;
       setLiveQuest((prev) => ({ ...prev, ...updatedQuest }));
     });
+
     return unsubscribe;
-  }, [id]);
+  }, [id, navigate]); // ✅ ZERO-LOOP: Primitives only
 
   // Sync server time
   useEffect(() => {

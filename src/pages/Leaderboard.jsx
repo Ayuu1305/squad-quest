@@ -82,11 +82,11 @@ const Leaderboard = () => {
         // ✅ Field mapping (must match your DB schema)
         const fieldMap = {
           weekly: "thisWeekXP",
-          xp: "xp",
+          xp: "lifetimeXP", // 🎖️ UPDATED: Use lifetimeXP for All-Time ranking
           reliability: "reliabilityScore",
         };
 
-        const field = fieldMap[category] || "xp";
+        const field = fieldMap[category] || "lifetimeXP"; // Default to lifetimeXP
 
         // ✅ get user value from Firestore stats NOT auth user
         const myValue = myStats?.[field] ?? 0;

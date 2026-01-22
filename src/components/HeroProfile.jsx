@@ -75,7 +75,7 @@ const HeroicStatItem = ({
   </motion.div>
 );
 
-const HeroProfile = ({ user, onEdit }) => {
+const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
   // Default to "overview" for new users (Level 1, 0 XP)
   const isNewUser =
     (user?.level === 1 || !user?.level) && (user?.xp === 0 || !user?.xp);
@@ -105,7 +105,8 @@ const HeroProfile = ({ user, onEdit }) => {
     );
   }
 
-  const xp = user.xp || 0;
+  const xp = user.xp || 0; // Spendable currency
+  const lifetime = user.lifetimeXP || xp; // Total earned (fallback to xp if not set yet)
 
   // --- PROGRESSIVE LEVELING DISPLAY (New Utility) ---
   const {
@@ -113,7 +114,7 @@ const HeroProfile = ({ user, onEdit }) => {
     xpForNextLevel: nextTargetXP,
     progressPercent,
     level: calcLevel,
-  } = getLevelProgress(xp || 0);
+  } = getLevelProgress(lifetime, xp); // \ud83c\udf96\ufe0f Use lifetimeXP for level
 
   // FORCE SYNC: Use calculated level as the source of truth for UI
   const level = calcLevel;
@@ -122,8 +123,28 @@ const HeroProfile = ({ user, onEdit }) => {
   const honorRank = getHonorRank(reliability);
   const feedbackCounts = user.feedbackCounts || user.vibeTags || {};
 
+  // Shop Items for Badge Display
+  const SHOP_ITEMS = {
+    badge_whale: { icon: "💎", label: "The Whale", rarity: "SHOP" },
+    badge_coffee: { icon: "☕", label: "Caffeine Club", rarity: "SHOP" },
+    badge_dev: { icon: "💻", label: "Code Ninja", rarity: "SHOP" },
+  };
+
   const currentTier = getTier(level);
-  const badgeList = getFeedbackBadges(feedbackCounts);
+
+  // Quest badges from feedback
+  const questBadges = getFeedbackBadges(feedbackCounts);
+
+  // Shop badges from inventory
+  const shopBadges = (user?.inventory?.badges || [])
+    .map((badgeId) => {
+      const shopBadge = SHOP_ITEMS[badgeId];
+      return shopBadge ? { ...shopBadge, id: badgeId, isUnlocked: true } : null;
+    })
+    .filter(Boolean);
+
+  // Merge all badges
+  const badgeList = [...questBadges, ...shopBadges];
   const unlockedBadges = badgeList.filter((b) => b.isUnlocked);
 
   // Consistent Seed for Avatar
@@ -285,7 +306,7 @@ const HeroProfile = ({ user, onEdit }) => {
                 <div className="relative z-10 flex flex-col items-center lg:flex-row lg:items-center lg:justify-between lg:gap-10">
                   {/* LEFT (Desktop) / TOP (Mobile): Avatar + Name + Level */}
                   <div className="flex flex-col items-center lg:flex-row lg:items-center lg:gap-8 w-full lg:w-auto">
-                    {/* Avatar - Clean, No Overlay */}
+                    {/* Avatar - With Edit Button */}
                     <div className="relative group mb-4 lg:mb-0">
                       <div
                         className={`absolute inset-0 bg-${currentTier.color.split("-")[1]}-500/20 blur-xl rounded-full scale-110 group-hover:scale-125 transition-transform duration-500`}
@@ -295,8 +316,34 @@ const HeroProfile = ({ user, onEdit }) => {
                           seed={avatarSeed}
                           tierName={currentTier.name}
                           size={128}
+                          equippedFrame={user.equippedFrame}
                         />
                       </div>
+
+                      {/* Pencil Edit Button - Shows on Hover */}
+                      {onEditAvatar && (
+                        <button
+                          onClick={onEditAvatar}
+                          className="absolute bottom-0 right-0 z-20 p-2.5 bg-gradient-to-br from-purple-600 to-fuchsia-600 rounded-full shadow-lg border-2 border-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
+                          title="Edit Avatar"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-white"
+                          >
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
 
                     {/* Identity Details */}
@@ -402,7 +449,7 @@ const HeroProfile = ({ user, onEdit }) => {
                 <div className="col-span-2 lg:col-span-1">
                   <HeroicStatItem
                     label="Total XP"
-                    value={user.xp?.toLocaleString() || 0}
+                    value={(user.lifetimeXP || user.xp || 0).toLocaleString()}
                     sublabel="Lifetime"
                     icon={Zap}
                     color="yellow"

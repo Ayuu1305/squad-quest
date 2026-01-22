@@ -10,9 +10,12 @@ import {
   ShieldCheck,
   HeartPulse,
   PhoneCall,
+  ShoppingBag,
 } from "lucide-react";
 import HeroProfile from "../components/HeroProfile";
 import EditProfileModal from "../components/EditProfileModal";
+import ShopModal from "../components/Shop/ShopModal";
+import AvatarEditor from "../components/Profile/AvatarEditor";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
 import { signOutUser } from "../backend/firebaseService";
@@ -22,6 +25,8 @@ const Profile = () => {
   const { selectCity } = useGame();
   const { user, setUser } = useAuth(); // Assuming setUser exists to update local state
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShopModal, setShowShopModal] = useState(false);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
 
   const handleSwitchRealm = () => {
     selectCity("");
@@ -48,6 +53,18 @@ const Profile = () => {
         )}
       </AnimatePresence>
 
+      {/* Shop Modal */}
+      <ShopModal
+        isOpen={showShopModal}
+        onClose={() => setShowShopModal(false)}
+      />
+
+      {/* Avatar Editor (Fitting Room) */}
+      <AvatarEditor
+        isOpen={showAvatarEditor}
+        onClose={() => setShowAvatarEditor(false)}
+      />
+
       <div className="container mx-auto max-w-7xl px-4 md:px-8">
         {/* Profile Header - Mobile Optimized */}
         <header className="py-6 flex items-center justify-between sticky top-0 bg-dark-bg/80 backdrop-blur-md z-30 sm:relative sm:bg-transparent px-2 sm:px-0">
@@ -59,6 +76,36 @@ const Profile = () => {
           </button>
 
           <div className="flex gap-3">
+            {/* Shop Button */}
+            <button
+              onClick={() => setShowShopModal(true)}
+              className="p-3 glassmorphism rounded-xl hover:text-cyan-400 transition-colors flex items-center gap-2 group relative"
+              title="Squad Shop"
+            >
+              <ShoppingBag className="w-5 h-5 text-gray-400 group-hover:text-cyan-400" />
+              <span className="hidden sm:inline text-[10px] font-black uppercase">
+                Shop
+              </span>
+              {/* Inventory Badge */}
+              {user?.inventory?.streak_freeze > 0 && (
+                <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {user.inventory.streak_freeze}
+                </div>
+              )}
+            </button>
+
+            {/* Edit Avatar Button */}
+            <button
+              onClick={() => setShowAvatarEditor(true)}
+              className="p-3 glassmorphism rounded-xl hover:text-pink-400 transition-colors flex items-center gap-2 group"
+              title="Fitting Room"
+            >
+              <Settings className="w-5 h-5 text-gray-400 group-hover:text-pink-400" />
+              <span className="hidden sm:inline text-[10px] font-black uppercase">
+                Edit Look
+              </span>
+            </button>
+
             <button
               onClick={handleSwitchRealm}
               className="p-3 glassmorphism rounded-xl hover:text-neon-purple transition-colors flex items-center gap-2 group"
@@ -82,7 +129,11 @@ const Profile = () => {
           </div>
         </header>
 
-        <HeroProfile user={user} onEdit={() => setShowEditModal(true)} />
+        <HeroProfile
+          user={user}
+          onEdit={() => setShowEditModal(true)}
+          onEditAvatar={() => setShowAvatarEditor(true)}
+        />
 
         {/* Safety Section */}
         <footer className="py-12 space-y-8">

@@ -70,7 +70,7 @@ const PodiumSpot = ({
           label: "Reliability",
         };
       default:
-        return { value: `${hero?.xp || 0} XP`, label: "Total" };
+        return { value: `${hero?.lifetimeXP || 0} XP`, label: "Total" };
     }
   };
 
@@ -127,6 +127,7 @@ const PodiumSpot = ({
           </div>
         ) : (
           <HeroAvatar
+            user={hero}
             seed={hero?.avatarSeed || hero?.name}
             tierName={tier?.name}
             size={isFirst ? 140 : 100}
@@ -179,8 +180,8 @@ const PodiumSpot = ({
             isGhost
               ? "text-gray-800"
               : isFirst
-              ? "text-yellow-400"
-              : "text-gray-500"
+                ? "text-yellow-400"
+                : "text-gray-500"
           }`}
         >
           {isGhost ? "LOCKED" : "Elite Hero"}

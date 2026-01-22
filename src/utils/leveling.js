@@ -1,6 +1,8 @@
 /**
  * Progressive Leveling Utility (Frontend)
  * Matches backend logic: neededXP(level) = 100 + (level - 1) * 50
+ *
+ * UPDATED: Now uses lifetimeXP instead of xp for level calculation
  */
 
 export function xpNeededForLevel(level) {
@@ -8,9 +10,12 @@ export function xpNeededForLevel(level) {
   return 100 + (level - 1) * 50;
 }
 
-export function getLevelProgress(totalXP) {
+export function getLevelProgress(lifetimeXP, totalXP) {
+  // Use lifetimeXP if available, otherwise fall back to totalXP (old behavior)
+  const xpForCalculation = lifetimeXP !== undefined ? lifetimeXP : totalXP;
+
   let level = 1;
-  let xpRemaining = totalXP;
+  let xpRemaining = xpForCalculation || 0;
   let needed = xpNeededForLevel(level);
 
   while (xpRemaining >= needed) {
@@ -21,7 +26,7 @@ export function getLevelProgress(totalXP) {
 
   const progressPercent = Math.min(
     100,
-    Math.max(0, (xpRemaining / needed) * 100)
+    Math.max(0, (xpRemaining / needed) * 100),
   );
 
   return {

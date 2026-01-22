@@ -284,6 +284,7 @@ export const finalizeQuest = async (req, res) => {
         {
           xp: newXP,
           level: newLevel,
+          lifetimeXP: FieldValue.increment(earnedXP), // 🎖️ LIFETIME: Track total earned
           reliabilityScore: newReliability,
           thisWeekXP: FieldValue.increment(earnedXP),
           questsCompleted: FieldValue.increment(1), // ✅ NEW: Standardized Count
@@ -299,6 +300,7 @@ export const finalizeQuest = async (req, res) => {
         {
           xp: FieldValue.increment(earnedXP),
           level: newLevel,
+          lifetimeXP: FieldValue.increment(earnedXP), // 🎖️ LIFETIME: Track total earned
           reliabilityScore: newReliability,
           thisWeekXP: FieldValue.increment(earnedXP),
           questsCompleted: FieldValue.increment(1), // ✅ Public Profile Sync
@@ -584,6 +586,7 @@ export const submitVibeCheck = async (req, res) => {
       const reviewerPayload = {
         xp: FieldValue.increment(reviewerReward),
         level: newReviewerLevel,
+        lifetimeXP: FieldValue.increment(reviewerReward), // 🎖️ LIFETIME
         thisWeekXP: FieldValue.increment(reviewerReward),
         updatedAt: FieldValue.serverTimestamp(),
       };
@@ -608,6 +611,7 @@ export const submitVibeCheck = async (req, res) => {
         const targetPayload = {
           xp: FieldValue.increment(xpReward),
           level: newLevel,
+          lifetimeXP: FieldValue.increment(xpReward), // 🎖️ LIFETIME
           thisWeekXP: FieldValue.increment(xpReward),
           updatedAt: FieldValue.serverTimestamp(),
         };

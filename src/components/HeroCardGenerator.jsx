@@ -22,6 +22,7 @@ import {
   getFeedbackBadges,
   BADGE_DEFINITIONS,
 } from "../utils/xp";
+import { getLevelProgress } from "../utils/leveling"; // 🎖️ For calculating level from lifetimeXP
 
 const BACKEND_TO_DEF_ID = {
   SQUAD_LEADER: "leader",
@@ -39,12 +40,24 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   // --- STATS CALC ---
-  const level = user?.level || 1;
-  const xp = user?.xp || 0;
-  const progressPercent = levelProgress(xp, level);
+  const xp = user?.xp || 0; // Wallet balance
+  const lifetimeXP = user?.lifetimeXP || xp; // Total earned (fallback for old users)
+
+  // 🎖️ Calculate level from lifetimeXP, not cached user.level
+  const { level: calculatedLevel } = getLevelProgress(lifetimeXP, xp);
+  const level = calculatedLevel;
+
+  const progressPercent = levelProgress(lifetimeXP, level); // 🎖️ Use lifetimeXP for progress
   const currentTier = getTier(level);
   const xpNeeded = getXPNeededForLevel(level);
   const avatarSeed = user?.avatarSeed || user?.uid || "default";
+
+  // Shop Items for Badge Display
+  const SHOP_ITEMS = {
+    badge_whale: { icon: "💎", label: "The Whale", rarity: "LEGENDARY" },
+    badge_coffee: { icon: "☕", label: "Caffeine Club", rarity: "COMMON" },
+    badge_dev: { icon: "💻", label: "Code Ninja", rarity: "RARE" },
+  };
 
   // --- BADGE LOGIC ---
   const { displayBadges, allBadges } = useMemo(() => {
@@ -53,7 +66,15 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
       user?.feedbackCounts || {},
     ).filter((b) => b.isUnlocked);
 
-    // 2. If 'user.badges' array exists (chronological), try to respect it for sorting
+    // 2. Shop badges from inventory
+    const shopBadges = (user?.inventory?.badges || [])
+      .map((badgeId) => {
+        const shopBadge = SHOP_ITEMS[badgeId];
+        return shopBadge ? { ...shopBadge, isUnlocked: true } : null;
+      })
+      .filter(Boolean);
+
+    // 3. If 'user.badges' array exists (chronological), try to respect it for sorting
     const rawBadges = user?.badges || [];
     let orderedBadges = [];
 
@@ -69,12 +90,12 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
 
       // Use array order if valid
       if (fromArray.length > 0) {
-        orderedBadges = fromArray;
+        orderedBadges = [...fromArray, ...shopBadges];
       } else {
-        orderedBadges = unlockedFromCounts;
+        orderedBadges = [...unlockedFromCounts, ...shopBadges];
       }
     } else {
-      orderedBadges = unlockedFromCounts;
+      orderedBadges = [...unlockedFromCounts, ...shopBadges];
     }
 
     // Front: Top 3 (Newest or First 3)
@@ -249,7 +270,8 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
                 <div className="flex justify-between text-[10px] font-bold text-purple-300/80 uppercase tracking-widest">
                   <span>Level {level}</span>
                   <span className="text-white">
-                    {Math.floor(xp)} / {Math.floor(xp + xpNeeded)} XP
+                    {Math.floor(lifetimeXP)} /{" "}
+                    {Math.floor(lifetimeXP + xpNeeded)} XP
                   </span>
                 </div>
                 <div className="h-3 bg-black/60 rounded-sm border border-white/10 relative overflow-hidden">

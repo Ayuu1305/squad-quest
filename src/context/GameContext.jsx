@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { useAuth } from "./AuthContext";
 import {
   // We will deal with this later
@@ -62,143 +69,161 @@ export const GameProvider = ({ children }) => {
     return () => unsub();
   }, [user?.uid]);
 
-  const selectCity = async (cityName) => {
-    // ✅ FIX: Only update if city actually changed
-    if (city === cityName) return;
+  // ✅ MEMOIZED: Prevents function recreation on every render
+  const selectCity = useCallback(
+    async (cityName) => {
+      // ✅ FIX: Only update if city actually changed
+      if (city === cityName) return;
 
-    setCity(cityName);
-    if (user?.uid) {
-      try {
-        const userRef = doc(db, "users", user.uid);
-        // Only write to Firestore if value changed
-        await updateDoc(userRef, { city: cityName });
-      } catch (err) {
-        console.warn("City sync failed:", err);
+      setCity(cityName);
+      if (user?.uid) {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          // Only write to Firestore if value changed
+          await updateDoc(userRef, { city: cityName });
+        } catch (err) {
+          console.warn("City sync failed:", err);
+        }
       }
-    }
-  };
+    },
+    [city, user?.uid],
+  );
+
+  // ✅ MEMOIZED: Quest membership check - MUST be defined BEFORE joinQuest
+  const isJoined = useCallback(
+    (questId) => {
+      // Handle both array format and map/subcollection format
+      if (Array.isArray(joinedQuests)) {
+        return joinedQuests.includes(questId);
+      }
+      // If joinedQuests is an object (map), check for key existence
+      return !!joinedQuests[questId];
+    },
+    [joinedQuests],
+  );
 
   // ✅ SECURITY UPGRADE: Call the Node.js API instead of Firebase directly
-  const joinQuest = async (questId, secretCode = "") => {
-    if (!user) return;
+  // ✅ MEMOIZED: Prevents function recreation on every render
+  const joinQuest = useCallback(
+    async (questId, secretCode = "") => {
+      if (!user) return;
 
-    // Optimistic UI check (optional)
-    if (isJoined(questId)) {
-      toast("You are already in this squad!", { icon: "🫡" });
-      return;
-    }
-
-    const loadingToast = toast.loading("Joining Squad...");
-
-    try {
-      // 1. Get the Security Token (The ID Card)
-      if (!auth.currentUser) throw new Error("User not authenticated");
-      const token = await auth.currentUser.getIdToken();
-
-      // 2. Call the Police (Your Backend API)
-      // Replace with your actual backend URL if not using a proxy
-      const response = await fetch("http://localhost:5000/api/quest/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // 🔒 CRITICAL
-        },
-        body: JSON.stringify({
-          questId,
-          secretCode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to join quest");
+      // Optimistic UI check (optional)
+      if (isJoined(questId)) {
+        toast("You are already in this squad!", { icon: "🫡" });
+        return;
       }
 
-      toast.success("Squad Joined! 🚀", { id: loadingToast });
+      const loadingToast = toast.loading("Joining Squad...");
 
-      // Note: No need to update state manually.
-      // The backend updates Firestore -> The onSnapshot above sees the change -> React re-renders.
-    } catch (error) {
-      console.error("Failed to join quest:", error);
-      toast.error(error.message, { id: loadingToast });
-    }
-  };
+      try {
+        // 1. Get the Security Token (The ID Card)
+        if (!auth.currentUser) throw new Error("User not authenticated");
+        const token = await auth.currentUser.getIdToken();
+
+        // 2. Call the Police (Your Backend API)
+        // Replace with your actual backend URL if not using a proxy
+        const response = await fetch("http://localhost:5000/api/quest/join", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // 🔒 CRITICAL
+          },
+          body: JSON.stringify({
+            questId,
+            secretCode,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to join quest");
+        }
+
+        toast.success("Squad Joined! 🚀", { id: loadingToast });
+
+        // Note: No need to update state manually.
+        // The backend updates Firestore -> The onSnapshot above sees the change -> React re-renders.
+      } catch (error) {
+        console.error("Failed to join quest:", error);
+        toast.error(error.message, { id: loadingToast });
+      }
+    },
+    [user, isJoined],
+  );
 
   // ⚠️ WARNING: If you applied strict rules, 'leaveQuest' might also break
   // if it uses updateDoc in firebaseService.
   // For now, we assume you haven't locked down 'leave' yet.
-  const leaveQuest = async (questId) => {
-    if (!user) return;
+  // ✅ MEMOIZED: Prevents function recreation on every render
+  const leaveQuest = useCallback(
+    async (questId) => {
+      if (!user) return;
 
-    // Optimistic UI: Don't wait for server to remove from list visually?
-    // Better to wait for confirmation to show the penalty toast correctly.
+      // Optimistic UI: Don't wait for server to remove from list visually?
+      // Better to wait for confirmation to show the penalty toast correctly.
 
-    const loadingToast = toast.loading("Processing...");
+      const loadingToast = toast.loading("Processing...");
 
-    try {
-      if (!auth.currentUser) throw new Error("User not authenticated");
-      const token = await auth.currentUser.getIdToken();
+      try {
+        if (!auth.currentUser) throw new Error("User not authenticated");
+        const token = await auth.currentUser.getIdToken();
 
-      const response = await fetch("http://localhost:5000/api/quest/leave", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ questId }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to leave quest");
-      }
-
-      // Handle Success & Penalties
-      if (data.xpPenalty > 0) {
-        toast.error(
-          `Left Quest. Penalty: -${data.xpPenalty} XP & Reputation Drop`,
-          {
-            id: loadingToast,
-            icon: "📉",
-            duration: 5000,
+        const response = await fetch("http://localhost:5000/api/quest/leave", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        );
-      } else {
-        toast.success("Left Quest Successfully", {
-          id: loadingToast,
-          icon: "👋",
+          body: JSON.stringify({ questId }),
         });
-      }
-    } catch (error) {
-      console.error("Failed to leave quest:", error);
-      toast.error(error.message || "Failed to leave", { id: loadingToast });
-    }
-  };
 
-  const isJoined = (questId) => {
-    // Handle both array format and map/subcollection format
-    if (Array.isArray(joinedQuests)) {
-      return joinedQuests.includes(questId);
-    }
-    // If joinedQuests is an object (map), check for key existence
-    return !!joinedQuests[questId];
-  };
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to leave quest");
+        }
+
+        // Handle Success & Penalties
+        if (data.xpPenalty > 0) {
+          toast.error(
+            `Left Quest. Penalty: -${data.xpPenalty} XP & Reputation Drop`,
+            {
+              id: loadingToast,
+              icon: "📉",
+              duration: 5000,
+            },
+          );
+        } else {
+          toast.success("Left Quest Successfully", {
+            id: loadingToast,
+            icon: "👋",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to leave quest:", error);
+        toast.error(error.message || "Failed to leave", { id: loadingToast });
+      }
+    },
+    [user],
+  );
+
+  // ✅ MEMOIZED: Wrap provider value to prevent object recreation on every render
+  const contextValue = useMemo(
+    () => ({
+      city,
+      selectCity,
+      joinedQuests,
+      joinQuest,
+      leaveQuest,
+      isJoined,
+    }),
+    [city, selectCity, joinedQuests, joinQuest, leaveQuest, isJoined],
+  );
 
   return (
-    <GameContext.Provider
-      value={{
-        city,
-        selectCity,
-        joinedQuests,
-        joinQuest,
-        leaveQuest,
-        isJoined,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
+    <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>
   );
 };
 

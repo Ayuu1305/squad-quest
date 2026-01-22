@@ -52,10 +52,10 @@ service cloud.firestore {
       }
     }
 
-    // ✅ USER STATS (Backup/Private storage)
+    // ✅ USER STATS (Private storage - BACKEND ONLY)
     match /userStats/{userId} {
-      allow read: if isOwner(userId); // 🛡️ CHANGED: Only the owner should see their private stats
-      allow write: if false;
+      allow read: if isOwner(userId); // 🛡️ Only owner can read their stats
+      allow write: if false;          // 🔒 LOCKED: Only backend can write via Admin SDK
     }
 
     // ✅ BOUNTIES (The Economy)

@@ -542,8 +542,15 @@ export const subscribeToQuest = (questId, callback) => {
     questRef,
     (docSnap) => {
       trackRead("subscribeToQuest"); // ✅ TRACK READ
+
       if (docSnap.exists()) {
         callback({ id: docSnap.id, ...docSnap.data() });
+      } else {
+        // ✅ DELETION DETECTION: Quest was deleted, notify callback with null
+        console.warn(
+          `🚫 [subscribeToQuest] Quest ${questId} no longer exists (deleted)`,
+        );
+        callback(null); // Signal deletion to listeners
       }
     },
     (error) => {
@@ -730,8 +737,37 @@ export const resetWeeklyLeaderboardManual = async () => {
   return false;
 };
 
-export const checkStreak = async () => {
-  // Logic moved to server
+export const checkStreak = async (userId) => {
+  if (!userId) {
+    console.warn("❌ [checkStreak] No userId provided");
+    return { status: "error", message: "User ID required" };
+  }
+
+  try {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const token = await auth.currentUser.getIdToken();
+
+    const response = await fetch(`${API_URL}/user/sync-streak`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to sync streak");
+    }
+
+    const result = await response.json();
+    console.log("✅ [checkStreak] Streak synced:", result);
+
+    return result;
+  } catch (error) {
+    console.error("❌ [checkStreak] API Error:", error);
+    return { status: "error", message: error.message };
+  }
 };
 
 // Old claimDailyBounty was here, removed to avoid duplicate.

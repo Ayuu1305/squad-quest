@@ -43,7 +43,7 @@ export const BADGE_DEFINITIONS = {
     icon: "❄️",
     rarity: "COMMON",
     color: "text-cyan-400",
-    threshold: 5,
+    threshold: 20,
   },
   teamplayer: {
     id: "teamplayer",
@@ -53,7 +53,7 @@ export const BADGE_DEFINITIONS = {
     icon: "🤝",
     rarity: "COMMON",
     color: "text-green-400",
-    threshold: 5,
+    threshold: 20,
   },
   intellectual: {
     id: "intellectual",
@@ -63,7 +63,7 @@ export const BADGE_DEFINITIONS = {
     icon: "🦉",
     rarity: "RARE",
     color: "text-purple-400",
-    threshold: 5,
+    threshold: 20,
   },
   listener: {
     id: "listener",
@@ -73,7 +73,7 @@ export const BADGE_DEFINITIONS = {
     icon: "👂",
     rarity: "EPIC",
     color: "text-pink-400",
-    threshold: 5,
+    threshold: 20,
   },
   storyteller: {
     id: "storyteller",
@@ -83,7 +83,7 @@ export const BADGE_DEFINITIONS = {
     icon: "🎭",
     rarity: "EPIC",
     color: "text-orange-400",
-    threshold: 5,
+    threshold: 20,
   },
   leader: {
     id: "leader",
@@ -93,7 +93,7 @@ export const BADGE_DEFINITIONS = {
     icon: "👑",
     rarity: "RARE",
     color: "text-yellow-400",
-    threshold: 5,
+    threshold: 20,
   },
 };
 

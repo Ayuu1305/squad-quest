@@ -138,7 +138,16 @@ import {
 
 import { getWeeklyLeaderboard } from "./controllers/leaderboardController.js";
 import { claimBounty } from "./controllers/bountyController.js";
+import {
+  buyItem,
+  seedCoupons,
+  getUserRedemptions,
+} from "./controllers/shopController.js";
+import { syncStreak } from "./controllers/streakController.js";
+import { updateAvatar } from "./controllers/userController.js"; // [NEW]
 import { verifyToken } from "./middleware/auth.js";
+import { initArchiver } from "./jobs/questArchiver.js";
+import { fixLifetimeXP } from "./controllers/migrationController.js";
 
 // ----------------------------------------------------
 // 🛣️ API ROUTES
@@ -151,6 +160,21 @@ app.get("/", (req, res) => {
 
 // 💰 Daily Bounty Route
 app.post("/api/bounty/claim", verifyToken, claimBounty);
+
+// 🛒 Shop Routes
+app.post("/api/shop/buy", verifyToken, buyItem);
+app.post("/api/shop/seed-coupons", verifyToken, seedCoupons); // Admin only
+app.get("/api/shop/redemptions", verifyToken, getUserRedemptions);
+
+// 🔧 Migration Routes
+
+app.post("/api/admin/fix-lifetime-xp", verifyToken, fixLifetimeXP); // Admin only
+
+// 🔥 Streak Management
+app.post("/api/user/sync-streak", verifyToken, syncStreak);
+
+// 👤 User Management
+app.post("/api/user/avatar", verifyToken, updateAvatar); // [NEW]
 
 // 📊 Leaderboard Routes
 app.get("/api/leaderboard/weekly", getWeeklyLeaderboard);
@@ -176,4 +200,7 @@ app.listen(PORT, () => {
     `   Mode: ${process.env.FIREBASE_SERVICE_ACCOUNT ? "CLOUD" : "LOCAL"}`,
   );
   console.log(`   Status: READY\n`);
+
+  // Initialize scheduled jobs
+  initArchiver(db);
 });

@@ -18,7 +18,7 @@ import {
 
 const FIELD_MAP = {
   weekly: "thisWeekXP",
-  xp: "xp",
+  xp: "lifetimeXP", // 🎖️ All-Time ranks by total earned, not wallet balance
   reliability: "reliabilityScore",
 };
 
@@ -30,7 +30,7 @@ export const getTopHeroes = async (city, category = "xp") => {
       collection(db, "users"),
       where("city", "==", city),
       orderBy(field, "desc"),
-      limit(20)
+      limit(20),
     );
 
     const snap = await getDocs(q);
@@ -45,14 +45,19 @@ export const getTopHeroes = async (city, category = "xp") => {
   }
 };
 
-export const getUserRank = async (userId, city, category = "xp", userValue = 0) => {
+export const getUserRank = async (
+  userId,
+  city,
+  category = "xp",
+  userValue = 0,
+) => {
   const field = FIELD_MAP[category] || "xp";
 
   try {
     const q = query(
       collection(db, "users"),
       where("city", "==", city),
-      where(field, ">", userValue)
+      where(field, ">", userValue),
     );
 
     const snap = await getCountFromServer(q);

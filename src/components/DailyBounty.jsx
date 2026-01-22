@@ -17,13 +17,33 @@ const DailyBounty = () => {
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
 
+  // ✅ Progressive Multiplier Calculation
   const streak = user?.daily_streak || 0;
-  const multiplier = Math.min(2.0, 1.0 + streak * 0.05).toFixed(2);
+  const baseXP = 50;
+  const multiplier = 1 + streak * 0.05; // 5% per day
+  const potentialXP = Math.min(Math.floor(baseXP * multiplier), 150); // Cap at 150 XP
+  const displayMultiplier = multiplier.toFixed(2);
 
   useEffect(() => {
-    if (user?.uid) {
-      checkStreak(user.uid);
-    }
+    const syncStreak = async () => {
+      if (!user?.uid) return;
+
+      const result = await checkStreak(user.uid);
+
+      // Show toast based on streak sync result
+      if (result.status === "protected") {
+        toast.success("🛡️ Streak Freeze saved you!", {
+          duration: 4000,
+          icon: "🧊",
+        });
+      } else if (result.status === "reset") {
+        toast.error("Streak reset. 😢", {
+          duration: 3000,
+        });
+      }
+    };
+
+    syncStreak();
   }, [user?.uid]);
 
   useEffect(() => {
@@ -136,7 +156,7 @@ const DailyBounty = () => {
 
     // Trigger visual feedback INSTANTLY
     triggerGoldBurst();
-    toast.success("🎉 Daily Bounty Claimed! +50 XP", {
+    toast.success(`🎉 Daily Bounty Claimed! +${potentialXP} XP`, {
       duration: 3000,
       style: {
         background: "#1a1a2e",
@@ -151,7 +171,20 @@ const DailyBounty = () => {
 
     try {
       // ✅ API call runs in background
-      await claimDailyBounty();
+      const response = await claimDailyBounty();
+
+      // 🧊 Check if Streak Freeze was activated
+      if (response?.streakFrozen) {
+        toast("Streak Freeze used! Your streak is safe. 🧊", {
+          icon: "🛡️",
+          duration: 5000,
+          style: {
+            background: "#1a1a2e",
+            color: "#60a5fa", // Blue
+            border: "1px solid rgba(96, 165, 250, 0.3)",
+          },
+        });
+      }
       // Success - state already updated optimistically
     } catch (e) {
       // ✅ ROLLBACK on failure
@@ -270,7 +303,7 @@ const DailyBounty = () => {
                     Streak Bonus
                   </span>
                   <span className="text-lg md:text-sm font-black text-orange-400 font-mono">
-                    {multiplier}x
+                    {displayMultiplier}x
                   </span>
                 </div>
                 <div className="w-px h-8 md:h-6 bg-white/10" />
@@ -320,7 +353,9 @@ const DailyBounty = () => {
                     )}
                   </motion.div>
 
-                  <span>{loading ? "Decrypting..." : "CLAIM REWARD"}</span>
+                  <span>
+                    {loading ? "Decrypting..." : `CLAIM ${potentialXP} XP`}
+                  </span>
 
                   {/* Shine */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent -translate-x-full group-hover:animate-shimmer" />

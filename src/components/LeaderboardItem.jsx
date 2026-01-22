@@ -29,8 +29,11 @@ const LeaderboardItem = ({
           color: "text-green-400",
         };
       default:
+        // 🎖️ Use lifetimeXP for ranking (fallback to xp for old users)
+        const totalXP = hero.lifetimeXP || hero.xp || 0;
+        
         return {
-          value: (hero.xp || 0).toLocaleString(),
+          value: totalXP.toLocaleString(),
           label: "Total XP",
           color: tier.color,
         };
@@ -83,6 +86,7 @@ const LeaderboardItem = ({
             }`}
           >
             <HeroAvatar
+              user={hero}
               seed={hero.avatarSeed || hero.name}
               tierName={tier.name}
               size={48}
