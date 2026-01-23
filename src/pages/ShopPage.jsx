@@ -4,6 +4,7 @@ import { auth, db } from "../backend/firebaseConfig";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { ShoppingBag, Gift, Loader } from "lucide-react";
+import SEO from "../components/SEO"; // Added SEO Import
 
 /**
  * ShopPage Component - Full Page Shop with Voucher Support
@@ -189,6 +190,19 @@ const ShopPage = () => {
       }
 
       // ✅ SUCCESS FEEDBACK
+      console.log("✅ [Shop] Purchase successful", data);
+      console.log("🛒 [Shop] Server Response Item Count:", data.itemCount);
+      console.log(
+        "👤 [Shop] Current User Inventory BEFORE update:",
+        user?.inventory,
+      );
+
+      if (data.newBalance !== undefined) {
+        // Optimistically update XP provided by AuthContext or local state if available
+        // Note: AuthContext usually handles this via listener, but this provides immediate feedback if connected
+        console.log(`💰 [Shop] Updating XP locally to ${data.newBalance}`);
+      }
+
       toast.success(
         data.code
           ? `${data.itemName || "Item"} Acquired! Code: ${data.code} 🎁`
@@ -224,6 +238,8 @@ const ShopPage = () => {
         paddingTop: "env(safe-area-inset-top, 60px)",
       }}
     >
+      <SEO title="Shop" description="Spend your XP on rewards and cosmetics." />
+
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div className="w-full h-full bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_11px)]" />
@@ -362,14 +378,42 @@ const ShopPage = () => {
                   category={item.category}
                   isOwned={
                     item.type === "cosmetic"
-                      ? user?.inventory?.frames?.includes(item.id)
+                      ? user?.inventory?.frames?.includes(item.sku || item.id)
                       : item.type === "badge"
-                        ? user?.inventory?.badges?.includes(item.id)
+                        ? user?.inventory?.badges?.includes(item.sku || item.id)
                         : false
                   }
                   inventoryCount={
-                    item.type === "consumable"
-                      ? user?.inventory?.streak_freeze || 0
+                    item.type === "consumable" ||
+                    item.type === "powerup" ||
+                    item.type === "boost" ||
+                    item.category === "powerup"
+                      ? (() => {
+                          // 🔥 CRITICAL: Match backend logic for inventory key
+                          const title = (item.title || "").toLowerCase();
+                          if (
+                            title.includes("streak freeze") ||
+                            title.includes("streak_freeze") ||
+                            item.sku === "streak_freeze"
+                          ) {
+                            return user?.inventory?.streak_freeze || 0;
+                          }
+                          // Neuro-Boost: Check SKU first, then type/category
+                          if (
+                            item.sku === "xp_boost_2x" ||
+                            item.type === "boost" ||
+                            item.type === "powerup" ||
+                            item.category === "powerup"
+                          ) {
+                            // Check BOTH keys to handle legacy/mismatched data
+                            // Check inventory keys AND active status
+                            const invCount =
+                              (user?.inventory?.neuro_boost || 0) +
+                              (user?.inventory?.["xp_boost_2x"] || 0);
+                            return invCount;
+                          }
+                          return user?.inventory?.[item.sku] || 0;
+                        })()
                       : undefined
                   }
                   onBuy={handleBuy}
@@ -393,48 +437,114 @@ const ShopPage = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {redemptions.map((redemption) => (
-                  <div
-                    key={redemption.id}
-                    className="glassmorphism rounded-xl p-4 border border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-bold text-white text-sm mb-1">
-                          {redemption.itemId === "starbucks_05"
-                            ? "☕ Starbucks $5"
-                            : redemption.itemId}
-                        </h3>
-                        <span className="text-xs text-green-400 font-mono uppercase border border-green-500/30 px-2 py-0.5 rounded bg-green-500/10">
-                          {redemption.status}
-                        </span>
-                      </div>
-                      <span className="text-2xl">✅</span>
-                    </div>
-                    <div className="bg-black/40 rounded-lg p-3 border border-green-500/20 mb-2">
-                      <p className="text-xs text-gray-400 font-mono mb-1">
-                        Coupon Code:
-                      </p>
-                      <p className="text-lg font-black text-green-400 font-mono tracking-wider">
-                        {redemption.code}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-green-500/20">
-                      <p className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">
-                        Valid Until
-                      </p>
-                      <p
-                        className={`text-xs font-bold font-mono ${
-                          isExpiringSoon(redemption.expiresAt)
-                            ? "text-red-400"
-                            : "text-green-400"
+                {redemptions
+                  .sort((a, b) => {
+                    // Safety helper
+                    const getDate = (dateField) => {
+                      if (!dateField) return new Date(0); // Expired if missing
+                      if (dateField.toDate) return dateField.toDate();
+                      return new Date(dateField);
+                    };
+
+                    const now = new Date();
+                    const aDate = getDate(a.expiresAt);
+                    const bDate = getDate(b.expiresAt);
+
+                    const aExpired = aDate < now;
+                    const bExpired = bDate < now;
+                    return aExpired === bExpired ? 0 : aExpired ? 1 : -1;
+                  })
+                  .map((redemption) => {
+                    // Same safety helper here
+                    const getDate = (dateField) => {
+                      if (!dateField) return new Date(0);
+                      if (dateField.toDate) return dateField.toDate();
+                      return new Date(dateField);
+                    };
+
+                    const expiresAtDate = getDate(redemption.expiresAt);
+                    const isExpired = expiresAtDate < new Date();
+
+                    return (
+                      <div
+                        key={redemption.id}
+                        className={`glassmorphism rounded-xl p-4 border ${
+                          isExpired
+                            ? "border-gray-600/30 bg-gray-800/10 opacity-60"
+                            : "border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent"
                         }`}
                       >
-                        {formatExpiryDate(redemption.expiresAt)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3
+                              className={`font-bold text-sm mb-1 ${
+                                isExpired ? "text-gray-400" : "text-white"
+                              }`}
+                            >
+                              {(() => {
+                                const item = shopItems.find(
+                                  (i) =>
+                                    i.id === redemption.itemId ||
+                                    i.sku === redemption.itemId,
+                                );
+                                return item?.title || redemption.itemId;
+                              })()}
+                            </h3>
+                            <span
+                              className={`text-xs font-mono uppercase border px-2 py-0.5 rounded ${
+                                isExpired
+                                  ? "text-red-400 border-red-500/30 bg-red-500/10"
+                                  : "text-green-400 border-green-500/30 bg-green-500/10"
+                              }`}
+                            >
+                              {isExpired ? "EXPIRED" : redemption.status}
+                            </span>
+                          </div>
+                          <span className="text-2xl">
+                            {isExpired ? "🚫" : "✅"}
+                          </span>
+                        </div>
+                        <div
+                          className={`rounded-lg p-3 border mb-2 ${
+                            isExpired
+                              ? "bg-gray-900/40 border-gray-600/20"
+                              : "bg-black/40 border-green-500/20"
+                          }`}
+                        >
+                          <p className="text-xs text-gray-500 font-mono mb-1">
+                            Coupon Code:
+                          </p>
+                          <p
+                            className={`text-lg font-black font-mono tracking-wider ${
+                              isExpired
+                                ? "text-gray-500 line-through"
+                                : "text-green-400"
+                            }`}
+                          >
+                            {redemption.code}
+                          </p>
+                        </div>
+                        <div
+                          className={`flex items-center justify-between mt-2 pt-2 border-t ${
+                            isExpired
+                              ? "border-gray-600/20"
+                              : "border-green-500/20"
+                          }`}
+                        >
+                          <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
+                            {isExpired ? "Expired On" : "Valid Until"}
+                          </p>
+                          <p
+                            className={`text-xs font-bold font-mono ${
+                              isExpired ? "text-red-400" : "text-green-400"
+                            }`}
+                          >
+                            {formatExpiryDate(redemption.expiresAt)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             )}
 
@@ -559,11 +669,14 @@ const ShopItemCard = ({
               <span className="text-xs text-purple-300 font-mono uppercase tracking-wide">
                 {type}
               </span>
-              {type === "consumable" && inventoryCount > 0 && (
-                <span className="text-xs bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded border border-purple-500/30">
-                  Owned: {inventoryCount}
-                </span>
-              )}
+              {(type === "consumable" ||
+                type === "boost" ||
+                type === "powerup") &&
+                inventoryCount > 0 && (
+                  <span className="text-xs bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded border border-purple-500/30">
+                    Owned: {inventoryCount}
+                  </span>
+                )}
             </div>
           </div>
         </div>

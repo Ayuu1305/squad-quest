@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-
 import QuestCard from "../components/QuestCard";
 import DailyBounty from "../components/DailyBounty";
 import FloatingLiveFeed from "../components/FloatingLiveFeed";
@@ -37,6 +36,7 @@ import {
   ArrowDown, // ✅ Added
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import SEO from "../components/SEO"; // Added SEO Import
 
 const QuestBoard = () => {
   const { city } = useGame();
@@ -259,6 +259,7 @@ const QuestBoard = () => {
       className="min-h-screen relative transition-colors duration-1000 bg-dark-bg"
       ref={containerRef}
     >
+      <SEO title="Quests" description="Find active missions near you." />
       {/* Hall Of Fame Ceremony Overlay */}
       {showHallOfFame && (
         <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />

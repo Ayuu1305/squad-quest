@@ -192,16 +192,22 @@ export const buyItem = async (req, res) => {
 
       if (item.type === "cosmetic") {
         // Check if already owned (for cosmetics like frames)
+        // 🔥 FIX: Use SKU for inventory array (frontend expects SKU like 'neon_frame_01')
+        const frameSku = item.sku || item.id || itemId;
         const currentFrames = currentInventory.frames || [];
-        if (currentFrames.includes(itemId)) {
+        if (currentFrames.includes(frameSku)) {
           throw new Error("Item already owned");
         }
+
+        console.log(
+          `🎨 [Shop] Cosmetic Purchase: frameSku="${frameSku}", itemSku="${item.sku}", itemId="${item.id}", equippedFrame="${frameSku}"`,
+        );
 
         // Add to frames array and auto-equip
         updatePayload = {
           xp: newXP,
-          [`inventory.frames`]: FieldValue.arrayUnion(itemId),
-          equippedFrame: itemId, // Auto-equip on purchase
+          [`inventory.frames`]: FieldValue.arrayUnion(frameSku),
+          equippedFrame: frameSku, // Auto-equip on purchase
           updatedAt: FieldValue.serverTimestamp(),
         };
 
@@ -260,8 +266,9 @@ export const buyItem = async (req, res) => {
           code: couponData.code,
           redemptionId: redemptionRef.id,
         };
-      } else if (item.type === "boost") {
-        // BOOST: Activate XP multiplier for next quest
+      } else if (item.type === "boost_LEGACY_DISABLED") {
+        // ❌ DISABLED: Boosts should be purchased as inventory items, then activated later
+        // This falls through to the 'else' block (Consumables) which handles neuro_boost correctly
         updatePayload = {
           xp: newXP,
           activeBoosts: {
@@ -278,14 +285,20 @@ export const buyItem = async (req, res) => {
         };
       } else if (item.type === "badge") {
         // BADGE: Permanent achievement
+        // 🔥 FIX: Use SKU for inventory array (frontend expects SKU like 'badge_coffee')
+        const badgeSku = item.sku || item.id || itemId;
         const currentBadges = currentInventory.badges || [];
-        if (currentBadges.includes(itemId)) {
+        if (currentBadges.includes(badgeSku)) {
           throw new Error("Badge already owned");
         }
 
+        console.log(
+          `🎖️ [Shop] Badge Purchase: badgeSku="${badgeSku}", itemSku="${item.sku}", itemId="${item.id}"`,
+        );
+
         updatePayload = {
           xp: newXP,
-          ["inventory.badges"]: FieldValue.arrayUnion(itemId),
+          ["inventory.badges"]: FieldValue.arrayUnion(badgeSku),
           updatedAt: FieldValue.serverTimestamp(),
         };
 
@@ -295,13 +308,50 @@ export const buyItem = async (req, res) => {
           badgeUnlocked: true,
         };
       } else {
-        // Consumable items (existing logic)
-        const currentItemCount = currentInventory[item.inventoryKey] || 0;
+        // Consumable items (e.g., Streak Freeze, XP Boost)
+        // 🔥 CRITICAL FIX: Explicit mapping for known consumables
+        let inventoryKey;
+
+        // Hardcoded fallback for Streak Freeze (most common purchase)
+        const itemTitle = (item.title || item.name || "").toLowerCase();
+        if (
+          itemTitle.includes("streak freeze") ||
+          itemTitle.includes("streak_freeze") ||
+          item.sku === "streak_freeze" ||
+          itemId === "streak_freeze"
+        ) {
+          inventoryKey = "streak_freeze";
+        } else if (
+          // Neuro-Boost: Check SKU first, then type/category as fallback
+          item.sku === "xp_boost_2x" ||
+          item.type === "boost" ||
+          item.type === "powerup" ||
+          item.category === "powerup"
+        ) {
+          inventoryKey = "neuro_boost";
+        } else {
+          // Generic fallback: sku > inventoryKey > id
+          inventoryKey = item.sku || item.inventoryKey || item.id;
+        }
+
+        if (!inventoryKey) {
+          throw new Error(
+            `System Error: Missing inventory key for item ${item.id || itemId}. Please ensure the shop_items document has a 'sku' field.`,
+          );
+        }
+
+        console.log(
+          `🛒 [Shop] Consumable Purchase: inventoryKey="${inventoryKey}", itemSku="${item.sku}", itemId="${item.id}"`,
+        );
+
+        // Read current count from inventory map
+        const currentItemCount = currentInventory[inventoryKey] || 0;
         const newItemCount = currentItemCount + 1;
 
+        // ✅ Write to userStats: inventory.{inventoryKey} (nested map field)
         updatePayload = {
           xp: newXP,
-          [`inventory.${item.inventoryKey}`]: newItemCount,
+          [`inventory.${inventoryKey}`]: newItemCount,
           updatedAt: FieldValue.serverTimestamp(),
         };
 
@@ -310,6 +360,11 @@ export const buyItem = async (req, res) => {
           itemCount: newItemCount,
           itemName: item.title || item.name,
         };
+
+        console.log(
+          `📦 [Shop] Prepared resultData for consumable:`,
+          resultData,
+        ); // 🔥 DEBUG LOG
       }
 
       // 4. Atomic update to userStats (private)
@@ -324,7 +379,15 @@ export const buyItem = async (req, res) => {
 
       // If purchasing a badge, sync it to public profile for leaderboard visibility
       if (item.type === "badge") {
-        publicUpdate["inventory.badges"] = FieldValue.arrayUnion(itemId);
+        const badgeSku = item.sku || item.id || itemId;
+        publicUpdate["inventory.badges"] = FieldValue.arrayUnion(badgeSku);
+      }
+
+      // If purchasing a cosmetic, sync it to public profile AND sync equipped frame
+      if (item.type === "cosmetic") {
+        const frameSku = item.sku || item.id || itemId;
+        publicUpdate["inventory.frames"] = FieldValue.arrayUnion(frameSku);
+        publicUpdate.equippedFrame = frameSku; // Auto-equip on purchase
       }
 
       t.update(publicUserRef, publicUpdate);

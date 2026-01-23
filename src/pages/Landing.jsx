@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
 import { updateHeroProfile } from "../backend/firebaseService";
+import SEO from "../components/SEO"; // Added SEO Import
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -52,6 +53,10 @@ const Landing = () => {
 
   return (
     <div className="app-container min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <SEO
+        title="Home"
+        description="Join real-world quests and level up your life."
+      />
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
@@ -115,8 +120,8 @@ const Landing = () => {
                     selectedCity === city.name
                       ? "bg-neon-purple/20 border-neon-purple text-white neon-glow"
                       : city.status === "Coming Soon"
-                      ? "bg-black/40 border-white/5 text-gray-600 grayscale cursor-not-allowed opacity-60"
-                      : "glassmorphism border-white/10 hover:border-neon-purple/50 text-gray-300"
+                        ? "bg-black/40 border-white/5 text-gray-600 grayscale cursor-not-allowed opacity-60"
+                        : "glassmorphism border-white/10 hover:border-neon-purple/50 text-gray-300"
                   }`}
                   whileHover={
                     city.status !== "Coming Soon" ? { scale: 1.02 } : {}

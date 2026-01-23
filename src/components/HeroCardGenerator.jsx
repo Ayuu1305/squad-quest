@@ -61,6 +61,14 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
 
   // --- BADGE LOGIC ---
   const { displayBadges, allBadges } = useMemo(() => {
+    // 🔍 DEBUG: Log input data
+    console.log("🎖️ [HeroCardGenerator] Badge computation:", {
+      inventoryBadges: user?.inventory?.badges,
+      inventoryFrames: user?.inventory?.frames,
+      feedbackCounts: user?.feedbackCounts,
+      legacyBadges: user?.badges,
+    });
+
     // 1. Get all unlocked badges from counts (Reliable Single Source of Truth for now)
     const unlockedFromCounts = getFeedbackBadges(
       user?.feedbackCounts || {},
@@ -70,9 +78,12 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
     const shopBadges = (user?.inventory?.badges || [])
       .map((badgeId) => {
         const shopBadge = SHOP_ITEMS[badgeId];
+        console.log(`🔍 Looking up badge "${badgeId}":`, shopBadge);
         return shopBadge ? { ...shopBadge, isUnlocked: true } : null;
       })
       .filter(Boolean);
+
+    console.log("🛍️ [HeroCardGenerator] Shop badges found:", shopBadges);
 
     // 3. If 'user.badges' array exists (chronological), try to respect it for sorting
     const rawBadges = user?.badges || [];
@@ -104,6 +115,11 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
       rawBadges.length > 0
         ? orderedBadges.slice(-3)
         : orderedBadges.slice(0, 3);
+
+    console.log("🎖️ [HeroCardGenerator] Final badges:", {
+      displayBadges: frontSlice,
+      totalBadges: orderedBadges.length,
+    });
 
     return { displayBadges: frontSlice, allBadges: orderedBadges };
   }, [user]);

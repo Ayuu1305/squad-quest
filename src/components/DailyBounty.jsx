@@ -21,7 +21,14 @@ const DailyBounty = () => {
   const streak = user?.daily_streak || 0;
   const baseXP = 50;
   const multiplier = 1 + streak * 0.05; // 5% per day
-  const potentialXP = Math.min(Math.floor(baseXP * multiplier), 150); // Cap at 150 XP
+  let potentialXP = Math.min(Math.floor(baseXP * multiplier), 150); // Cap at 150 XP
+
+  // 🚀 Check for Neuro-Boost (2x Multiplier)
+  const hasBoost = user?.inventory?.neuro_boost > 0 || user?.neuro_boost > 0;
+  if (hasBoost) {
+    potentialXP *= 2;
+  }
+
   const displayMultiplier = multiplier.toFixed(2);
 
   useEffect(() => {
@@ -33,6 +40,14 @@ const DailyBounty = () => {
       // Show toast based on streak sync result
       if (result.status === "protected") {
         console.log("🛡️ Streak Freeze saved you!");
+        toast("Streak Freeze activated! Your streak is safe. 🧊", {
+          icon: "🛡️",
+          style: {
+            background: "#1a1a2e",
+            color: "#60a5fa",
+            border: "1px solid rgba(96, 165, 250, 0.3)",
+          },
+        });
       } else if (result.status === "reset") {
         toast.error("Streak reset. 😢", {
           duration: 2000,
@@ -294,14 +309,21 @@ const DailyBounty = () => {
                 Daily Bounty
               </h3>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex flex-col">
-                  <span className="text-xs md:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                  <span className="text-xs md:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">
                     Streak Bonus
                   </span>
-                  <span className="text-lg md:text-sm font-black text-orange-400 font-mono">
-                    {displayMultiplier}x
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg md:text-base text-yellow-500 font-mono font-bold">
+                      {displayMultiplier}x
+                    </span>
+                    {hasBoost && (
+                      <span className="text-[10px] bg-purple-600/30 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 rounded font-mono uppercase tracking-wide">
+                        2x ACTIVE 🚀
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="w-px h-8 md:h-6 bg-white/10" />
                 <div className="flex flex-col">
@@ -312,6 +334,24 @@ const DailyBounty = () => {
                     {streak} Days
                   </span>
                 </div>
+
+                {/* 🚀 NEURO-BOOST INDICATOR */}
+                {(user?.inventory?.neuro_boost || 0) > 0 && (
+                  <>
+                    <div className="w-px h-8 md:h-6 bg-white/10" />
+                    <div className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg px-2 py-1">
+                      <span className="text-xl">🚀</span>
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-purple-300 uppercase tracking-wider leading-none">
+                          Active
+                        </span>
+                        <span className="text-xs font-black text-pink-400 font-mono">
+                          2x Boost
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

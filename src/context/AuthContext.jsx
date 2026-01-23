@@ -22,10 +22,35 @@ export const AuthProvider = ({ children }) => {
   // ✅ COMBINER: Merge profile + stats into unified user object
   const user = useMemo(() => {
     if (!profile) return null;
-    return {
+    const merged = {
       ...profile,
       ...stats,
+      // 🔥 deep merge inventory to keep both badges (public) and consumables (private)
+      inventory: {
+        ...(profile?.inventory || {}),
+        ...(stats?.inventory || {}),
+      },
+      // 🔥 CRITICAL: Prioritize private stats for claim logic to prevent flicker
+      // If stats has it, use it. Otherwise fall back to profile.
+      last_claimed_at: stats?.last_claimed_at || profile?.last_claimed_at,
+      daily_streak: stats?.daily_streak ?? profile?.daily_streak,
     };
+
+    // 🔍 DEBUG: Log merged user inventory (expanded)
+    console.log(
+      "👤 [AuthContext] Merged user inventory:",
+      JSON.stringify(
+        {
+          badges: merged.inventory?.badges,
+          frames: merged.inventory?.frames,
+          equippedFrame: merged.equippedFrame,
+        },
+        null,
+        2,
+      ),
+    );
+
+    return merged;
   }, [profile, stats]);
 
   // ✅ EFFECT 1: Listen to Firebase Auth + Public Profile (users/{uid})
@@ -98,6 +123,12 @@ export const AuthProvider = ({ children }) => {
               badges: profile.badges || [],
             };
 
+        // 🔍 DEBUG: Log raw inventory data (expanded)
+        console.log(
+          "📦 [AuthContext] userStats inventory:",
+          JSON.stringify(rawStatsData.inventory || {}, null, 2), // 🔥 Log FULL inventory to see neuro_boost
+        );
+
         // ✅ Transform flat "feedbackCounts.X" keys
         const feedbackCounts = {};
         const statsData = { ...rawStatsData };
@@ -150,13 +181,21 @@ export const AuthProvider = ({ children }) => {
     const privateXP = Number(stats.xp) || 0;
     const publicXP = Number(profile.xp) || 0;
 
-    // ✅ BADGES SYNC CHECK: Compare array lengths (primitives) not arrays (objects)
+    // ✅ BADGES/FRAMES SYNC CHECK: Compare array lengths (primitives) not arrays (objects)
     const badgesMismatch =
-      (stats.badges?.length || 0) !== (profile.badges?.length || 0);
+      (stats.inventory?.badges?.length || 0) !==
+      (profile.inventory?.badges?.length || 0);
+    const framesMismatch =
+      (stats.inventory?.frames?.length || 0) !==
+      (profile.inventory?.frames?.length || 0);
+    const equippedFrameMismatch = stats.equippedFrame !== profile.equippedFrame;
 
-    // ✅ CRITICAL FIX: Only sync if truly ahead OR badges changed AND not already synced
+    // ✅ CRITICAL FIX: Only sync if truly ahead OR inventory changed AND not already synced
     if (
-      (privateXP > publicXP || badgesMismatch) &&
+      (privateXP > publicXP ||
+        badgesMismatch ||
+        framesMismatch ||
+        equippedFrameMismatch) &&
       lastSyncedXP.current !== privateXP
     ) {
       console.log(
@@ -165,8 +204,12 @@ export const AuthProvider = ({ children }) => {
           private: privateXP,
           public: publicXP,
           badgesMismatch,
-          statsBadges: stats.badges?.length || 0,
-          profileBadges: profile.badges?.length || 0,
+          framesMismatch,
+          equippedFrameMismatch,
+          statsBadges: stats.inventory?.badges?.length || 0,
+          profileBadges: profile.inventory?.badges?.length || 0,
+          statsFrames: stats.inventory?.frames?.length || 0,
+          profileFrames: profile.inventory?.frames?.length || 0,
         },
       );
 
@@ -180,7 +223,10 @@ export const AuthProvider = ({ children }) => {
           level: stats.level,
           reliabilityScore: stats.reliabilityScore,
           questsCompleted: stats.questsCompleted || profile.questsCompleted,
-          badges: stats.badges || [], // ✅ Sync badges array for Leaderboard visibility
+          badges: stats.badges || [], // Legacy field (for old code compatibility)
+          "inventory.badges": stats.inventory?.badges || [], // ✅ Shop purchases
+          "inventory.frames": stats.inventory?.frames || [], // ✅ Cosmetic purchases
+          equippedFrame: stats.equippedFrame || null, // ✅ Active cosmetic
           updatedAt: new Date(),
         },
         { merge: true },
@@ -193,6 +239,8 @@ export const AuthProvider = ({ children }) => {
           private: privateXP,
           public: publicXP,
           badgesMismatch,
+          framesMismatch,
+          equippedFrameMismatch,
           lastSynced: lastSyncedXP.current,
         },
       );
@@ -200,10 +248,14 @@ export const AuthProvider = ({ children }) => {
   }, [
     stats?.xp,
     stats?.level,
-    stats?.badges?.length,
+    stats?.inventory?.badges?.length,
+    stats?.inventory?.frames?.length,
+    stats?.equippedFrame,
     profile?.xp,
     profile?.uid,
-    profile?.badges?.length,
+    profile?.inventory?.badges?.length,
+    profile?.inventory?.frames?.length,
+    profile?.equippedFrame,
   ]); // ✅ ZERO-LOOP PROTOCOL: Use .length primitives, NOT array objects
 
   return (
