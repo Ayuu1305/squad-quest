@@ -93,6 +93,24 @@ const HubSelectionModal = ({ isOpen, onClose, onSelect }) => {
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-[#0f0f23] to-[#1a1a2e] border border-neon-purple/30 rounded-3xl shadow-2xl shadow-neon-purple/20 overflow-hidden"
         >
+          {/* Scrollbar Theme */}
+          <style>{`
+            ::-webkit-scrollbar {
+              width: 6px;
+              height: 6px;
+            }
+            ::-webkit-scrollbar-track {
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb {
+              background: rgba(168, 85, 247, 0.5);
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+              background: rgba(168, 85, 247, 0.8);
+            }
+          `}</style>
           {/* Header */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-[#0f0f23] to-[#1a1a2e] border-b border-white/10 p-6">
             <div className="flex items-center justify-between mb-4">

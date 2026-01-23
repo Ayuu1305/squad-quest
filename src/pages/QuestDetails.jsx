@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
+  Lock, // ✅ Added missing import
   MapPin,
   Clock,
   Users,
@@ -277,6 +278,39 @@ const QuestDetails = () => {
               </p>
             </div>
           </section>
+
+          {/* ✅ NEW: Mission Code (Host Only) */}
+          {isHost && quest.isPrivate && quest.roomCode && (
+            <section>
+              <div className="flex items-center gap-2 mb-3 text-red-400">
+                <ShieldCheck className="w-4 h-4 animate-pulse" />
+                <h2 className="text-xs font-black uppercase tracking-widest">
+                  Secure Mission Code
+                </h2>
+              </div>
+              <div className="p-5 glassmorphism-dark rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-500/10 to-transparent relative overflow-hidden group">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase font-mono tracking-widest mb-1">
+                      Encrypted Access Key
+                    </p>
+                    <div className="text-3xl font-black font-mono text-white tracking-[0.2em] group-hover:text-red-400 transition-colors">
+                      {quest.roomCode}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/30">
+                    <Lock className="w-6 h-6 text-red-500" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
+                  <span className="text-[9px] text-red-400/80 font-mono uppercase tracking-tight">
+                    Share this code with your squad operatives
+                  </span>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Tactical Intel Row */}
           <div className="grid grid-cols-2 gap-4">

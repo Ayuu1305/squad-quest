@@ -19,6 +19,7 @@ import {
   subscribeToAllQuests,
   joinQuestByCode,
   fetchMoreQuests, // ✅ Imported
+  joinQuest, // ✅ Added for SecretCodeModal
 } from "../backend/firebaseService";
 import useShowdown from "../hooks/useShowdown";
 import {
@@ -62,6 +63,10 @@ const QuestBoard = () => {
     quest: null,
   });
   const [isJoining, setIsJoining] = useState(false);
+
+  // ✅ Private Room Code State
+  const [privateCode, setPrivateCode] = useState("");
+  const [joinLoading, setJoinLoading] = useState(false);
 
   // ✅ Pagination State
   const [lastDoc, setLastDoc] = useState(null);
@@ -119,9 +124,27 @@ const QuestBoard = () => {
       }
     } catch (err) {
       console.error("Pagination error:", err);
-      toast.error("Could not load more quests");
+      // toast.error("Could not load more quests");
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handlePrivateJoin = async () => {
+    if (privateCode.length !== 6 || !user?.uid || joinLoading) return;
+
+    setJoinLoading(true);
+    try {
+      const qId = await joinQuestByCode(privateCode);
+      navigate(`/lobby/${qId}`);
+    } catch (err) {
+      console.error(err);
+      setErrorModal({
+        isOpen: true,
+        message: err.message || "Invalid Code",
+      });
+    } finally {
+      setJoinLoading(false);
     }
   };
 
@@ -201,7 +224,6 @@ const QuestBoard = () => {
       return { ...quest, distance };
     });
 
-  // GSAP Background Effects (Showdown Pulse)
   // GSAP Background Effects (Showdown Pulse)
   useGSAP(() => {
     // Disable on mobile/touch devices for performance
@@ -351,33 +373,48 @@ const QuestBoard = () => {
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
                     </div>
 
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const code = e.target.code.value;
-                        if (!code || code.length < 6 || !user?.uid) return;
-                        try {
-                          const qId = await joinQuestByCode(code);
-                          navigate(`/lobby/${qId}`);
-                        } catch (err) {
-                          console.error(err);
+                    <div className="relative group/input flex flex-col gap-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neon-green font-black text-xs">
+                          {">"}
+                        </span>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="CODE"
+                          value={privateCode}
+                          onChange={(e) =>
+                            setPrivateCode(
+                              e.target.value.slice(0, 6).toUpperCase(),
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              if (privateCode.length === 6) {
+                                handlePrivateJoin();
+                              }
+                            }
+                          }}
+                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-4 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
+                        />
+                        {/* Blinking Cursor Effect */}
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-4 bg-neon-green animate-pulse pointer-events-none opacity-0 group-focus-within/input:opacity-100" />
+                      </div>
+
+                      <button
+                        onClick={handlePrivateJoin}
+                        disabled={
+                          privateCode.length !== 6 || joinLoading || !user?.uid
                         }
-                      }}
-                      className="relative group/input"
-                    >
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neon-green font-black text-xs">
-                        {">"}
-                      </span>
-                      <input
-                        name="code"
-                        type="text"
-                        maxLength={6}
-                        placeholder="ENTER_PASSCODE"
-                        className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-4 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
-                      />
-                      {/* Blinking Cursor Effect */}
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-4 bg-neon-green animate-pulse pointer-events-none opacity-0 group-focus-within/input:opacity-100" />
-                    </form>
+                        className={`w-full py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all ${
+                          privateCode.length === 6 && !joinLoading
+                            ? "bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.5)] hover:scale-105"
+                            : "bg-red-900/10 text-red-900/40 border border-red-900/20 cursor-not-allowed"
+                        }`}
+                      >
+                        {joinLoading ? "Decrypting..." : "Join Restricted"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-3 flex justify-between gap-1 text-[8px] text-red-900 uppercase font-bold tracking-widest">

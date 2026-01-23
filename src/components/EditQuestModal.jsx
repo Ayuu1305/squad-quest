@@ -41,7 +41,7 @@ const EditQuestModal = ({
     vibeCheck: quest?.vibeCheck || "Neutral",
     isPrivate: quest?.isPrivate || false,
     genderPreference: quest?.genderPreference || "everyone",
-    secretCode: quest?.secretCode || "",
+    secretCode: quest?.roomCode || quest?.secretCode || "", // ✅ Fix: Read roomCode
     startTime: formatDateTimeLocal(quest?.startTime),
   });
 
@@ -117,6 +117,7 @@ const EditQuestModal = ({
 
     const updates = {
       ...formData,
+      roomCode: formData.secretCode, // ✅ Ensure roomCode updates from secretCode
       startTime: new Date(formData.startTime),
     };
 
@@ -126,7 +127,7 @@ const EditQuestModal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center px-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -139,8 +140,26 @@ const EditQuestModal = ({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative max-w-2xl w-full glassmorphism-dark rounded-3xl p-8 border-2 border-blue-500/50 my-8 max-h-[90vh] overflow-y-auto"
+            className="relative max-w-2xl w-full glassmorphism-dark rounded-3xl p-4 md:p-8 border-2 border-blue-500/50 my-8 max-h-[90vh] overflow-y-auto overflow-x-hidden"
           >
+            {/* Scrollbar Theme */}
+            <style>{`
+            ::-webkit-scrollbar {
+              width: 6px;
+              height: 6px;
+            }
+            ::-webkit-scrollbar-track {
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb {
+              background: rgba(59, 130, 246, 0.5); /* Blue thumb for blue border */
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+              background: rgba(59, 130, 246, 0.8);
+            }
+          `}</style>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-['Orbitron'] font-black text-white uppercase tracking-tight">
                 Edit Quest
@@ -331,7 +350,7 @@ const EditQuestModal = ({
                 <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-wider">
                   Start Time
                 </label>
-                <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-3 rounded-xl focus-within:border-blue-500 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all duration-300 group">
+                <div className="flex items-center gap-2 sm:gap-4 bg-white/5 border border-white/10 p-3 rounded-xl focus-within:border-blue-500 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all duration-300 group">
                   {/* DATE INPUT */}
                   <input
                     type="date"
@@ -346,6 +365,7 @@ const EditQuestModal = ({
                             const year = d.getFullYear();
                             const month = String(d.getMonth() + 1).padStart(
                               2,
+                              "0",
                               "0",
                             );
                             const day = String(d.getDate()).padStart(2, "0");
@@ -377,7 +397,7 @@ const EditQuestModal = ({
                         startTime: newDate.toISOString(),
                       });
                     }}
-                    className="bg-transparent text-white font-mono text-sm outline-none w-full uppercase cursor-pointer"
+                    className="bg-transparent text-white font-mono text-sm outline-none w-full uppercase cursor-pointer min-w-0"
                     style={{ colorScheme: "dark" }}
                   />
 
@@ -458,12 +478,12 @@ const EditQuestModal = ({
                   <label className="block text-sm font-bold text-purple-300 mb-2 uppercase tracking-wider">
                     🔐 Secret Room Code
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <input
                       type="text"
                       value={formData.secretCode || ""}
                       readOnly
-                      className="flex-1 px-4 py-3 bg-purple-500/20 border-2 border-purple-500 rounded-xl text-white font-black text-2xl text-center uppercase tracking-[0.3em] focus:outline-none"
+                      className="flex-1 px-4 py-3 bg-purple-500/20 border-2 border-purple-500 rounded-xl text-white font-black text-xl sm:text-2xl text-center uppercase tracking-[0.3em] focus:outline-none w-full"
                     />
                     <button
                       type="button"
@@ -471,12 +491,12 @@ const EditQuestModal = ({
                         navigator.clipboard.writeText(formData.secretCode);
                         alert("Code copied!");
                       }}
-                      className="px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-bold uppercase text-sm transition-colors"
+                      className="px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-bold uppercase text-sm transition-colors w-full sm:w-auto shadow-lg shadow-purple-600/20"
                     >
-                      Copy
+                      Copy Code
                     </button>
                   </div>
-                  <p className="text-xs text-purple-300 mt-2 font-mono">
+                  <p className="text-xs text-purple-300 mt-3 font-mono text-center sm:text-left">
                     Share this code with members to let them join
                   </p>
                 </div>

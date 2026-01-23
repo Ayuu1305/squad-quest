@@ -418,6 +418,8 @@ export const joinQuestByCode = async (code) => {
   const questsRef = collection(db, "quests");
   const cleanCode = code.trim().toUpperCase();
 
+  console.log("Searching for code:", cleanCode); // ✅ Debug Log
+
   // First, try to find by room code
   const roomCodeQuery = query(
     questsRef,

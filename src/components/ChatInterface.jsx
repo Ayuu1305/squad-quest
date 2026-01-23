@@ -91,9 +91,11 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
           if (userDoc.exists()) {
             const data = userDoc.data();
             newData[uid] = {
+              uid: uid, // ✅ Critical for HeroAvatar check
               name: data.name || `Hero_${uid.slice(0, 4)}`,
               seed: data.avatarSeed || data.name || uid,
-              tier: getTier(data.xp || 1).name, // XP might be missing for new users
+              tier: getTier(data.xp || 1).name,
+              avatarConfig: data.avatarConfig || null, // ✅ Fetch Avatar Config
             };
             changed = true;
           }
@@ -162,6 +164,7 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
           <div key={userId} className="inline-flex flex-col items-center gap-1">
             <div className="relative">
               <HeroAvatar
+                user={memberData[userId] || { uid: userId }} // ✅ Pass User Object to prevent "isMe" fallback
                 seed={memberData[userId]?.seed || userId}
                 tierName={memberData[userId]?.tier || "Bronze"}
                 size={48}
@@ -207,6 +210,7 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
                 >
                   {!isMe && (
                     <HeroAvatar
+                      user={memberData[msg.senderId] || { uid: msg.senderId }} // ✅ Fix: Pass sender's user object
                       seed={memberData[msg.senderId]?.seed || msg.senderId}
                       tierName={memberData[msg.senderId]?.tier || "Bronze"}
                       size={32}
