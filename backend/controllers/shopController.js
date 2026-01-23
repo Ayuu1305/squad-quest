@@ -306,11 +306,10 @@ export const buyItem = async (req, res) => {
       t.update(userStatsRef, updatePayload);
 
       // 5. Sync Public Profile (Leaderboard)
-      // Leaderboard reads from 'users' collection, sync BOTH xp fields!
+      // ✅ CRITICAL: Only update XP wallet, NEVER touch ranking fields (thisWeekXP, lifetimeXP)
       const publicUserRef = db.collection("users").doc(userId);
       const publicUpdate = {
-        xp: newXP,
-        thisWeekXP: newThisWeekXP,
+        xp: newXP, // Wallet balance only
       };
 
       // If purchasing a badge, sync it to public profile for leaderboard visibility

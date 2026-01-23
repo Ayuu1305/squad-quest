@@ -14,6 +14,7 @@ import Leaderboard from "./pages/Leaderboard";
 import MyMissions from "./pages/MyMissions";
 import WorldGuide from "./pages/WorldGuide";
 import HeroJourney from "./pages/HeroJourney";
+import ShopPage from "./pages/ShopPage";
 import Navbar from "./components/Navbar";
 import { Toaster, toast } from "react-hot-toast"; // Added toast
 import { useGame } from "./context/GameContext";
@@ -84,6 +85,7 @@ function App() {
       "/my-missions",
       "/world-guide",
       "/journey",
+      "/shop",
     ].includes(location.pathname) && user;
 
   // ✅ FCM Token Management
@@ -350,6 +352,21 @@ function App() {
                   exit={{ opacity: 0, scale: 1.05 }}
                 >
                   <WorldGuide />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/shop"
+            element={
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                >
+                  <ShopPage />
                 </motion.div>
               </ProtectedRoute>
             }

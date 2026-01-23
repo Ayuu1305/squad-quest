@@ -81,7 +81,7 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
           import.meta.env.DEV ||
           import.meta.env.VITE_DEV_GPS_BYPASS === "true" ||
           window.location.hostname === "localhost";
-        const MAX_RADIUS = isDev ? 30000 : 30000;
+        const MAX_RADIUS = isDev ? 500000 : 500000;
 
         console.table({
           "GPS Check": isDev
