@@ -59,38 +59,16 @@ export const claimBounty = async (req, res) => {
           const freezeCount = stats.inventory?.streak_freeze || 0;
 
           if (freezeCount > 0) {
-            // ✅ SAVED BY FREEZE: Consume 1 freeze and time-travel
+            // ✅ SAVED BY FREEZE: Consume 1 freeze and preserve streak
             console.log(
               `🧊 [Bounty] Streak Freeze activated! User: ${userId}, Streak: ${streak}`,
             );
 
-            // Decrement freeze count in updatePayload (will be committed later)
-            const newFreezeCount = freezeCount - 1;
-
-            // Time Travel: Set last_claimed_at to 25 hours ago
-            // This makes the system think they claimed "yesterday" at this time
-            const timeTravel = new Date(now);
-            timeTravel.setHours(timeTravel.getHours() - 25);
-
             // Mark streak as frozen (for toast notification)
             streakFrozen = true;
 
-            // Update the transaction payload to include freeze consumption and new timestamp
-            const updatePayloadWithFreeze = {
-              xp: FieldValue.increment(0), // No XP change yet (bounty claim will add it)
-              daily_streak: streak, // Keep existing streak
-              "inventory.streak_freeze": newFreezeCount, // Consume freeze
-              last_claimed_at: timeTravel, // Time travel to yesterday
-              updatedAt: FieldValue.serverTimestamp(),
-            };
-
-            // Apply freeze update immediately in transaction
-            t.set(userStatsRef, updatePayloadWithFreeze, { merge: true });
-            t.set(publicUserRef, updatePayloadWithFreeze, { merge: true });
-
-            // ⚠️ Important: After freeze activation, recalculate diffHours for bounty claim
-            // They can now claim immediately because we time-traveled
-            // Continue with normal bounty claim logic below
+            // Freeze will be consumed in the main update payload below
+            // Keep streak as is (don't reset)
           } else {
             // ❌ NO FREEZE: Reset streak
             console.log(
@@ -130,6 +108,14 @@ export const claimBounty = async (req, res) => {
         last_claimed_at: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       };
+
+      // 🧊 If freeze was used, consume it atomically
+      if (streakFrozen) {
+        updatePayload["inventory.streak_freeze"] = FieldValue.increment(-1);
+        console.log(
+          `🧊 [Bounty] Consuming 1 Streak Freeze for user: ${userId}`,
+        );
+      }
 
       // 5. Commit Updates
       t.set(userStatsRef, updatePayload, { merge: true });

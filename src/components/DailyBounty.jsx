@@ -32,13 +32,10 @@ const DailyBounty = () => {
 
       // Show toast based on streak sync result
       if (result.status === "protected") {
-        toast.success("🛡️ Streak Freeze saved you!", {
-          duration: 4000,
-          icon: "🧊",
-        });
+        console.log("🛡️ Streak Freeze saved you!");
       } else if (result.status === "reset") {
         toast.error("Streak reset. 😢", {
-          duration: 3000,
+          duration: 2000,
         });
       }
     };
