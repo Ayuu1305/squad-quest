@@ -137,7 +137,7 @@ const SHOP_ITEMS = {
  */
 export const buyItem = async (req, res) => {
   const userId = req.user?.uid;
-  const { itemId } = req.body;
+  const { itemId, sku } = req.body;
 
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -145,13 +145,23 @@ export const buyItem = async (req, res) => {
     return res.status(400).json({ error: "Item ID is required" });
   }
 
-  // Validate item exists
-  const item = SHOP_ITEMS[itemId];
-  if (!item) {
-    return res.status(404).json({ error: "Item not found" });
-  }
-
   const userStatsRef = db.collection("userStats").doc(userId);
+
+  // Step A: Fetch item from Firestore shop_items collection
+  let item;
+  try {
+    const itemRef = db.collection("shop_items").doc(itemId);
+    const itemSnap = await itemRef.get();
+
+    if (!itemSnap.exists) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    item = { id: itemSnap.id, ...itemSnap.data() };
+  } catch (error) {
+    console.error("Error fetching item:", error);
+    return res.status(500).json({ error: "Failed to fetch item details" });
+  }
 
   try {
     const result = await db.runTransaction(async (t) => {
@@ -166,10 +176,10 @@ export const buyItem = async (req, res) => {
       const currentXP = stats.xp || 0;
       const currentInventory = stats.inventory || {};
 
-      // 2. Validate sufficient funds
+      // Step B: Validate sufficient funds
       if (currentXP < item.cost) {
         throw new Error(
-          `Insufficient XP. You need ${item.cost} XP to purchase ${item.name}.`,
+          `Insufficient XP. You need ${item.cost} XP to purchase ${item.title || item.name}.`,
         );
       }
 
@@ -197,15 +207,15 @@ export const buyItem = async (req, res) => {
 
         resultData = {
           newBalance: newXP,
-          itemName: item.name,
+          itemName: item.title || item.name,
           equipped: true,
         };
       } else if (item.type === "voucher") {
-        // VOUCHER: Atomic coupon code grab
-        // Query for ONE unused code for this itemId
+        // Step C: VOUCHER - Atomic coupon code grab using SKU
+        // Query for ONE unused code for this SKU
         const couponQuery = await db
           .collection("coupon_codes")
-          .where("itemId", "==", itemId)
+          .where("itemId", "==", item.sku || sku || itemId)
           .where("isUsed", "==", false)
           .limit(1)
           .get();
@@ -246,7 +256,7 @@ export const buyItem = async (req, res) => {
 
         resultData = {
           newBalance: newXP,
-          itemName: item.name,
+          itemName: item.title || item.name,
           code: couponData.code,
           redemptionId: redemptionRef.id,
         };
@@ -263,7 +273,7 @@ export const buyItem = async (req, res) => {
 
         resultData = {
           newBalance: newXP,
-          itemName: item.name,
+          itemName: item.title || item.name,
           boost: "2x XP on next quest",
         };
       } else if (item.type === "badge") {
@@ -281,7 +291,7 @@ export const buyItem = async (req, res) => {
 
         resultData = {
           newBalance: newXP,
-          itemName: item.name,
+          itemName: item.title || item.name,
           badgeUnlocked: true,
         };
       } else {
@@ -298,7 +308,7 @@ export const buyItem = async (req, res) => {
         resultData = {
           newBalance: newXP,
           itemCount: newItemCount,
-          itemName: item.name,
+          itemName: item.title || item.name,
         };
       }
 

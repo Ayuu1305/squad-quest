@@ -1,116 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { auth } from "../backend/firebaseConfig";
+import { auth, db } from "../backend/firebaseConfig";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { ShoppingBag, Gift } from "lucide-react";
-
-// Shop Items Catalog (matches backend)
-const SHOP_ITEMS = {
-  amazon_in_100: {
-    id: "amazon_in_100",
-    name: "Amazon ₹100",
-    type: "voucher",
-    cost: 10000,
-    value: "₹100",
-    icon: "📦",
-    category: "real-world",
-  },
-  starbucks_in_250: {
-    id: "starbucks_in_250",
-    name: "Starbucks ₹250",
-    type: "voucher",
-    cost: 25000,
-    value: "₹250",
-    icon: "☕",
-    category: "real-world",
-  },
-  zomato_pro: {
-    id: "zomato_pro",
-    name: "Zomato Gold",
-    type: "voucher",
-    cost: 15000,
-    value: "1 Month",
-    icon: "🍕",
-    category: "real-world",
-  },
-  bookmyshow_200: {
-    id: "bookmyshow_200",
-    name: "Movie Ticket ₹200",
-    type: "voucher",
-    cost: 20000,
-    value: "₹200",
-    icon: "🎬",
-    category: "real-world",
-  },
-  streak_freeze: {
-    id: "streak_freeze",
-    name: "Streak Freeze",
-    type: "consumable",
-    cost: 500,
-    icon: "❄️",
-    category: "powerup",
-  },
-  xp_boost_2x: {
-    id: "xp_boost_2x",
-    name: "Neuro-Boost (2x)",
-    type: "boost",
-    cost: 1500,
-    icon: "🚀",
-    category: "powerup",
-  },
-  neon_frame_01: {
-    id: "neon_frame_01",
-    name: "Cyberpunk Neon",
-    type: "cosmetic",
-    cost: 2500,
-    icon: "👾",
-    category: "cosmetic",
-  },
-  gold_aura: {
-    id: "gold_aura",
-    name: "Midas Touch",
-    type: "cosmetic",
-    cost: 5000,
-    icon: "👑",
-    category: "cosmetic",
-  },
-  fire_aura: {
-    id: "fire_aura",
-    name: "Inferno",
-    type: "cosmetic",
-    cost: 4000,
-    icon: "🔥",
-    category: "cosmetic",
-  },
-  badge_whale: {
-    id: "badge_whale",
-    name: "The Whale",
-    type: "badge",
-    cost: 50000,
-    icon: "💎",
-    category: "badge",
-  },
-  badge_coffee: {
-    id: "badge_coffee",
-    name: "Caffeine Club",
-    type: "badge",
-    cost: 2000,
-    icon: "☕",
-    category: "badge",
-  },
-  badge_dev: {
-    id: "badge_dev",
-    name: "Code Ninja",
-    type: "badge",
-    cost: 3000,
-    icon: "💻",
-    category: "badge",
-  },
-};
+import { ShoppingBag, Gift, Loader } from "lucide-react";
 
 /**
  * ShopPage Component - Full Page Shop with Voucher Support
  * Tabs: Buy Items | My Rewards
+ * Data Source: Firestore shop_items collection
  */
 const ShopPage = () => {
   const { user } = useAuth();
@@ -120,11 +18,38 @@ const ShopPage = () => {
   const [redemptions, setRedemptions] = useState([]);
   const [loadingRedemptions, setLoadingRedemptions] = useState(false);
 
+  // Firestore data
+  const [shopItems, setShopItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+
   // Extract user stats safely
   const userXP = user?.xp || 0;
 
+  // Fetch shop items from Firestore
+  useEffect(() => {
+    const q = query(collection(db, "shop_items"), orderBy("cost", "asc"));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setShopItems(items);
+        setLoadingItems(false);
+      },
+      (error) => {
+        console.error("Error fetching shop items:", error);
+        setLoadingItems(false);
+        toast.error("Failed to load shop items");
+      },
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   // Filter items by category
-  const filteredItems = Object.values(SHOP_ITEMS).filter((item) =>
+  const filteredItems = shopItems.filter((item) =>
     activeCategory === "all" ? true : item.category === activeCategory,
   );
 
@@ -249,6 +174,7 @@ const ShopPage = () => {
         },
         body: JSON.stringify({
           itemId: itemId,
+          sku: shopItems.find((item) => item.id === itemId)?.sku, // Include SKU for backend
         }),
       });
 
@@ -406,34 +332,51 @@ const ShopPage = () => {
         {/* Content Area */}
         {activeTab === "buy" ? (
           <div className="space-y-4">
-            {filteredItems.map((item) => (
-              <ShopItemCard
-                key={item.id}
-                id={item.id}
-                name={item.name}
-                icon={item.icon}
-                description={SHOP_ITEMS[item.id]?.description || ""}
-                cost={item.cost}
-                value={item.value}
-                userXP={userXP}
-                type={item.type}
-                category={item.category}
-                isOwned={
-                  item.type === "cosmetic"
-                    ? user?.inventory?.frames?.includes(item.id)
-                    : item.type === "badge"
-                      ? user?.inventory?.badges?.includes(item.id)
-                      : false
-                }
-                inventoryCount={
-                  item.type === "consumable"
-                    ? user?.inventory?.streak_freeze || 0
-                    : undefined
-                }
-                onBuy={handleBuy}
-                isPurchasing={processingItem === item.id}
-              />
-            ))}
+            {loadingItems ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader className="w-8 h-8 text-purple-500 animate-spin" />
+                <p className="ml-3 text-gray-400 font-mono text-sm">
+                  Loading shop items...
+                </p>
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="text-center py-12">
+                <ShoppingBag className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 font-mono text-sm">
+                  No items available in this category
+                </p>
+              </div>
+            ) : (
+              filteredItems.map((item) => (
+                <ShopItemCard
+                  key={item.id}
+                  id={item.id}
+                  name={item.title}
+                  imageUrl={item.imageUrl}
+                  icon={item.icon || "🎁"}
+                  description={item.description || ""}
+                  cost={item.cost}
+                  value={item.value}
+                  userXP={userXP}
+                  type={item.type}
+                  category={item.category}
+                  isOwned={
+                    item.type === "cosmetic"
+                      ? user?.inventory?.frames?.includes(item.id)
+                      : item.type === "badge"
+                        ? user?.inventory?.badges?.includes(item.id)
+                        : false
+                  }
+                  inventoryCount={
+                    item.type === "consumable"
+                      ? user?.inventory?.streak_freeze || 0
+                      : undefined
+                  }
+                  onBuy={handleBuy}
+                  isPurchasing={processingItem === item.id}
+                />
+              ))
+            )}
           </div>
         ) : (
           <div>
@@ -562,6 +505,7 @@ const ShopPage = () => {
 const ShopItemCard = ({
   id,
   name,
+  imageUrl,
   icon,
   description,
   cost,
@@ -585,11 +529,21 @@ const ShopItemCard = ({
 
       <div className="relative z-10">
         <div className="flex items-center gap-4 mb-4">
-          {/* Glowing Icon */}
+          {/* Glowing Icon or Image */}
           <div className="relative">
             <div className="absolute inset-0 bg-blue-500/30 blur-xl rounded-full animate-pulse" />
-            <div className="relative text-4xl sm:text-5xl drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-              {icon}
+            <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={name}
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
+                />
+              ) : (
+                <div className="text-4xl sm:text-5xl drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  {icon}
+                </div>
+              )}
             </div>
           </div>
           <div>

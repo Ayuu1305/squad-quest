@@ -15,6 +15,7 @@ import MyMissions from "./pages/MyMissions";
 import WorldGuide from "./pages/WorldGuide";
 import HeroJourney from "./pages/HeroJourney";
 import ShopPage from "./pages/ShopPage";
+import AdminDashboard from "./pages/AdminDashboard";
 import Navbar from "./components/Navbar";
 import { Toaster, toast } from "react-hot-toast"; // Added toast
 import { useGame } from "./context/GameContext";
@@ -367,6 +368,21 @@ function App() {
                   exit={{ opacity: 0, scale: 1.05 }}
                 >
                   <ShopPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/secret-admin"
+            element={
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                >
+                  <AdminDashboard />
                 </motion.div>
               </ProtectedRoute>
             }

@@ -81,7 +81,8 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
           import.meta.env.DEV ||
           import.meta.env.VITE_DEV_GPS_BYPASS === "true" ||
           window.location.hostname === "localhost";
-        const MAX_RADIUS = isDev ? 500000 : 500000;
+        const MAX_RADIUS = isDev ? 5000000 : 5000000;
+        // TODO: Change back to 200 meters for Production (Cafe Mode)
 
         console.table({
           "GPS Check": isDev
