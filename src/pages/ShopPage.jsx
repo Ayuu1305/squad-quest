@@ -449,7 +449,9 @@ const ShopPage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {/* Badges */}
                     {user?.inventory?.badges?.map((badgeId) => {
-                      const badge = SHOP_ITEMS[badgeId];
+                      const badge = shopItems.find(
+                        (item) => item.id === badgeId || item.sku === badgeId,
+                      );
                       if (!badge) return null;
                       return (
                         <div
@@ -457,10 +459,10 @@ const ShopPage = () => {
                           className="glassmorphism rounded-lg p-3 border border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-transparent"
                         >
                           <div className="text-3xl mb-1 text-center">
-                            {badge.icon}
+                            {badge.icon || "🎁"}
                           </div>
                           <p className="text-xs font-bold text-white text-center mb-1">
-                            {badge.name}
+                            {badge.title || badge.name}
                           </p>
                           <p className="text-[10px] text-purple-400 uppercase tracking-wider text-center">
                             Badge
@@ -470,28 +472,28 @@ const ShopPage = () => {
                     })}
 
                     {/* Cosmetics */}
-                    {user?.inventory?.frames
-                      ?.filter((frameId) => SHOP_ITEMS[frameId])
-                      .map((frameId) => {
-                        const cosmetic = SHOP_ITEMS[frameId];
-                        if (!cosmetic) return null;
-                        return (
-                          <div
-                            key={frameId}
-                            className="glassmorphism rounded-lg p-3 border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/10 to-transparent"
-                          >
-                            <div className="text-3xl mb-1 text-center">
-                              {cosmetic.icon}
-                            </div>
-                            <p className="text-xs font-bold text-white text-center mb-1">
-                              {cosmetic.name}
-                            </p>
-                            <p className="text-[10px] text-fuchsia-400 uppercase tracking-wider text-center">
-                              Cosmetic
-                            </p>
+                    {user?.inventory?.frames?.map((frameId) => {
+                      const cosmetic = shopItems.find(
+                        (item) => item.id === frameId || item.sku === frameId,
+                      );
+                      if (!cosmetic) return null;
+                      return (
+                        <div
+                          key={frameId}
+                          className="glassmorphism rounded-lg p-3 border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/10 to-transparent"
+                        >
+                          <div className="text-3xl mb-1 text-center">
+                            {cosmetic.icon || "🎁"}
                           </div>
-                        );
-                      })}
+                          <p className="text-xs font-bold text-white text-center mb-1">
+                            {cosmetic.title || cosmetic.name}
+                          </p>
+                          <p className="text-[10px] text-fuchsia-400 uppercase tracking-wider text-center">
+                            Cosmetic
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
