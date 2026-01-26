@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSwipeable } from "react-swipeable";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Award,
@@ -230,8 +231,26 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
     );
   };
 
+  // ✅ Internal Profile Swipe Handler
+  const tabs = ["dashboard", "card", "overview"];
+  const handlers = useSwipeable({
+    onSwipedLeft: () => {
+      const currIndex = tabs.indexOf(activeTab);
+      if (currIndex < tabs.length - 1) setActiveTab(tabs[currIndex + 1]);
+    },
+    onSwipedRight: () => {
+      const currIndex = tabs.indexOf(activeTab);
+      if (currIndex > 0) setActiveTab(tabs[currIndex - 1]);
+    },
+    preventScrollOnSwipe: false,
+    trackMouse: true,
+  });
+
   return (
-    <div className="w-full text-white font-sans px-4 sm:px-8 pb-8 relative">
+    <div
+      {...handlers}
+      className="w-full text-white font-sans px-4 sm:px-8 pb-8 relative"
+    >
       <AnimatePresence>
         {showGuide && <OnboardingGuide onClose={() => setShowGuide(false)} />}
       </AnimatePresence>

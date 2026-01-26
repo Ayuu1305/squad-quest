@@ -127,6 +127,14 @@ service cloud.firestore {
       }
     }
 
+
+  // ✅ ARCHIVED QUESTS (For Past Missions History)
+    match /archived_quests/{questId} {
+      allow read: if isAuthenticated(); // Allow users to read history
+      allow write: if false;            // 🔒 Locked: Only Backend can move items here
+    }
+
+
     // ✅ HUBS
     match /hubs/{hubId} {
       allow read: if true;

@@ -97,6 +97,19 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
 
   const rarity = getRarity(quest.difficulty || 1);
 
+  // ✅ Completed Quest Overrides
+  const isCompleted = quest.status === "completed";
+  const completedStyle = isCompleted
+    ? {
+        msg: "COMPLETED",
+        color: "#10b981", // emerald-500 (green)
+        shadow: "shadow-[0_0_30px_rgba(16,185,129,0.3)]",
+        border: "border-emerald-500/50",
+        bg: "bg-emerald-500/10",
+      }
+    : null;
+  const displayRarity = completedStyle || rarity;
+
   // Level Gating
   const THREAT_LEVEL_REQUIREMENTS = { 1: 0, 2: 10, 3: 25, 4: 40, 5: 50 };
   const requiredLevel = THREAT_LEVEL_REQUIREMENTS[quest.difficulty || 1] || 0;
@@ -156,19 +169,19 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
     <motion.div
       ref={cardRef}
       whileHover={{
-        scale: 1.02,
-        y: -5,
+        scale: isCompleted ? 1.01 : 1.02, // Less hover lift for completed
+        y: isCompleted ? -2 : -5,
         boxShadow: hotZoneActive
           ? `0 0 40px rgba(249, 115, 22, 0.4)` // Orange glow for Hot Zone
-          : `0 0 30px ${rarity.color}40`,
+          : `0 0 30px ${displayRarity.color}40`,
       }}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: isCompleted ? 0.7 : 1, y: 0 }} // ✅ Dim completed quests
       layout
       className={`glassmorphism-dark rounded-[24px] p-1 relative group overflow-hidden transition-all duration-300 ${
         hotZoneActive
           ? "border-orange-500/50 animate-[pulse_3s_infinite]"
-          : rarity.border
+          : displayRarity.border
       }`}
     >
       {/* Mobile Swipe Hint */}
@@ -183,7 +196,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
         style={{
           background: hotZoneActive
             ? `radial-gradient(circle at center, rgba(249, 115, 22, 0.2) 0%, transparent 80%)` // Hot Zone Glow
-            : `radial-gradient(circle at center, ${rarity.color}20 0%, transparent 70%)`,
+            : `radial-gradient(circle at center, ${displayRarity.color}20 0%, transparent 70%)`,
         }}
       />
 
@@ -228,23 +241,25 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
             </h3>
             {/* Tags Row */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Rarity + Level Badge */}
+              {/* Rarity + Level Badge (or COMPLETED Badge) */}
               <div
-                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${rarity.border} ${rarity.bg}`}
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${displayRarity.border} ${displayRarity.bg}`}
               >
                 <div
-                  className="w-1.5 h-1.5 rounded-full animate-pulse"
-                  style={{ backgroundColor: rarity.color }}
+                  className={`w-1.5 h-1.5 rounded-full ${isCompleted ? "" : "animate-pulse"}`}
+                  style={{ backgroundColor: displayRarity.color }}
                 />
                 <span
                   className="text-[9px] font-black uppercase tracking-widest"
-                  style={{ color: rarity.color }}
+                  style={{ color: displayRarity.color }}
                 >
-                  {rarity.msg}
+                  {displayRarity.msg}
                 </span>
-                <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest ml-1 pl-1 border-l border-white/10">
-                  LVL {quest.difficulty || 1}
-                </span>
+                {!isCompleted && (
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest ml-1 pl-1 border-l border-white/10">
+                    LVL {quest.difficulty || 1}
+                  </span>
+                )}
               </div>
 
               {/* Gender Tag */}
@@ -292,7 +307,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
               animate={{ width: `${(members.length / maxPlayers) * 100}%` }}
               transition={{ duration: 1, ease: "circOut" }}
               className="h-full relative overflow-hidden"
-              style={{ backgroundColor: rarity.color }}
+              style={{ backgroundColor: displayRarity.color }}
             >
               <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
             </motion.div>

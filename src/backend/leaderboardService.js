@@ -30,7 +30,7 @@ export const getTopHeroes = async (city, category = "xp") => {
       collection(db, "users"),
       where("city", "==", city),
       orderBy(field, "desc"),
-      limit(20),
+      limit(50), // ✅ Show top 50 users (increased from 20)
     );
 
     const snap = await getDocs(q);

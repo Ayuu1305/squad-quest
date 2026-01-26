@@ -5,6 +5,13 @@
   "hosting": {
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      {
+        "source": "/{www.}squad-quest-ca9f2.web.app/**",
+        "destination": "https://squad-quest-ca9f2.web.app/:path*",
+        "type": 301
+      }
+    ],
     "rewrites": [{ "source": "**", "destination": "/index.html" }]
   }
 }

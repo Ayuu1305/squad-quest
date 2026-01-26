@@ -23,6 +23,7 @@ import {
   BADGE_DEFINITIONS,
 } from "../utils/xp";
 import { getLevelProgress } from "../utils/leveling"; // 🎖️ For calculating level from lifetimeXP
+import { useShareCard } from "../hooks/useShareCard"; // ✅ Visual share hook
 
 const BACKEND_TO_DEF_ID = {
   SQUAD_LEADER: "leader",
@@ -38,6 +39,7 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
   const user = propUser || authUser;
   const cardRef = useRef(null);
   const [isFlipped, setIsFlipped] = useState(false);
+  const { shareCard } = useShareCard(); // ✅ Visual share functionality
 
   // --- STATS CALC ---
   const xp = user?.xp || 0; // Wallet balance
@@ -166,23 +168,9 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
     }
   };
 
-  const shareToWhatsApp = () => {
-    const text = `🕵️‍♂️ SQUAD QUEST IDENTITY VERIFIED\n\n👤 Operative: ${user?.name || "Unknown"}\n🎖 Tier: ${currentTier.name}\n⚡ Level: ${level}\n🔥 Streak: ${user?.daily_streak || 0}\n\nJoin the resistance: https://squad-quest-ca9f2.web.app`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  };
+  const shareToWhatsApp = () => shareCard(cardRef, user?.name);
 
-  const shareToInstagram = () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      window.location.href = "instagram://story-camera";
-      setTimeout(
-        () => window.open("https://www.instagram.com", "_blank"),
-        1000,
-      );
-    } else {
-      window.open("https://www.instagram.com", "_blank");
-    }
-  };
+  const shareToInstagram = () => shareCard(cardRef, user?.name);
 
   const flipCard = () => setIsFlipped(!isFlipped);
 

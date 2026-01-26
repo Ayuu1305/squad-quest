@@ -147,11 +147,13 @@ import { syncStreak } from "./controllers/streakController.js";
 import { updateAvatar } from "./controllers/userController.js"; // [NEW]
 import { verifyToken } from "./middleware/auth.js";
 import { initArchiver } from "./jobs/questArchiver.js";
+import { initCronJobs } from "./services/cronService.js"; // ✅ Weekly Reset Scheduler
 import {
   fixLifetimeXP,
   syncInventoryBadges,
   syncPublicAvatars,
 } from "./controllers/migrationController.js";
+import { adminForceReset } from "./controllers/weeklyResetController.js"; // ✅ Admin Reset
 
 // ----------------------------------------------------
 // 🛣️ API ROUTES
@@ -175,6 +177,7 @@ app.get("/api/shop/redemptions", verifyToken, getUserRedemptions);
 app.post("/api/admin/fix-lifetime-xp", verifyToken, fixLifetimeXP); // Admin only
 app.post("/api/admin/sync-inventory-badges", verifyToken, syncInventoryBadges); // Admin only
 app.post("/api/admin/sync-public-avatars", verifyToken, syncPublicAvatars); // Admin only
+app.post("/api/admin/reset-weekly-xp", adminForceReset); // ✅ Manual Reset (Secret protected)
 
 // 🔥 Streak Management
 app.post("/api/user/sync-streak", verifyToken, syncStreak);
@@ -208,5 +211,6 @@ app.listen(PORT, () => {
   console.log(`   Status: READY\n`);
 
   // Initialize scheduled jobs
-  initArchiver(db);
+  initArchiver(db); // ✅ Quest archiver (daily 3 AM)
+  initCronJobs(); // ✅ Weekly XP reset (Monday 00:00 IST)
 });

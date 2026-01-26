@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSwipeable } from "react-swipeable";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, ChevronRight, Trophy } from "lucide-react";
@@ -20,6 +21,7 @@ const MyMissions = () => {
 
   const [activeTab, setActiveTab] = useState("upcoming");
   const [quests, setQuests] = useState([]);
+  const [archivedQuests, setArchivedQuests] = useState([]); // ✅ Archived completed quests
   const [hubs, setHubs] = useState({}); // ✅ Map: { [hubId]: hubData }
   const [loading, setLoading] = useState(true);
 
@@ -59,6 +61,65 @@ const MyMissions = () => {
         if (error?.code === "permission-denied") return;
         console.warn("MyMissions: Query error:", error?.code);
         setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // ✅ Fetch archived completed quests from archived_quests collection
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    // Query archived_quests collection for completed missions only
+    const archivedQuery = query(
+      collection(db, "archived_quests"),
+      where("members", "array-contains", user.uid),
+      where("status", "==", "completed"), // ✅ Filter out archived 'open' quests
+    );
+
+    const unsubscribe = onSnapshot(
+      archivedQuery,
+      (snapshot) => {
+        // ✅ VERIFICATION: Log raw document count
+        const allDocs = snapshot.docs;
+        console.log("\n📊 [MyMissions] ARCHIVED QUESTS VERIFICATION:");
+        console.log(`   Total documents in archived_quests: ${allDocs.length}`);
+
+        // Count by status
+        const statusCounts = {};
+        allDocs.forEach((doc) => {
+          const status = doc.data().status || "undefined";
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+        console.log("   Status breakdown:", statusCounts);
+
+        const archived = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        console.log(
+          `   Documents matching query (completed only): ${archived.length}`,
+        );
+        console.log("   ✅ This is what will be shown in Past Missions\n");
+
+        setArchivedQuests(archived);
+      },
+      (error) => {
+        // ✅ Graceful error handling - don't crash if index missing or permission denied
+        if (
+          error?.code === "permission-denied" ||
+          error?.code === "failed-precondition"
+        ) {
+          console.warn(
+            "MyMissions: Archived quests query error (non-critical):",
+            error?.code,
+          );
+          setArchivedQuests([]); // Return empty array, show only recent history
+          return;
+        }
+        console.warn("MyMissions: Archived query error:", error?.code);
+        setArchivedQuests([]);
       },
     );
 
@@ -109,7 +170,21 @@ const MyMissions = () => {
   };
 
   const upcomingMissions = quests.filter((q) => !isPast(q));
-  const pastMissions = quests.filter((q) => isPast(q));
+
+  // ✅ Merge Past Missions: Recent (from quests) + Deep History (from archived_quests)
+  const pastMissions = [
+    ...quests.filter((q) => isPast(q)),
+    ...archivedQuests,
+  ].sort((a, b) => {
+    // Sort by updatedAt descending (most recent first)
+    const timeA = a.updatedAt?.toDate
+      ? a.updatedAt.toDate()
+      : new Date(a.updatedAt || 0);
+    const timeB = b.updatedAt?.toDate
+      ? b.updatedAt.toDate()
+      : new Date(b.updatedAt || 0);
+    return timeB - timeA;
+  });
 
   // Debug: Log filter results
   console.log(
@@ -123,8 +198,16 @@ const MyMissions = () => {
   const displayQuests =
     activeTab === "upcoming" ? upcomingMissions : pastMissions;
 
+  // ✅ Internal Swipe Handler
+  const handlers = useSwipeable({
+    onSwipedLeft: () => setActiveTab("past"),
+    onSwipedRight: () => setActiveTab("upcoming"),
+    preventScrollOnSwipe: false,
+    trackMouse: true,
+  });
+
   return (
-    <div className="app-container min-h-screen pb-32 bg-dark-bg">
+    <div {...handlers} className="app-container min-h-screen pb-32 bg-dark-bg">
       {/* Header */}
       <header className="pt-12 pb-8 px-6">
         <div className="flex items-center justify-between mb-6">

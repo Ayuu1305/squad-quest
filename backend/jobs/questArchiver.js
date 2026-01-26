@@ -13,7 +13,7 @@ import cron from "node-cron";
  * When true: Only logs what WOULD be archived
  * When false: Executes actual batch operations
  */
-const DRY_RUN = true;
+const DRY_RUN = false;
 
 /**
  * Archive threshold in days
@@ -82,7 +82,7 @@ async function archiveOldQuests(db) {
     // Query for completed quests older than the threshold
     const questsRef = db.collection("quests");
     const snapshot = await questsRef
-      .where("status", "==", "completed")
+      // .where("status", "==", "completed") //removed
       .where("updatedAt", "<", cutoffDate)
       .get();
 

@@ -25,6 +25,9 @@ import { messaging, db } from "./backend/firebaseConfig"; // Added Messaging & D
 import { getToken, onMessage } from "firebase/messaging"; // Added FCM functions
 import { doc, updateDoc } from "firebase/firestore"; // Added Firestore functions
 import MaintenanceBanner from "./components/MaintenanceBanner"; // ✅ Quota exhaustion banner
+import RewardModal from "./components/RewardModal"; // ✅ Reward Popup
+import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
+import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
 
 // Protects routes that require both login AND city selection
 const ProtectedRoute = ({ children }) => {
@@ -163,6 +166,7 @@ function App() {
         <GenderSelectionModal />
       )}
 
+      <SwipeWrapper>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           {/* Public Auth Routes */}
@@ -392,9 +396,14 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AnimatePresence>
+      </SwipeWrapper>
 
       {showNavbar && <Navbar />}
       <Toaster position="top-center" reverseOrder={false} />
+
+      {/* ✅ REWARD SYSTEM - Global Components */}
+      <RewardModal />
+      <RewardListener />
     </div>
   );
 }

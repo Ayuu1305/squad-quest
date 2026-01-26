@@ -66,6 +66,7 @@ export const onboardHero = async (user) => {
         // ✅ Stats for Leaderboard & Indexing
         xp: 0,
         thisWeekXP: 0,
+        lifetimeXP: 0, // ✅ All-Time leaderboard ranking
         level: 1,
         reliabilityScore: 100,
         questsCompleted: 0,
@@ -79,6 +80,7 @@ export const onboardHero = async (user) => {
       await setDoc(userStatsRef, {
         xp: 0,
         thisWeekXP: 0,
+        lifetimeXP: 0, // ✅ Total XP earned (never decreases)
         level: 1,
         reliabilityScore: 100,
         badges: [],
@@ -848,4 +850,41 @@ export const editQuestAPI = async (questId, updates) => {
     throw new Error(data.error || "Failed to edit quest");
   }
   return data;
+};
+
+/**
+ * Mark a reward as claimed to prevent re-showing on page refresh
+ * @param {string} uid - User ID
+ * @param {string} type - Reward type: "LEVEL", "BADGE", or "RANK"
+ * @param {any} value - The value to persist (level number, badge ID, or rank name)
+ */
+export const markRewardAsClaimed = async (uid, type, value) => {
+  if (!uid) {
+    console.warn("❌ [markRewardAsClaimed] No UID provided");
+    return;
+  }
+
+  try {
+    const userRef = doc(db, "users", uid);
+
+    if (type === "LEVEL") {
+      await updateDoc(userRef, {
+        "claimedRewards.lastClaimedLevel": value,
+      });
+      console.log(`✅ Marked Level ${value} as claimed for user ${uid}`);
+    } else if (type === "BADGE") {
+      await updateDoc(userRef, {
+        "claimedRewards.claimedBadges": arrayUnion(value),
+      });
+      console.log(`✅ Marked Badge ${value} as claimed for user ${uid}`);
+    } else if (type === "RANK") {
+      await updateDoc(userRef, {
+        "claimedRewards.lastClaimedRank": value,
+      });
+      console.log(`✅ Marked Rank ${value} as claimed for user ${uid}`);
+    }
+  } catch (error) {
+    console.error("❌ Failed to mark reward as claimed:", error);
+    // Don't throw - allow dismissal to proceed even if write fails
+  }
 };

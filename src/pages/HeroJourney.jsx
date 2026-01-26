@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, Zap, ChevronRight, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,14 +5,11 @@ import { useAuth } from "../context/AuthContext";
 import SpaceParticles from "../components/SpaceParticles";
 import MilestoneNode from "../components/MilestoneNode";
 import HowToPlayGuide from "../components/HowToPlayGuide";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../backend/firebaseConfig";
+import { getLevelProgress } from "../utils/leveling";
 
 const HeroJourney = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
 
   const milestones = [
     { level: 5, reward: "First Strike Pack" },
@@ -23,26 +19,29 @@ const HeroJourney = () => {
     { level: 100, reward: "Legendary Title" },
   ];
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchUser = async () => {
-      const docSnap = await getDoc(doc(db, "users", user.uid));
-      if (docSnap.exists()) {
-        setUserData(docSnap.data());
-      }
-      setLoading(false);
-    };
-    fetchUser();
-  }, [user]);
+  // Match Profile page logic: Calculate level from lifetimeXP
+  const xp = user?.xp || 0; // Spendable currency
+  const lifetime = user?.lifetimeXP || xp; // Total earned (fallback to xp if not set yet)
 
-  const currentLevel = userData?.level || 1;
+  // Calculate level using the same utility function as Profile page
+  const {
+    xpIntoLevel: xpInLevel,
+    xpForNextLevel: nextTargetXP,
+    progressPercent,
+    level: calcLevel,
+  } = getLevelProgress(lifetime, xp); // 🏆 Use lifetimeXP for level calculation
+
+  // FORCE SYNC: Use calculated level as the source of truth for UI (same as Profile)
+  const currentLevel = calcLevel;
+
   const nextMilestone =
     milestones.find((m) => m.level > currentLevel) ||
     milestones[milestones.length - 1];
   const prevMilestoneLevel =
     [...milestones].reverse().find((m) => m.level <= currentLevel)?.level || 0;
 
-  const progressToNext =
+  // Calculate progress to next milestone (for UI display)
+  const progressToNextMilestone =
     ((currentLevel - prevMilestoneLevel) /
       (nextMilestone.level - prevMilestoneLevel)) *
     100;
@@ -110,7 +109,7 @@ const HeroJourney = () => {
           <div className="relative h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${progressToNext}%` }}
+              animate={{ width: `${progressToNextMilestone}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-neon-purple via-blue-500 to-neon-purple bg-[length:200%_auto] animate-gradient shadow-[0_0_15px_#a855f7]"
             />
@@ -118,7 +117,7 @@ const HeroJourney = () => {
 
           <div className="flex justify-between mt-3">
             <span className="text-[9px] font-mono text-gray-600 uppercase tracking-[0.2em]">
-              Synchronization: {Math.round(progressToNext)}%
+              Synchronization: {Math.round(progressToNextMilestone)}%
             </span>
             <div className="flex items-center gap-1.5 text-[9px] font-black text-neon-purple uppercase tracking-widest">
               <Target className="w-3 h-3 animate-pulse" />

@@ -6,6 +6,7 @@ import "./index.css";
 import App from "./App.jsx";
 import { GameProvider } from "./context/GameContext";
 import { AuthProvider } from "./context/AuthContext";
+import { RewardProvider } from "./context/RewardContext";
 
 const helmetContext = {};
 
@@ -14,9 +15,11 @@ createRoot(document.getElementById("root")).render(
     <HelmetProvider context={helmetContext}>
       <BrowserRouter>
         <AuthProvider>
-          <GameProvider>
-            <App />
-          </GameProvider>
+          <RewardProvider>
+            <GameProvider>
+              <App />
+            </GameProvider>
+          </RewardProvider>
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>

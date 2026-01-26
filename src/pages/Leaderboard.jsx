@@ -326,18 +326,17 @@ const Leaderboard = () => {
               </AnimatePresence>
             </div>
 
-            {/* ✅ Pinned "Your Position" */}
+            {/* ✅ Pinned "Your Position" with Standard Style */}
             {myStats && !heroes.some((h) => h.id === user?.uid) && (
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="mt-12 p-1 rounded-[2.5rem] bg-gradient-to-r from-neon-purple/20 via-neon-purple/5 to-transparent border border-neon-purple/30 backdrop-blur-xl relative overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 w-1 h-full bg-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
-                <div className="px-6 pt-4 pb-1 text-[10px] font-black text-neon-purple uppercase tracking-[0.3em] flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-neon-purple animate-ping" />
-                  Your Current Standing
+              <>
+                {/* Simple Divider */}
+                <div className="my-4 flex items-center justify-center gap-2 opacity-50">
+                  <div className="w-1 h-1 rounded-full bg-gray-500" />
+                  <div className="w-1 h-1 rounded-full bg-gray-500" />
+                  <div className="w-1 h-1 rounded-full bg-gray-500" />
                 </div>
+
+                {/* Standard Card Style */}
                 <LeaderboardItem
                   hero={myStats}
                   rank={userRank || "??"}
@@ -345,7 +344,7 @@ const Leaderboard = () => {
                   onClick={setSelectedHero}
                   category={category}
                 />
-              </motion.div>
+              </>
             )}
           </div>
         )}
