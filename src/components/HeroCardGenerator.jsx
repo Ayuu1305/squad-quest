@@ -34,7 +34,7 @@ const BACKEND_TO_DEF_ID = {
   PHILOSOPHER: "intellectual",
 };
 
-const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
+const HeroCardGenerator = ({ user: propUser, showActions = true, onShare }) => {
   const { user: authUser } = useAuth();
   const user = propUser || authUser;
   const cardRef = useRef(null);
@@ -433,7 +433,7 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleDownload}
+            onClick={onShare || handleDownload}
             className="w-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white font-black py-4 rounded-xl uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(147,51,234,0.3)] border border-purple-400/30 relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSwipeable } from "react-swipeable";
 import { motion, AnimatePresence } from "framer-motion";
+import { toPng, toBlob } from "html-to-image";
 import {
   Award,
   MapPin,
@@ -18,6 +19,7 @@ import {
   BookOpen,
   Info,
   Loader,
+  Flame,
 } from "lucide-react";
 import {
   levelProgress,
@@ -76,6 +78,398 @@ const HeroicStatItem = ({
   </motion.div>
 );
 
+const HeroCardExport = ({
+  user,
+  tier,
+  stats,
+  level,
+  progressPercent,
+  lifetime,
+  xpNeeded,
+}) => {
+  const avatarSeed =
+    user?.avatarSeed || user?.uid || user?.email || "hero-default";
+  const tierName = tier?.name || "Recruit";
+
+  return (
+    <div
+      style={{
+        width: "350px",
+        height: "600px",
+        background: "#0f0f23",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        padding: "32px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Card Container */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          background: "rgba(15, 7, 32, 0.9)",
+          borderRadius: "24px",
+          border: "1px solid rgba(168, 85, 247, 0.3)",
+          overflow: "hidden",
+          boxShadow: "0 0 50px rgba(168, 85, 247, 0.3)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "24px",
+        }}
+      >
+        {/* Top Glow */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "4px",
+            background:
+              "linear-gradient(90deg, transparent, #a855f7, transparent)",
+            opacity: 0.8,
+          }}
+        />
+
+        {/* Header */}
+        <div
+          style={{
+            position: "relative",
+            background:
+              "linear-gradient(90deg, rgba(88, 28, 135, 0.5), transparent)",
+            padding: "12px 0",
+            borderBottom: "1px solid rgba(168, 85, 247, 0.2)",
+            marginBottom: "24px",
+          }}
+        >
+          <h2
+            style={{
+              textAlign: "center",
+              color: "rgba(255, 255, 255, 0.9)",
+              fontWeight: 900,
+              letterSpacing: "0.3em",
+              fontSize: "14px",
+              textTransform: "uppercase",
+              fontFamily: "Orbitron, sans-serif",
+              textShadow: "0 0 5px rgba(168, 85, 247, 0.8)",
+            }}
+          >
+            IDENTITY MODULE
+          </h2>
+        </div>
+
+        {/* Avatar */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "24px",
+          }}
+        >
+          <div
+            style={{
+              width: "128px",
+              height: "128px",
+              borderRadius: "50%",
+              overflow: "hidden",
+              border: "4px solid #1a1a2e",
+              boxShadow: "0 0 30px rgba(168, 85, 247, 0.5)",
+              background: "#000",
+            }}
+          >
+            <HeroAvatar
+              seed={avatarSeed}
+              tierName={tierName}
+              size={128}
+              equippedFrame={user?.equippedFrame}
+              imgProps={{ crossOrigin: "anonymous" }}
+            />
+          </div>
+        </div>
+
+        {/* Name & Tier */}
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "20px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "24px",
+              fontWeight: 900,
+              color: "#fff",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              fontFamily: "Orbitron, sans-serif",
+              textShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
+              marginBottom: "8px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {user?.name || "OPERATIVE"}
+          </h1>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background:
+                "linear-gradient(90deg, rgba(88,28,135,0) 0%, rgba(88,28,135,0.6) 50%, rgba(88,28,135,0) 100%)",
+              padding: "4px 32px",
+            }}
+          >
+            <Award
+              style={{
+                width: "16px",
+                height: "16px",
+                color: tierName === "Gold" ? "#fbbf24" : "#a855f7",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: "bold",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: tierName === "Gold" ? "#fbbf24" : "#a855f7",
+              }}
+            >
+              {tierName} TIER
+            </span>
+          </div>
+        </div>
+
+        {/* XP Bar */}
+        <div
+          style={{
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "10px",
+              fontWeight: "bold",
+              color: "rgba(196, 181, 253, 0.8)",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              marginBottom: "4px",
+            }}
+          >
+            <span>Level {level}</span>
+            <span style={{ color: "#fff" }}>
+              {Math.floor(lifetime)} / {Math.floor(lifetime + xpNeeded)} XP
+            </span>
+          </div>
+          <div
+            style={{
+              height: "12px",
+              background: "rgba(0, 0, 0, 0.6)",
+              borderRadius: "4px",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background: "linear-gradient(90deg, #7c3aed, #d946ef, #ec4899)",
+                width: `${progressPercent}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "12px",
+            marginBottom: "20px",
+          }}
+        >
+          {stats.map((stat, i) => {
+            const IconComponent = stat.icon;
+            return (
+              <div
+                key={i}
+                style={{
+                  background: "rgba(88, 28, 135, 0.1)",
+                  border: "1px solid rgba(168, 85, 247, 0.2)",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                }}
+              >
+                <IconComponent
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    color: "#a855f7",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "9px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {stat.label}
+                </span>
+                <span
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 900,
+                    color: "#fbbf24",
+                    fontFamily: "Orbitron, sans-serif",
+                  }}
+                >
+                  {stat.value}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            marginTop: "auto",
+            paddingTop: "16px",
+            borderTop: "1px solid rgba(168, 85, 247, 0.2)",
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "10px",
+              color: "rgba(255, 255, 255, 0.4)",
+              fontFamily: "monospace",
+            }}
+          >
+            ID: {user?.uid?.substring(0, 8) || "UNKNOWN"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CardPreviewModal = ({
+  user,
+  tier,
+  stats,
+  level,
+  progressPercent,
+  lifetime,
+  xpNeeded,
+  onClose,
+}) => {
+  const handleDownload = async () => {
+    try {
+      const element = document.getElementById("clean-export-target");
+      if (!element) return;
+
+      const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement("a");
+      link.download = `${user?.name || "operative"}-squad-id.png`;
+      link.href = dataUrl;
+      link.click();
+      onClose();
+    } catch (err) {
+      console.error("Export failed", err);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    try {
+      const element = document.getElementById("clean-export-target");
+      if (!element) return;
+
+      const blob = await toBlob(element, { cacheBust: true, pixelRatio: 2 });
+      if (blob) {
+        const file = new File([blob], "squad-id.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "My Squad Quest ID",
+            text: "Check out my stats on Squad Quest!",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      // Fallback: If share fails, just download it
+      handleDownload();
+    }
+  };
+
+  const showShareButton = navigator.canShare;
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+      <h2 className="text-white font-['Orbitron'] text-xl mb-6 tracking-widest uppercase">
+        Preview Card
+      </h2>
+
+      <div className="relative shadow-2xl scale-[0.85] sm:scale-100 transition-transform">
+        <div id="clean-export-target">
+          <HeroCardExport
+            user={user}
+            tier={tier}
+            stats={stats}
+            level={level}
+            progressPercent={progressPercent}
+            lifetime={lifetime}
+            xpNeeded={xpNeeded}
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-4 mt-8">
+        <button
+          onClick={onClose}
+          className="px-6 py-3 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors"
+        >
+          Cancel
+        </button>
+
+        {showShareButton && (
+          <button
+            onClick={handleNativeShare}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-black uppercase tracking-wider shadow-lg hover:scale-105 transition-transform"
+          >
+            Share
+          </button>
+        )}
+
+        <button
+          onClick={handleDownload}
+          className="px-8 py-3 rounded-xl bg-gradient-to-r from-neon-purple to-pink-600 text-white font-black uppercase tracking-wider shadow-lg hover:scale-105 transition-transform"
+        >
+          Save to Device
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
   // Default to "overview" for new users (Level 1, 0 XP)
   const isNewUser =
@@ -84,7 +478,7 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
     isNewUser ? "overview" : "dashboard",
   );
   const [showGuide, setShowGuide] = useState(false);
-  const [showBadgeHelp, setShowBadgeHelp] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem("squad_quest_guide_seen");
@@ -151,6 +545,36 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
   // Consistent Seed for Avatar
   const avatarSeed =
     user.avatarSeed || user.uid || user.email || "hero-default";
+
+  // Stats for card export (matching HeroCardGenerator)
+  const stats = [
+    {
+      icon: Target,
+      label: "QUESTS",
+      value: user?.questsCompleted || 0,
+      color: "text-purple-400",
+    },
+    {
+      icon: Shield,
+      label: "RELIABILITY",
+      value: `${user?.reliabilityScore || 100}%`,
+      color: "text-purple-400",
+    },
+    {
+      icon: Flame,
+      label: "STREAK",
+      value: `${user?.daily_streak || 0}`,
+      color: "text-purple-400",
+    },
+  ];
+
+  // Get top 3 badges for display (matching HeroCardGenerator logic)
+  const displayBadges = badgeList.filter((b) => b.isUnlocked).slice(0, 3);
+
+  // Calculate XP needed for next level
+  const xpNeeded = nextTargetXP - xpInLevel;
+
+  // Capture card function for export
 
   /* Enhanced Tier Badge Component - Optimized for Overlay */
   const TierBadge = ({ tier, small = false }) => {
@@ -555,7 +979,10 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
               exit={{ opacity: 0 }}
               className="py-8 flex flex-col items-center justify-center min-h-[50vh]"
             >
-              <HeroCardGenerator user={user} />
+              <HeroCardGenerator
+                user={user}
+                onShare={() => setShowShareModal(true)}
+              />
               <button
                 className="mt-8 bg-white text-black font-black uppercase text-xs px-8 py-3 rounded-full hover:scale-105 transition-transform shadow-xl"
                 onClick={() => setActiveTab("dashboard")}
@@ -566,6 +993,19 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
           )}
         </AnimatePresence>
       </div>
+
+      {showShareModal && (
+        <CardPreviewModal
+          user={user}
+          tier={currentTier}
+          stats={stats}
+          level={level}
+          progressPercent={progressPercent}
+          lifetime={lifetime}
+          xpNeeded={xpNeeded}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 };

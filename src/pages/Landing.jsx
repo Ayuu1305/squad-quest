@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Sparkles,
   MapPin,
@@ -7,34 +7,26 @@ import {
   Zap,
   Trophy,
   Users,
-  Lock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
 import { updateHeroProfile } from "../backend/firebaseService";
-import SEO from "../components/SEO"; // Added SEO Import
 
 const Landing = () => {
   const navigate = useNavigate();
   const { selectCity } = useGame();
   const { user } = useAuth();
-  const [selectedCity, setSelectedCity] = useState(null);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const cities = [
     { name: "Ahmedabad", status: "Active Sector", heroes: "1.2k" },
     { name: "Mumbai", status: "Coming Soon", heroes: "0" },
-    { name: "Delhi", status: "Coming Soon", heroes: "0" },
+    { name: "Bangalore", status: "Coming Soon", heroes: "0" },
   ];
-
-  const [comingSoonCity, setComingSoonCity] = useState(null);
 
   const handleCitySelect = async (cityName) => {
     if (cityName === "Ahmedabad") {
       try {
-        setIsAnimating(true);
-        setSelectedCity(cityName);
         if (user) {
           await updateHeroProfile(user.uid, { city: cityName });
         }
@@ -42,21 +34,12 @@ const Landing = () => {
         navigate("/board");
       } catch (error) {
         console.error("Failed to update realm:", error);
-        setIsAnimating(false);
-        setSelectedCity(null);
       }
-    } else {
-      setComingSoonCity(cityName);
-      setTimeout(() => setComingSoonCity(null), 3000);
     }
   };
 
   return (
     <div className="app-container min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <SEO
-        title="Home"
-        description="Join real-world quests and level up your life."
-      />
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
@@ -116,74 +99,21 @@ const Landing = () => {
                 <motion.button
                   key={city.name}
                   onClick={() => handleCitySelect(city.name)}
-                  className={`w-full p-4 rounded-xl transition-all duration-300 relative overflow-hidden group border ${
+                  className={`w-full p-4 rounded-lg transition-all duration-300 ${
                     selectedCity === city.name
-                      ? "bg-neon-purple/20 border-neon-purple text-white neon-glow"
-                      : city.status === "Coming Soon"
-                        ? "bg-black/40 border-white/5 text-gray-600 grayscale cursor-not-allowed opacity-60"
-                        : "glassmorphism border-white/10 hover:border-neon-purple/50 text-gray-300"
+                      ? "bg-neon-purple text-white neon-glow"
+                      : "glassmorphism hover:bg-white/20"
                   }`}
-                  whileHover={
-                    city.status !== "Coming Soon" ? { scale: 1.02 } : {}
-                  }
-                  whileTap={
-                    city.status !== "Coming Soon" ? { scale: 0.98 } : {}
-                  }
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   disabled={isAnimating}
                 >
-                  <div className="flex items-center justify-between relative z-10 text-left">
-                    <div>
-                      <span className="text-lg font-black font-['Orbitron'] uppercase italic tracking-tighter block">
-                        {city.name}
-                      </span>
-                      <span
-                        className={`text-[9px] font-black uppercase tracking-widest ${
-                          city.status === "Active Sector"
-                            ? "text-neon-purple"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {city.status}
-                      </span>
-                    </div>
-                    {city.status === "Active Sector" ? (
-                      <ChevronRight className="w-5 h-5 text-neon-purple group-hover:translate-x-1 transition-transform" />
-                    ) : (
-                      <Lock className="w-4 h-4 text-gray-700" />
-                    )}
-                  </div>
-                  {city.status === "Active Sector" && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-neon-purple/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  )}
+                  <span className="text-2xl mr-3">{city.emoji}</span>
+                  <span className="text-lg font-semibold">{city.name}</span>
                 </motion.button>
               ))}
             </div>
           </div>
-
-          {/* Coming Soon Alert */}
-          <AnimatePresence>
-            {comingSoonCity && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="mt-6 p-4 bg-neon-purple/10 border border-neon-purple/30 rounded-2xl flex items-center gap-3 text-left"
-              >
-                <div className="bg-neon-purple/20 p-2 rounded-lg">
-                  <Lock className="w-5 h-5 text-neon-purple" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase text-neon-purple tracking-widest">
-                    Sector Encrypted
-                  </div>
-                  <div className="text-xs text-gray-300 font-medium">
-                    {comingSoonCity} will open in the upcoming days. Ahmedabad
-                    is currently the only active Sector.
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Tagline */}
           <p className="text-sm text-gray-500 mt-6">

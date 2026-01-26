@@ -10,6 +10,7 @@ const HeroAvatar = ({
   className = "",
   aura = null, // 'gold', 'blue', 'silver', 'mythic'
   equippedFrame = null, // Direct prop override
+  imgProps = {}, // [NEW] Allow passing props to the img tag (e.g. crossOrigin)
 }) => {
   const { user: currentAuth } = useAuth();
 
@@ -132,6 +133,7 @@ const HeroAvatar = ({
             src={avatarUrl}
             alt="Hero Avatar"
             className="w-full h-full object-cover"
+            {...imgProps}
           />
         </div>
       </div>
@@ -171,6 +173,7 @@ const HeroAvatar = ({
           src={avatarUrl}
           alt="Hero Avatar"
           className="w-full h-full object-cover"
+          {...imgProps}
         />
       </div>
     </div>
