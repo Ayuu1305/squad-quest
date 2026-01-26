@@ -139,15 +139,44 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
     }
   };
 
+  const uploadToCloudinary = async (base64Image) => {
+    const formData = new FormData();
+    formData.append("file", base64Image);
+    formData.append("upload_preset", "users_profiles");
+    formData.append("cloud_name", "dxmsic7rl");
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/dxmsic7rl/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || "Image upload failed");
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
   const handleFinalSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      const payload = isSkipped ? false : photoPreview;
+      let payload = isSkipped ? false : null;
+
+      if (!isSkipped && photoPreview) {
+        payload = await uploadToCloudinary(photoPreview);
+      }
+
       await onVerificationComplete(payload);
     } catch (error) {
       console.error("Verification failed:", error);
+      alert("Upload Failed: " + (error.message || "Please try again."));
       setIsSubmitting(false);
     }
   };

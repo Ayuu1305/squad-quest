@@ -9,12 +9,12 @@ const SwipeWrapper = ({ children }) => {
   // ✅ 1. Define the Tab Order (Left to Right)
   // This matches your Bottom Navbar order exactly.
   const tabs = [
-    "/board",       // 1. Quests (Home)
-    "/journey",     // 2. Journey
+    "/board", // 1. Quests (Home)
+    "/journey", // 2. Journey
     "/leaderboard", // 3. Heroes
-    "/shop",        // 4. Shop
+    "/shop", // 4. Shop
     "/my-missions", // 5. Missions
-    "/profile"      // 6. Profile
+    "/profile", // 6. Profile
   ];
 
   // ✅ Pages that have their OWN internal swipes (Block Global Swipe here)
@@ -38,9 +38,10 @@ const SwipeWrapper = ({ children }) => {
   const handlers = useSwipeable({
     onSwipedLeft: () => handleSwipe("LEFT"),
     onSwipedRight: () => handleSwipe("RIGHT"),
-    preventScrollOnSwipe: false, // Important: Allows scrolling down!
-    trackMouse: false,           // Set to true if you want to test with mouse on PC
-    delta: 50,                   // Minimum swipe distance (px) to trigger
+    preventScrollOnSwipe: false,
+    trackMouse: false,
+    delta: 100, // Increased from 50 to 100 (longer swipe needed)
+    swipeDuration: 250, // Only allow swipes under 250ms (prevents slow drags)
   });
 
   return (

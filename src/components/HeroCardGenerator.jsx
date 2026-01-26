@@ -148,14 +148,16 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
   ];
 
   const handleDownload = async () => {
-    if (!cardRef.current) return;
+    const ghostCard = document.getElementById("share-export-view");
+    if (!ghostCard) return;
+
     const toastId = toast.loading("Resin printing identity card...");
     try {
-      const dataUrl = await toPng(cardRef.current, {
+      // ✅ Capture the GHOST card, best quality, no flipping
+      const dataUrl = await toPng(ghostCard, {
         cacheBust: true,
         pixelRatio: 2,
-        backgroundColor: "transparent",
-        style: { transform: "none" }, // Reset transform for clean capture
+        backgroundColor: "#000000", // Force black bg
       });
       const link = document.createElement("a");
       link.download = `${user?.name || "operative"}-identity-card.png`;
@@ -168,9 +170,15 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
     }
   };
 
-  const shareToWhatsApp = () => shareCard(cardRef, user?.name);
+  // ✅ Pass the GHOST element to the share hook
+  // We create a mock ref object because the hook expects a ref
+  const getGhostRef = () => ({
+    current: document.getElementById("share-export-view"),
+  });
 
-  const shareToInstagram = () => shareCard(cardRef, user?.name);
+  const shareToWhatsApp = () => shareCard(getGhostRef(), user?.name);
+
+  const shareToInstagram = () => shareCard(getGhostRef(), user?.name);
 
   const flipCard = () => setIsFlipped(!isFlipped);
 
@@ -451,6 +459,148 @@ const HeroCardGenerator = ({ user: propUser, showActions = true }) => {
           </p>
         </div>
       )}
+      {/* --- GHOST CARD FOR EXPORT (Hidden) --- */}
+      <div
+        id="share-export-view"
+        className="fixed top-0 left-[-9999px] w-[350px] bg-[#0f0f23] z-[-10] p-4 rounded-3xl"
+        style={{ width: "350px", height: "auto", minHeight: "550px" }} // Fixed width for consistent export
+      >
+        <div className="relative w-full bg-[#0f0720]/90 backdrop-blur-xl rounded-3xl border border-purple-500/30 overflow-hidden shadow-2xl">
+          {/* Top Gold/Purple Glow */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-80" />
+
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-purple-900/50 to-transparent py-3 border-b border-purple-500/20">
+            <h2 className="text-center text-white/90 font-black tracking-[0.3em] text-sm uppercase font-['Orbitron']">
+              IDENTITY MODULE
+            </h2>
+          </div>
+
+          <div className="p-8 space-y-6">
+            {/* Avatar Ring */}
+            <div className="relative flex justify-center py-4">
+              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#1a1a2e] shadow-[0_0_30px_rgba(168,85,247,0.5)] z-10 bg-black">
+                <HeroAvatar
+                  user={user}
+                  seed={avatarSeed}
+                  tierName={currentTier.name}
+                  size={128}
+                />
+              </div>
+            </div>
+
+            {/* Name & Tier */}
+            <div className="text-center space-y-2 relative z-10">
+              <h1 className="text-3xl font-black text-white tracking-widest uppercase font-['Orbitron'] truncate">
+                {user?.name || "OPERATIVE"}
+              </h1>
+              <div
+                className="inline-flex items-center gap-2 px-8 py-1 mx-auto"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(88,28,135,0) 0%, rgba(88,28,135,0.6) 50%, rgba(88,28,135,0) 100%)",
+                }}
+              >
+                <Award
+                  className={`w-4 h-4 ${
+                    currentTier.name === "Gold"
+                      ? "text-yellow-400"
+                      : "text-purple-400"
+                  }`}
+                />
+                <span
+                  className={`text-xs font-bold tracking-[0.2em] uppercase ${
+                    currentTier.name === "Gold"
+                      ? "text-yellow-400"
+                      : "text-purple-400"
+                  }`}
+                >
+                  {currentTier.name} TIER
+                </span>
+              </div>
+            </div>
+
+            {/* XP Bar */}
+            <div className="space-y-1 relative z-10">
+              <div className="flex justify-between text-[10px] font-bold text-purple-300/80 uppercase tracking-widest">
+                <span>Level {level}</span>
+                <span className="text-white">
+                  {Math.floor(lifetimeXP)} / {Math.floor(lifetimeXP + xpNeeded)}{" "}
+                  XP
+                </span>
+              </div>
+              <div className="h-3 bg-black/60 rounded-sm border border-white/10 relative overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 relative"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3 relative z-10">
+              {stats.map((stat, i) => (
+                <div
+                  key={i}
+                  className="bg-purple-900/10 border border-purple-500/20 rounded-xl p-3 flex flex-col items-center justify-center gap-1"
+                >
+                  {/* Render icon as component since it's a ref in the main loop */}
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                  <span className="text-[9px] text-white/50 font-bold uppercase">
+                    {stat.label}
+                  </span>
+                  <span className="text-sm font-black text-yellow-400 font-['Orbitron']">
+                    {stat.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Badges */}
+            <div className="relative z-10 space-y-2">
+              <h3 className="text-center text-[10px] font-bold text-purple-300/50 uppercase tracking-[0.3em]">
+                Recent Acquisitions
+              </h3>
+              <div className="flex justify-center gap-4">
+                {displayBadges.length > 0 ? (
+                  displayBadges.map((badge, i) => (
+                    <div key={i} className="relative">
+                      <div className="w-12 h-12 rounded-full bg-[#1a0f2e] border border-yellow-400/30 flex items-center justify-center shadow-lg">
+                        <span className="text-2xl">{badge.icon}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-white/20 text-xs italic">
+                    No badges earned yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-purple-500/20 flex items-center justify-between relative z-10 bg-[#0f0720]/50">
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-1 rounded">
+                <QrCode className="w-8 h-8 text-indigo-900" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                  <span className="text-[9px] text-purple-300 font-bold uppercase tracking-wider">
+                    Biometric Sync
+                  </span>
+                </div>
+                <p className="text-[10px] text-white/90 font-mono">
+                  ID: {user?.uid?.substring(0, 8) || "UNKNOWN"}
+                </p>
+              </div>
+            </div>
+            <Fingerprint className="w-10 h-10 text-purple-500/20" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
