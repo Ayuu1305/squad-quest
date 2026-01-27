@@ -16,6 +16,7 @@ import WorldGuide from "./pages/WorldGuide";
 import HeroJourney from "./pages/HeroJourney";
 import ShopPage from "./pages/ShopPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import Settings from "./pages/Settings";
 import Navbar from "./components/Navbar";
 import { Toaster, toast } from "react-hot-toast"; // Added toast
 import { useGame } from "./context/GameContext";
@@ -167,235 +168,250 @@ function App() {
       )}
 
       <SwipeWrapper>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          {/* Public Auth Routes */}
-          <Route
-            path="/login"
-            element={
-              <AuthRoute>
-                <Login />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <AuthRoute>
-                <Signup />
-              </AuthRoute>
-            }
-          />
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            {/* Public Auth Routes */}
+            <Route
+              path="/login"
+              element={
+                <AuthRoute>
+                  <Login />
+                </AuthRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <AuthRoute>
+                  <Signup />
+                </AuthRoute>
+              }
+            />
 
-          {/* Protected Main Flow */}
-          <Route
-            path="/"
-            element={
-              <CitySelectionRoute>
-                <Landing />
-              </CitySelectionRoute>
-            }
-          />
+            {/* Protected Main Flow */}
+            <Route
+              path="/"
+              element={
+                <CitySelectionRoute>
+                  <Landing />
+                </CitySelectionRoute>
+              }
+            />
 
-          <Route
-            path="/board"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <QuestBoard />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/board"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <QuestBoard />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/quest/:id"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                >
-                  <QuestDetails />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/quest/:id"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                  >
+                    <QuestDetails />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/create-quest"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -50 }}
-                >
-                  <CreateQuest />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/create-quest"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -50 }}
+                  >
+                    <CreateQuest />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/lobby/:id"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -50 }}
-                >
-                  <Lobby />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/lobby/:id"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -50 }}
+                  >
+                    <Lobby />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/verify/:id"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.1 }}
-                >
-                  <Verification />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/verify/:id"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.1 }}
+                  >
+                    <Verification />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/review/:id"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <Review />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/review/:id"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <Review />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/my-missions"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -50 }}
-                >
-                  <MyMissions />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/my-missions"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -50 }}
+                  >
+                    <MyMissions />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/profile"
-            element={
-              <UserProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 50 }}
-                >
-                  <Profile />
-                </motion.div>
-              </UserProtectedRoute>
-            }
-          />
+            <Route
+              path="/profile"
+              element={
+                <UserProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 50 }}
+                  >
+                    <Profile />
+                  </motion.div>
+                </UserProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/leaderboard"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <Leaderboard />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <Leaderboard />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/journey"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                >
-                  <HeroJourney />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/journey"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                  >
+                    <HeroJourney />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/world-guide"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                >
-                  <WorldGuide />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/world-guide"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                  >
+                    <WorldGuide />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/shop"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                >
-                  <ShopPage />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/shop"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                  >
+                    <ShopPage />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/secret-admin"
-            element={
-              <ProtectedRoute>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                >
-                  <AdminDashboard />
-                </motion.div>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/settings"
+              element={
+                <UserProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                  >
+                    <Settings />
+                  </motion.div>
+                </UserProtectedRoute>
+              }
+            />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </AnimatePresence>
+            <Route
+              path="/secret-admin"
+              element={
+                <ProtectedRoute>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                  >
+                    <AdminDashboard />
+                  </motion.div>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </AnimatePresence>
       </SwipeWrapper>
 
       {showNavbar && <Navbar />}

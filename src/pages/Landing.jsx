@@ -7,6 +7,7 @@ import {
   Zap,
   Trophy,
   Users,
+  Lock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
@@ -15,18 +16,20 @@ import { updateHeroProfile } from "../backend/firebaseService";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { selectCity } = useGame();
+  const { city, selectCity } = useGame();
   const { user } = useAuth();
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const cities = [
-    { name: "Ahmedabad", status: "Active Sector", heroes: "1.2k" },
-    { name: "Mumbai", status: "Coming Soon", heroes: "0" },
-    { name: "Bangalore", status: "Coming Soon", heroes: "0" },
+    { name: "Ahmedabad", status: "Active Sector", heroes: "1.2k", emoji: "🏙️" },
+    { name: "Mumbai", status: "Coming Soon", heroes: "0", emoji: "🌊" },
+    { name: "Bangalore", status: "Coming Soon", heroes: "0", emoji: "💻" },
   ];
 
   const handleCitySelect = async (cityName) => {
     if (cityName === "Ahmedabad") {
       try {
+        setIsAnimating(true);
         if (user) {
           await updateHeroProfile(user.uid, { city: cityName });
         }
@@ -34,6 +37,7 @@ const Landing = () => {
         navigate("/board");
       } catch (error) {
         console.error("Failed to update realm:", error);
+        setIsAnimating(false);
       }
     }
   };
@@ -95,23 +99,37 @@ const Landing = () => {
             </div>
 
             <div className="space-y-3">
-              {cities.map((city) => (
-                <motion.button
-                  key={city.name}
-                  onClick={() => handleCitySelect(city.name)}
-                  className={`w-full p-4 rounded-lg transition-all duration-300 ${
-                    selectedCity === city.name
-                      ? "bg-neon-purple text-white neon-glow"
-                      : "glassmorphism hover:bg-white/20"
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={isAnimating}
-                >
-                  <span className="text-2xl mr-3">{city.emoji}</span>
-                  <span className="text-lg font-semibold">{city.name}</span>
-                </motion.button>
-              ))}
+              {cities.map((cityOption) => {
+                const isLocked = cityOption.status === "Coming Soon";
+                return (
+                  <motion.button
+                    key={cityOption.name}
+                    onClick={() =>
+                      !isLocked && handleCitySelect(cityOption.name)
+                    }
+                    disabled={isLocked || isAnimating}
+                    className={`w-full p-4 rounded-lg transition-all duration-300 ${
+                      isLocked
+                        ? "bg-gray-800/50 border border-gray-700 opacity-50 cursor-not-allowed grayscale"
+                        : city === cityOption.name
+                          ? "bg-neon-purple text-white neon-glow"
+                          : "glassmorphism hover:bg-white/20"
+                    }`}
+                    whileHover={isLocked ? {} : { scale: 1.05 }}
+                    whileTap={isLocked ? {} : { scale: 0.95 }}
+                  >
+                    <div className="flex items-center">
+                      <span className="text-2xl mr-3">{cityOption.emoji}</span>
+                      <span className="text-lg font-semibold">
+                        {cityOption.name}
+                      </span>
+                      {isLocked && (
+                        <Lock className="w-4 h-4 ml-auto text-gray-500" />
+                      )}
+                    </div>
+                  </motion.button>
+                );
+              })}
             </div>
           </div>
 

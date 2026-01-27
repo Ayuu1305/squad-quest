@@ -89,37 +89,13 @@ const Profile = () => {
           </button>
 
           <div className="flex gap-3">
-            {/* Edit Avatar Button */}
+            {/* Settings Button */}
             <button
-              onClick={() => setShowAvatarEditor(true)}
-              className="p-3 glassmorphism rounded-xl hover:text-pink-400 transition-colors flex items-center gap-2 group"
-              title="Fitting Room"
-            >
-              <Settings className="w-5 h-5 text-gray-400 group-hover:text-pink-400" />
-              <span className="hidden sm:inline text-[10px] font-black uppercase">
-                Edit Look
-              </span>
-            </button>
-
-            <button
-              onClick={handleSwitchRealm}
+              onClick={() => navigate("/settings")}
               className="p-3 glassmorphism rounded-xl hover:text-neon-purple transition-colors flex items-center gap-2 group"
-              title="Switch Realm"
+              title="Settings"
             >
-              <LogOut className="w-5 h-5 text-gray-400 group-hover:text-neon-purple" />
-              <span className="hidden sm:inline text-[10px] font-black uppercase">
-                Realm
-              </span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2 group"
-              title="Sign Out"
-            >
-              <Power className="w-5 h-5 text-red-400" />
-              <span className="hidden sm:inline text-[10px] font-black uppercase text-red-400">
-                Exit
-              </span>
+              <Settings className="w-5 h-5 text-gray-400 group-hover:text-neon-purple" />
             </button>
           </div>
         </header>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSwipeable } from "react-swipeable";
 import { motion, AnimatePresence } from "framer-motion";
 import { toPng, toBlob } from "html-to-image";
+import toast from "react-hot-toast";
 import {
   Award,
   MapPin,
@@ -670,6 +671,59 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
     trackMouse: true,
   });
 
+  // Social Share Handler (Whatsapp/Instagram)
+  const handleDirectShare = async () => {
+    const toastId = toast.loading("Generating Neural Link...");
+    try {
+      // 1. Target the Stealth Container
+      const element = document.getElementById("stealth-export-card");
+      if (!element) throw new Error("Stealth element missing");
+
+      // 2. FORCE BROWSER TO PAINT:
+      // Trigger reflow without breaking flex layout
+      void element.offsetHeight;
+
+      // 3. WAIT for images/fonts (Critical Step)
+      // This 500ms delay gives the browser time to render the off-screen pixels
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // 4. Capture
+      const dataUrl = await toPng(element, {
+        cacheBust: true,
+        pixelRatio: 3, // Higher quality
+        backgroundColor: "#0f0f23", // Force dark background
+        skipAutoScale: true,
+        style: { opacity: "1", visibility: "visible" }, // Force visible for capture
+      });
+
+      // 5. Convert to File
+      const byteString = atob(dataUrl.split(",")[1]);
+      const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      const file = new File([blob], "squad-id.png", { type: "image/png" });
+
+      // 6. Share
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Join my Squad!",
+          text: `Level ${level} ${currentTier?.name} Hero on Squad Quest!`,
+        });
+        toast.success("Link Established!", { id: toastId });
+      } else {
+        toast.error("Device doesn't support image sharing", { id: toastId });
+      }
+    } catch (err) {
+      console.error("Share error:", err);
+      toast.error("Neural Link Failed", { id: toastId });
+    }
+  };
+
   return (
     <div
       {...handlers}
@@ -678,6 +732,38 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
       <AnimatePresence>
         {showGuide && <OnboardingGuide onClose={() => setShowGuide(false)} />}
       </AnimatePresence>
+
+      {/* STEALTH EXPORT CONTAINER - ON SCREEN BUT INVISIBLE */}
+      <div
+        id="stealth-export-card"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0, // 🔥 MUST be on screen for images to load
+          width: "350px",
+          height: "600px",
+          zIndex: -9999, // Send to the very back
+          opacity: 0, // Invisible to the user
+          pointerEvents: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="scale-100">
+          <HeroCardExport
+            user={user}
+            tier={currentTier}
+            stats={stats}
+            level={level}
+            progressPercent={progressPercent}
+            lifetime={lifetime}
+            xpNeeded={xpNeeded}
+          />
+        </div>
+      </div>
+
+      {/* Rest of the component... */}
 
       {/* Header / Tabs - Mobile Optimized */}
       <div className="w-full flex items-center justify-between mb-6 sticky top-0 bg-dark-bg/80 backdrop-blur-xl py-4 z-40 border-b border-white/5">
@@ -982,6 +1068,7 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
               <HeroCardGenerator
                 user={user}
                 onShare={() => setShowShareModal(true)}
+                onDirectShare={handleDirectShare}
               />
               <button
                 className="mt-8 bg-white text-black font-black uppercase text-xs px-8 py-3 rounded-full hover:scale-105 transition-transform shadow-xl"
