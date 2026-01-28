@@ -13,15 +13,21 @@ export const BADGE_TIERS = {
   },
   SILVER: {
     name: "Silver",
-    minLevel: 15,
+    minLevel: 25,
     color: "text-slate-300",
     hex: "#cbd5e1",
   },
   GOLD: {
     name: "Gold",
-    minLevel: 30,
+    minLevel: 50,
     color: "text-yellow-400",
     hex: "#facc15",
+  },
+  LEGENDARY: {
+    name: "Legendary",
+    minLevel: 100,
+    color: "text-fuchsia-400",
+    hex: "#e879f9",
   },
 };
 
@@ -126,6 +132,7 @@ export const updateHeroTier = (level) => {
 };
 
 export const getTier = (level = 1) => {
+  if (level >= BADGE_TIERS.LEGENDARY.minLevel) return BADGE_TIERS.LEGENDARY;
   if (level >= BADGE_TIERS.GOLD.minLevel) return BADGE_TIERS.GOLD;
   if (level >= BADGE_TIERS.SILVER.minLevel) return BADGE_TIERS.SILVER;
   if (level >= BADGE_TIERS.BRONZE.minLevel) return BADGE_TIERS.BRONZE;

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { getTier, getRarity } from "../utils/xp";
 import { getLevelProgress } from "../utils/leveling"; // ✅ Import for level calculation
+import { getBorderConfig } from "../utils/borderStyles";
 import HeroAvatar from "./HeroAvatar";
 import { MapPin } from "lucide-react";
 
@@ -80,24 +81,40 @@ const LeaderboardItem = ({
         </div>
 
         {/* Avatar Section */}
-        <div className="relative flex-shrink-0">
-          <div
-            className={`p-0.5 rounded-full ${
-              isCurrentUser
-                ? "bg-gradient-to-br from-neon-purple to-pink-500 animate-spin-slow"
-                : "bg-white/10"
-            }`}
-          >
-            <HeroAvatar
-              user={hero}
-              seed={hero.avatarSeed || hero.name}
-              tierName={tier.name}
-              size={48}
-              className="rounded-full border-2 border-dark-bg bg-dark-bg"
-            />
-          </div>
+        {/* Avatar Section */}
+        <div className="relative flex-shrink-0 w-14 h-14 flex items-center justify-center">
+          {(() => {
+            const borderVisuals = getBorderConfig(hero.activeBorder, tier.name);
+            return (
+              <>
+                {/* LAYER 1: Animated Border (Background) */}
+                <motion.div
+                  className={`absolute inset-0 rounded-full ${borderVisuals.style}`}
+                  style={{
+                    boxShadow: borderVisuals.shadow,
+                    filter: borderVisuals.filter,
+                  }}
+                  animate={borderVisuals.animate} // Rotate applies ONLY to this div
+                  transition={borderVisuals.transition}
+                />
+
+                {/* LAYER 2: Static Avatar (Foreground) */}
+                <div className="relative z-10 w-[85%] h-[85%] rounded-full border-2 border-dark-bg bg-dark-bg overflow-hidden flex items-center justify-center">
+                  <HeroAvatar
+                    user={hero}
+                    seed={hero.avatarSeed || hero.name}
+                    tierName={tier.name}
+                    size={42}
+                    className="rounded-full"
+                    hideBorder={true}
+                  />
+                </div>
+              </>
+            );
+          })()}
+
           {/* Level Badge Overlap */}
-          <div className="absolute -bottom-1 -right-1 bg-dark-bg rounded-md px-1 py-0.5 border border-white/10 shadow-lg flex items-center gap-0.5">
+          <div className="absolute -bottom-1 -right-1 bg-dark-bg rounded-md px-1 py-0.5 border border-white/10 shadow-lg flex items-center gap-0.5 z-20">
             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             <span className="text-[8px] font-black text-white px-0.5">
               L{level}

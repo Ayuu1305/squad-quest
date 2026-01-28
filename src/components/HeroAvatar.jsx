@@ -11,6 +11,7 @@ const HeroAvatar = ({
   aura = null, // 'gold', 'blue', 'silver', 'mythic'
   equippedFrame = null, // Direct prop override
   imgProps = {}, // [NEW] Allow passing props to the img tag (e.g. crossOrigin)
+  hideBorder = false, // [NEW] Strip internal borders for layered rendering
 }) => {
   const { user: currentAuth } = useAuth();
 
@@ -119,9 +120,29 @@ const HeroAvatar = ({
 
   const auraClass = getAuraClass();
 
+  // --- RENDER LOGIC ---
+
+  // 1. Naked Mode (For when parent handles the border, e.g., Profile/Leaderboard)
+  if (hideBorder) {
+    return (
+      <div
+        className={`relative inline-flex items-center justify-center overflow-hidden rounded-full ${className}`}
+        style={{ width: size, height: size, backgroundColor: "#15171E" }} // Force dark bg
+      >
+        <img
+          src={avatarUrl}
+          alt="Hero Avatar"
+          className="w-full h-full object-cover"
+          {...imgProps}
+        />
+      </div>
+    );
+  }
+
   // Special Frame Logic (Neon Warlord)
   const isNeonWarlord = activeFrame === "neon_frame_01";
 
+  // 2. Neon Warlord Mode (Legacy support)
   if (isNeonWarlord) {
     return (
       <div
@@ -140,12 +161,13 @@ const HeroAvatar = ({
     );
   }
 
+  // 3. Standard Mode (Default Tier Borders)
   return (
     <div
       className={`relative inline-flex items-center justify-center ${className} ${auraClass}`}
       style={{ width: size, height: size, borderRadius: "50%" }}
     >
-      {/* Standard Glow Ring (Only if no custom aura) */}
+      {/* Standard Glow Ring */}
       {!aura && (
         <div
           className="absolute inset-0 rounded-full animate-pulse-slow"
@@ -156,7 +178,7 @@ const HeroAvatar = ({
         />
       )}
 
-      {/* Inner Rotating Ring (Standard) */}
+      {/* Inner Rotating Ring */}
       {!aura && (
         <div
           className="absolute inset-[-4px] rounded-full border-2 border-dashed transition-transform duration-[10s] animate-spin-slow opacity-50"

@@ -21,6 +21,7 @@ import {
   Info,
   Loader,
   Flame,
+  Frame,
 } from "lucide-react";
 import {
   levelProgress,
@@ -30,8 +31,10 @@ import {
   getNearUnlockBadge,
   getHonorRank,
 } from "../utils/xp";
+import { getBorderConfig } from "../utils/borderStyles";
 import HeroCardGenerator from "./HeroCardGenerator";
 import HeroAvatar from "./HeroAvatar";
+import BorderSelectorModal from "./BorderSelectorModal";
 import AscensionNotification from "./AscensionNotification";
 import { getLevelProgress } from "../utils/leveling";
 
@@ -480,6 +483,7 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
   );
   const [showGuide, setShowGuide] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showBorderModal, setShowBorderModal] = useState(false);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem("squad_quest_guide_seen");
@@ -504,6 +508,12 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
   const xp = user.xp || 0; // Spendable currency
   const lifetime = user.lifetimeXP || xp; // Total earned (fallback to xp if not set yet)
 
+  // --- SQUAD POWER CALCULATION ---
+  const squadPower =
+    Math.floor((user.xp || 0) / 10) +
+    (user.questsCompleted || 0) * 50 +
+    (user.daily_streak || 0) * 100;
+
   // --- PROGRESSIVE LEVELING DISPLAY (New Utility) ---
   const {
     xpIntoLevel: xpInLevel,
@@ -527,6 +537,8 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
   };
 
   const currentTier = getTier(level);
+  // 🏆 WEEKLY WINNER OVERRIDE
+  const specialBorder = user.activeBorder || null;
 
   // Quest badges from feedback
   const questBadges = getFeedbackBadges(feedbackCounts);
@@ -825,7 +837,25 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
               className="space-y-6"
             >
               {/* 1. Immersive Hero Identity Card */}
-              <div className="relative bg-[#15171E] rounded-[2rem] p-6 sm:p-8 overflow-hidden border border-white/10 shadow-2xl">
+              <div
+                className={`
+                  relative rounded-[2rem] p-6 sm:p-8 overflow-hidden 
+                  border shadow-2xl transition-all duration-500
+                  ${
+                    currentTier.name === "Legendary"
+                      ? "bg-gradient-to-br from-fuchsia-950 via-purple-900 to-black border-purple-500/50"
+                      : currentTier.name === "Gold"
+                        ? "bg-gradient-to-br from-yellow-950 via-yellow-900/50 to-black border-yellow-500/30"
+                        : currentTier.name === "Silver"
+                          ? "bg-gradient-to-br from-slate-900 via-slate-800 to-black border-slate-500/30"
+                          : currentTier.name === "Bronze"
+                            ? "bg-gradient-to-br from-[#431407] via-[#270a02] to-black border-orange-500/20"
+                            : "bg-[#15171E] border-white/10"
+                  }
+                `}
+              >
+                {/* Optional Noise Overlay */}
+                <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
                 {/* Decorative background splashes */}
                 <div
                   className={`absolute -top-20 -right-20 w-64 h-64 bg-${currentTier.color.split("-")[1]}-500/10 blur-[60px] rounded-full pointer-events-none`}
@@ -835,49 +865,103 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                 <div className="relative z-10 flex flex-col items-center lg:flex-row lg:items-center lg:justify-between lg:gap-10">
                   {/* LEFT (Desktop) / TOP (Mobile): Avatar + Name + Level */}
                   <div className="flex flex-col items-center lg:flex-row lg:items-center lg:gap-8 w-full lg:w-auto">
-                    {/* Avatar - With Edit Button */}
+                    {/* Avatar - With God Aura based on Tier */}
                     <div className="relative group mb-4 lg:mb-0">
+                      {/* Aura Glow - Priority: Special Border > Tier */}
                       <div
-                        className={`absolute inset-0 bg-${currentTier.color.split("-")[1]}-500/20 blur-xl rounded-full scale-110 group-hover:scale-125 transition-transform duration-500`}
+                        className={`absolute inset-0 blur-2xl rounded-full transition-all duration-500 ${
+                          specialBorder === "golden_glitch"
+                            ? "bg-yellow-500/60 opacity-100"
+                            : specialBorder === "silver_shimmer"
+                              ? "bg-slate-100/40 opacity-90"
+                              : specialBorder === "bronze_plate"
+                                ? "bg-orange-800/50 opacity-100"
+                                : currentTier.name === "Legendary"
+                                  ? "bg-fuchsia-500/40 opacity-100"
+                                  : currentTier.name === "Gold"
+                                    ? "bg-yellow-500/40 opacity-100"
+                                    : currentTier.name === "Silver"
+                                      ? "bg-cyan-500/30 opacity-80"
+                                      : currentTier.name === "Bronze"
+                                        ? "bg-orange-500/20 opacity-60"
+                                        : "bg-purple-500/10 opacity-30"
+                        }`}
                       />
-                      <div className="w-[110px] h-[110px] sm:w-32 sm:h-32 rounded-full border-[3px] border-[#15171E] relative z-10 overflow-hidden shadow-2xl ring-2 ring-white/10 ring-offset-2 ring-offset-[#15171E]">
-                        <HeroAvatar
-                          seed={avatarSeed}
-                          tierName={currentTier.name}
-                          size={128}
-                          equippedFrame={user.equippedFrame}
-                        />
-                      </div>
+                      {/* UNIFIED BORDER VISUALS (Fixed Spinning Face) */}
+                      {(() => {
+                        const specialBorder = user.activeBorder || null;
+                        const borderVisuals = specialBorder
+                          ? getBorderConfig(specialBorder, currentTier.name)
+                          : getBorderConfig(null, currentTier.name);
 
-                      {/* Pencil Edit Button - Shows on Hover */}
-                      {onEditAvatar && (
-                        <button
-                          onClick={onEditAvatar}
-                          className="absolute bottom-0 right-0 z-20 p-2.5 bg-gradient-to-br from-purple-600 to-fuchsia-600 rounded-full shadow-lg border-2 border-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
-                          title="Edit Avatar"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="text-white"
-                          >
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            <path d="m15 5 4 4" />
-                          </svg>
-                        </button>
-                      )}
+                        return (
+                          <div className="relative w-[110px] h-[110px] sm:w-32 sm:h-32 flex items-center justify-center">
+                            {/* LAYER 1: Animated Border (Background) */}
+                            <motion.div
+                              className={`absolute inset-[-8px] rounded-full ${borderVisuals.style}`}
+                              style={{
+                                boxShadow: borderVisuals.shadow,
+                                filter: borderVisuals.filter,
+                              }}
+                              animate={borderVisuals.animate}
+                              transition={borderVisuals.transition}
+                            />
+
+                            {/* LAYER 2: Static Avatar (Foreground - NO INTERNAL BORDER) */}
+                            <div className="relative z-10 w-full h-full rounded-full border-4 border-[#15171E] bg-[#15171E] overflow-hidden">
+                              <HeroAvatar
+                                user={user}
+                                tierName={currentTier.name}
+                                size={128}
+                                hideBorder={true} // <--- CRITICAL FIX: Stops the double border
+                                className="w-full h-full"
+                              />
+                            </div>
+
+                            {/* BUTTONS (Inside Relative Container) */}
+                            {/* Pencil Edit Button */}
+                            {onEditAvatar && (
+                              <button
+                                onClick={onEditAvatar}
+                                className="absolute bottom-0 right-0 z-20 p-2.5 bg-gradient-to-br from-purple-600 to-fuchsia-600 rounded-full shadow-lg border-2 border-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
+                                title="Edit Avatar"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="text-white"
+                                >
+                                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                  <path d="m15 5 4 4" />
+                                </svg>
+                              </button>
+                            )}
+
+                            {/* Border Selector Button */}
+                            {user.uid && (
+                              <button
+                                onClick={() => setShowBorderModal(true)}
+                                className="absolute bottom-0 left-0 z-20 p-2.5 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-full shadow-lg border-2 border-white/20 transition-all duration-300 hover:scale-110 active:scale-95 group/btn"
+                                title="Equip Border"
+                              >
+                                <Frame className="w-4 h-4 text-white" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Identity Details */}
                     <div className="text-center lg:text-left flex flex-col items-center lg:items-start">
-                      <h2 className="text-2xl sm:text-4xl font-['Orbitron'] font-black text-white italic tracking-tighter uppercase mb-2 drop-shadow-md">
+                      <h2 className="text-2xl sm:text-4xl font-['Orbitron'] font-black text-white italic tracking-tighter uppercase mb-1 drop-shadow-md">
                         {user.name || "Unknown Hero"}
                       </h2>
 
@@ -941,8 +1025,13 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                           <div
                             className={`
                                         text-xl font-['Orbitron'] font-black uppercase italic tracking-widest
-                                        bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent
-                                        drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]
+                                        ${
+                                          currentTier.name === "Legendary"
+                                            ? "bg-gradient-to-r from-fuchsia-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(232,121,249,0.5)]"
+                                            : currentTier.name === "Bronze"
+                                              ? "bg-gradient-to-r from-orange-300 to-red-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                                              : "bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                                        }
                                     `}
                           >
                             {currentTier.name}
@@ -1008,46 +1097,55 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                     return (
                       <div
                         key={badge.id}
-                        className={`aspect-square min-h-[100px] rounded-2xl flex flex-col items-center justify-center p-3 border transition-all relative overflow-hidden group $\{
+                        className={`aspect-square min-h-[100px] rounded-2xl flex flex-col items-center justify-center p-3 transition-all relative overflow-hidden group/badge ${
                           badge.isUnlocked
-                            ? "bg-white/5 border-white/10 shadow-lg"
-                            : "bg-black/20 border-white/5"
+                            ? "bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 hover:border-white/20 hover:scale-105"
+                            : "bg-black/60 border border-white/5"
                         }`}
                       >
+                        {/* Shine Effect for Unlocked */}
+                        {badge.isUnlocked && (
+                          <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 group-hover/badge:animate-[shine_1s_ease-in-out_infinite]" />
+                        )}
+
                         <div
-                          className={`flex flex-col items-center justify-center flex-1 ${!badge.isUnlocked ? "grayscale opacity-60" : ""}`}
+                          className={`flex flex-col items-center justify-center flex-1 z-10 ${
+                            !badge.isUnlocked
+                              ? "grayscale opacity-30 blur-[1px]"
+                              : ""
+                          }`}
                         >
-                          <div className="text-2xl sm:text-3xl mb-1">
+                          <div className="text-2xl sm:text-3xl mb-1 drop-shadow-md">
                             {badge.icon}
                           </div>
-                          <div className="text-[8px] sm:text-[9px] text-center font-black uppercase text-gray-400 leading-tight px-1">
+                          <div className="text-[8px] sm:text-[9px] text-center font-black uppercase text-gray-300 leading-tight px-1 tracking-wide">
                             {badge.label}
                           </div>
                         </div>
 
                         {!badge.isUnlocked && (
-                          <div className="w-full mt-auto pt-2">
-                            <div className="flex justify-between items-center text-[6px] text-gray-500 font-mono mb-0.5 px-1">
-                              <span>
-                                {badge.current || 0}/{badge.needed}
-                              </span>
-                              <span>{Math.round(progress)}%</span>
+                          <>
+                            {/* Lock Overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
+                              <Lock className="w-5 h-5 text-white/20" />
                             </div>
-                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                className="h-full bg-gradient-to-r from-purple-600 to-purple-400"
-                              />
-                            </div>
-                          </div>
-                        )}
 
-                        {/* Lock Icon Overlay if 0 progress */}
-                        {!badge.isUnlocked && progress === 0 && (
-                          <div className="absolute top-2 right-2 opacity-20">
-                            <Lock className="w-3 h-3 text-gray-500" />
-                          </div>
+                            <div className="w-full mt-auto pt-2 z-10 relative">
+                              <div className="flex justify-between items-center text-[6px] text-gray-500 font-mono mb-0.5 px-1">
+                                <span>
+                                  {badge.current || 0}/{badge.needed}
+                                </span>
+                                <span>{Math.round(progress)}%</span>
+                              </div>
+                              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progress}%` }}
+                                  className="h-full bg-gray-600"
+                                />
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     );
@@ -1093,6 +1191,13 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
           onClose={() => setShowShareModal(false)}
         />
       )}
+
+      {/* Border Selector Modal */}
+      <BorderSelectorModal
+        isOpen={showBorderModal}
+        onClose={() => setShowBorderModal(false)}
+        user={user}
+      />
     </div>
   );
 };

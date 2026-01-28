@@ -37,7 +37,7 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) return null;
   // ✅ Check for existence AND verification
-  if (!user || !user.emailVerified) return <Navigate to="/login" />;
+  if (!user || !user.emailVerified) return <Navigate to="/" />;
   if (!city) return <Navigate to="/" />;
 
   return children;
@@ -49,7 +49,7 @@ const UserProtectedRoute = ({ children }) => {
 
   if (loading) return null;
   // ✅ Check for existence AND verification
-  if (!user || !user.emailVerified) return <Navigate to="/login" />;
+  if (!user || !user.emailVerified) return <Navigate to="/" />;
 
   return children;
 };
@@ -67,12 +67,21 @@ const CitySelectionRoute = ({ children }) => {
   return children;
 };
 
-// Redirects logged-in verified users away from Auth pages
+import LandingPage from "./pages/LandingPage"; // Import LandingPage
+
+// Updated AuthRoute to handle City Selection flow
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const { city } = useGame(); // Need city context here
+
   if (loading) return null;
-  // ✅ Only redirect if verified
-  return user && user.emailVerified ? <Navigate to="/board" /> : children;
+
+  if (user && user.emailVerified) {
+    // If they have a city, go to game. If not, go to selection.
+    return city ? <Navigate to="/board" /> : <Navigate to="/city-select" />;
+  }
+
+  return children;
 };
 
 import GenderSelectionModal from "./components/GenderSelectionModal";
@@ -188,9 +197,12 @@ function App() {
               }
             />
 
-            {/* Protected Main Flow */}
+            {/* 1. PUBLIC LANDING PAGE (Root) */}
+            <Route path="/" element={<LandingPage />} />
+
+            {/* 2. CITY SELECTION (Moved from / to /city-select) */}
             <Route
-              path="/"
+              path="/city-select"
               element={
                 <CitySelectionRoute>
                   <Landing />

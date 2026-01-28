@@ -258,6 +258,27 @@ export const finalizeQuest = async (req, res) => {
         bonuses.push("SHOWDOWN_SUNDAY");
       }
 
+      // ✅ APEX BUFF: Squad XP Boost (10% Bonus)
+      const userDataForBuff = userDoc.data();
+      const activeBuffs = userDataForBuff.activeBuffs || {};
+      const squadBuff = activeBuffs.squadXpBoost;
+
+      if (squadBuff && squadBuff.active) {
+        let expiresAt = squadBuff.expiresAt;
+        // Convert Firestore Timestamp to Date if needed
+        if (expiresAt && typeof expiresAt.toDate === "function") {
+          expiresAt = expiresAt.toDate();
+        } else if (expiresAt) {
+          expiresAt = new Date(expiresAt);
+        }
+
+        if (expiresAt && expiresAt > new Date()) {
+          const boostAmount = earnedXP * 0.1;
+          earnedXP = Math.round(earnedXP + boostAmount);
+          bonuses.push("apex_buff_active");
+        }
+      }
+
       // ✅ Current stats
       const currentStats = statsDoc.exists
         ? statsDoc.data()

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Award, Star, Zap, Crown, User } from "lucide-react";
 import { getTier } from "../utils/xp";
+import { getBorderConfig } from "../utils/borderStyles";
 import HeroAvatar from "./HeroAvatar";
 
 const PodiumSpot = ({
@@ -126,15 +127,38 @@ const PodiumSpot = ({
             <User className="w-10 h-10 text-white/10" />
           </div>
         ) : (
-          <HeroAvatar
-            user={hero}
-            seed={hero?.avatarSeed || hero?.name}
-            tierName={tier?.name}
-            size={isFirst ? 140 : 100}
-            className={`relative z-20 transition-transform duration-500 group-hover:scale-105 ${
-              colors.border
-            } ${isCurrentUser ? "shadow-[0_0_25px_#a855f7]" : ""}`}
-          />
+          (() => {
+            const borderVisuals = getBorderConfig(
+              hero.activeBorder,
+              tier?.name || "Recruit",
+            );
+            return (
+              <div className="relative z-20 flex items-center justify-center p-1 transition-transform duration-500 group-hover:scale-105">
+                {/* LAYER 1: Animated Border (Background Layer) */}
+                <motion.div
+                  className={`absolute inset-0 rounded-full ${borderVisuals.style}`}
+                  style={{
+                    boxShadow: borderVisuals.shadow,
+                    filter: borderVisuals.filter,
+                  }}
+                  animate={borderVisuals.animate} // Rotate applies ONLY to this div
+                  transition={borderVisuals.transition}
+                />
+
+                {/* LAYER 2: Static Avatar (Foreground Layer) */}
+                <div className="relative z-10 rounded-full border-2 border-dark-bg bg-dark-bg overflow-hidden">
+                  <HeroAvatar
+                    user={hero}
+                    seed={hero?.avatarSeed || hero?.name}
+                    tierName={tier?.name}
+                    size={isFirst ? 132 : 92}
+                    className=""
+                    hideBorder={true}
+                  />
+                </div>
+              </div>
+            );
+          })()
         )}
 
         {/* Rank Badge */}

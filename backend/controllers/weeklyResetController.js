@@ -1,5 +1,7 @@
 import { db } from "../server.js";
 import { FieldValue } from "firebase-admin/firestore";
+import { calculateLevelFromXP } from "../utils/leveling.js";
+import { sendNotification } from "../services/notificationService.js";
 /**
  * Get the start of the current week (last Monday 00:00 IST)
  */
@@ -19,11 +21,112 @@ const getWeekStartDate = () => {
  * Batch reset ALL users' thisWeekXP to 0
  * Uses Firestore batched writes (max 500 per batch)
  */
+/**
+ * Batch reset ALL users' thisWeekXP to 0
+ * Uses Firestore batched writes (max 500 per batch)
+ */
 export const resetAllWeeklyXP = async () => {
   const startTime = Date.now();
   console.log("🔄 Starting Weekly XP Reset...");
 
   try {
+    // ---------------------------------------------------------
+    // 1️⃣ SUNDAY SHOWDOWN: REWARD WINNERS
+    // ---------------------------------------------------------
+    const usersRef = db.collection("users");
+    const winnersSnapshot = await usersRef
+      .orderBy("thisWeekXP", "desc")
+      .limit(3)
+      .get();
+
+    console.log(`🏆 Processing ${winnersSnapshot.size} winners...`);
+
+    for (let i = 0; i < winnersSnapshot.docs.length; i++) {
+      const doc = winnersSnapshot.docs[i];
+      const userData = doc.data();
+      const uid = doc.id;
+      const rank = i + 1;
+
+      // Define Rewards
+      let xpReward = 0;
+      let newBorder = null;
+      let newBadge = null;
+      let reliabilityReward = 0;
+      let buffParams = null; // For Squad XP Boost
+
+      if (rank === 1) {
+        xpReward = 5000;
+        newBorder = "golden_glitch";
+        newBadge = "apex_trophy";
+        // Active Buff: Squad XP Boost (1 week duration)
+        buffParams = {
+          active: true,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 Days
+        };
+      } else if (rank === 2) {
+        xpReward = 2500;
+        newBorder = "silver_shimmer";
+        newBadge = "elite_trophy";
+        reliabilityReward = 20;
+      } else if (rank === 3) {
+        xpReward = 1000;
+        newBorder = "bronze_plate";
+        newBadge = "vanguard_trophy";
+      }
+
+      // Calculate New Level
+      const currentXP = userData.xp || 0;
+      const totalXP = currentXP + xpReward;
+      const { level: newLevel } = calculateLevelFromXP(totalXP);
+
+      // Prepare Update Payload
+      const updates = {
+        xp: FieldValue.increment(xpReward),
+        lifetimeXP: FieldValue.increment(xpReward),
+        level: newLevel,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      if (newBorder) updates.activeBorder = newBorder;
+      if (reliabilityReward > 0) {
+        updates.reliabilityScore = FieldValue.increment(reliabilityReward);
+      }
+      if (newBadge) {
+        updates.badges = FieldValue.arrayUnion(newBadge);
+      }
+      if (buffParams) {
+        updates["activeBuffs.squadXpBoost"] = buffParams;
+      }
+
+      // Apply Updates to BOTH collections (Sync Profile)
+      // We process these individually (not batched) to ensure critical rewards are saved
+      const userRef = db.collection("users").doc(uid);
+      const statsRef = db.collection("userStats").doc(uid);
+
+      await Promise.all([
+        userRef.update(updates),
+        statsRef.set(updates, { merge: true }),
+      ]);
+
+      // Notification
+      const titles = [
+        "👑 Sunday Showdown Champion!",
+        "🥈 Sunday Showdown Runner-up!",
+        "🥉 Sunday Showdown Podium!",
+      ];
+      const bodies = [
+        `You ranked #1 this week! Received +${xpReward} XP, Apex Trophy & XP Buff!`,
+        `You ranked #2 this week! Received +${xpReward} XP & Elite Trophy!`,
+        `You ranked #3 this week! Received +${xpReward} XP & Vanguard Trophy!`,
+      ];
+
+      await sendNotification(uid, titles[i], bodies[i]);
+      console.log(`✅ Rewarded Rank ${rank}: ${userData.name || uid}`);
+    }
+
+    // ---------------------------------------------------------
+    // 2️⃣ RESET LOGIC (Existing)
+    // ---------------------------------------------------------
     const usersSnapshot = await db.collection("users").get();
     const totalUsers = usersSnapshot.size;
     console.log(`📊 Found ${totalUsers} users to reset`);
@@ -99,7 +202,7 @@ export const lazyResetUserXP = async (userId, userData, userRef) => {
 
     await userRef.update({
       thisWeekXP: 0,
-      lastWeeklyResetDate: admin.firestore.FieldValue.serverTimestamp(),
+      lastWeeklyResetDate: FieldValue.serverTimestamp(), // FIXED: Removed admin.firestore
     });
 
     // Return updated data
