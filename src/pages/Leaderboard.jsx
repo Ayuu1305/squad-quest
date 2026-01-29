@@ -37,7 +37,7 @@ const Leaderboard = () => {
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-    e.stopPropagation(); // Prevent SwipeWrapper from also detecting this
+    // Don't stop propagation here - let it bubble up initially
   };
 
   const handleTouchEnd = (e) => {
@@ -45,18 +45,20 @@ const Leaderboard = () => {
     const threshold = 50;
     const currentIndex = categories.findIndex((c) => c.id === category);
 
+    // Only stop propagation if we actually change tabs
     if (deltaX > threshold && currentIndex > 0) {
       setCategory(categories[currentIndex - 1].id);
-      e.stopPropagation(); // Prevent main page navigation
+      e.stopPropagation(); // Tab changed, prevent page navigation
     } else if (deltaX < -threshold && currentIndex < categories.length - 1) {
       setCategory(categories[currentIndex + 1].id);
-      e.stopPropagation(); // Prevent main page navigation
+      e.stopPropagation(); // Tab changed, prevent page navigation
     }
+    // If at edge (first or last tab), don't stop propagation - allow page navigation
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-    e.stopPropagation(); // Prevent SwipeWrapper from detecting movement
+    // Don't stop propagation here either
   };
 
   // ✅ Auto-refresh every 60s during showdown

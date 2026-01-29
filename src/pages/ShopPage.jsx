@@ -34,7 +34,7 @@ const ShopPage = () => {
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-    e.stopPropagation(); // Prevent SwipeWrapper from also detecting this
+    // Don't stop propagation here - let it bubble up initially
   };
 
   const handleTouchEnd = (e) => {
@@ -43,18 +43,21 @@ const ShopPage = () => {
 
     // Swipe between main tabs
     const tabIndex = tabs.indexOf(activeTab);
+
+    // Only stop propagation if we actually change tabs
     if (deltaX > threshold && tabIndex > 0) {
       setActiveTab(tabs[tabIndex - 1]);
-      e.stopPropagation(); // Prevent main page navigation
+      e.stopPropagation(); // Tab changed, prevent page navigation
     } else if (deltaX < -threshold && tabIndex < tabs.length - 1) {
       setActiveTab(tabs[tabIndex + 1]);
-      e.stopPropagation(); // Prevent main page navigation
+      e.stopPropagation(); // Tab changed, prevent page navigation
     }
+    // If at edge (first or last tab), don't stop propagation - allow page navigation
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-    e.stopPropagation(); // Prevent SwipeWrapper from detecting movement
+    // Don't stop propagation here either
   };
 
   // Fetch shop items from Firestore

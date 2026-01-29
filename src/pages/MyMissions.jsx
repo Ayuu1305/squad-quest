@@ -206,7 +206,7 @@ const MyMissions = () => {
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-    e.stopPropagation(); // Prevent SwipeWrapper from also detecting this
+    // Don't stop propagation here - let it bubble up initially
   };
 
   const handleTouchEnd = (e) => {
@@ -214,18 +214,20 @@ const MyMissions = () => {
     const threshold = 50;
     const currIndex = tabs.indexOf(activeTab);
 
+    // Only stop propagation if we actually change tabs
     if (deltaX > threshold && currIndex > 0) {
       setActiveTab(tabs[currIndex - 1]);
-      e.stopPropagation(); // Prevent main page navigation
+      e.stopPropagation(); // Tab changed, prevent page navigation
     } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
       setActiveTab(tabs[currIndex + 1]);
-      e.stopPropagation(); // Prevent main page navigation
+      e.stopPropagation(); // Tab changed, prevent page navigation
     }
+    // If at edge (first or last tab), don't stop propagation - allow page navigation
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-    e.stopPropagation(); // Prevent SwipeWrapper from detecting movement
+    // Don't stop propagation here either
   };
 
   return (
