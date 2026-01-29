@@ -27,17 +27,28 @@ const SwipeWrapper = ({ children }) => {
     "/profile",
   ];
 
-  // Check if element or ancestors have horizontal scroll
+  // Check if element or ancestors have horizontal scroll OR are tab containers
   const hasHorizontalScroll = (element) => {
     while (element && element !== document.body) {
       const style = window.getComputedStyle(element);
       const overflowX = style.overflowX;
 
+      // Check for scrollable containers
       if (overflowX === "scroll" || overflowX === "auto") {
         if (element.scrollWidth > element.clientWidth) {
           return true;
         }
       }
+
+      // Check for Tailwind horizontal scroll classes (used in tabs)
+      if (
+        element.classList.contains("overflow-x-auto") ||
+        element.classList.contains("overflow-x-scroll") ||
+        element.hasAttribute("data-swipeable")
+      ) {
+        return true;
+      }
+
       element = element.parentElement;
     }
     return false;
@@ -104,8 +115,8 @@ const SwipeWrapper = ({ children }) => {
 
     if (currentIndex === -1) return;
 
-    // 🔥 SWIPE THRESHOLD: 80px for reliable touch detection
-    const threshold = 80;
+    // 🔥 SWIPE THRESHOLD: 50px for smooth, easy navigation
+    const threshold = 50;
 
     // SWIPE RIGHT (Go to previous page)
     if (deltaX > threshold) {
