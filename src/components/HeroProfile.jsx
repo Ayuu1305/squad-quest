@@ -679,22 +679,26 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
+    e.stopPropagation(); // Prevent SwipeWrapper from also detecting this
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     const deltaX = touchEndX.current - touchStartX.current;
     const threshold = 50;
     const currIndex = tabs.indexOf(activeTab);
 
     if (deltaX > threshold && currIndex > 0) {
       setActiveTab(tabs[currIndex - 1]);
+      e.stopPropagation(); // Prevent main page navigation
     } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
       setActiveTab(tabs[currIndex + 1]);
+      e.stopPropagation(); // Prevent main page navigation
     }
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
+    e.stopPropagation(); // Prevent SwipeWrapper from detecting movement
   };
 
   // Social Share Handler (Whatsapp/Instagram)

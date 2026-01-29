@@ -37,22 +37,26 @@ const Leaderboard = () => {
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
+    e.stopPropagation(); // Prevent SwipeWrapper from also detecting this
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     const deltaX = touchEndX.current - touchStartX.current;
     const threshold = 50;
     const currentIndex = categories.findIndex((c) => c.id === category);
 
     if (deltaX > threshold && currentIndex > 0) {
       setCategory(categories[currentIndex - 1].id);
+      e.stopPropagation(); // Prevent main page navigation
     } else if (deltaX < -threshold && currentIndex < categories.length - 1) {
       setCategory(categories[currentIndex + 1].id);
+      e.stopPropagation(); // Prevent main page navigation
     }
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
+    e.stopPropagation(); // Prevent SwipeWrapper from detecting movement
   };
 
   // ✅ Auto-refresh every 60s during showdown
