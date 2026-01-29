@@ -30,6 +30,8 @@ export const GameProvider = ({ children }) => {
   const { user } = useAuth();
   const [city, setCity] = useState(localStorage.getItem("selectedCity") || "");
   const [joinedQuests, setJoinedQuests] = useState([]);
+  const [inventory, setInventory] = useState(null);
+  const [equippedFrame, setEquippedFrame] = useState(null);
   const [gameLoading, setGameLoading] = useState(true);
 
   console.log("🎮 GameProvider Rendering...");
@@ -52,8 +54,40 @@ export const GameProvider = ({ children }) => {
         trackRead("GameContext.joinedQuests"); // ✅ TRACK READ
         if (docSnap.exists()) {
           const data = docSnap.data();
+
+          // Debug: See exactly what fields exist
+          console.log("🔥 [GameContext] Raw Firestore Data:", data);
+
           setJoinedQuests(data.joinedQuests || []); // ✅ Reads from subcollection or map
           setCity(data.city || ""); // ✅ Sync City
+          
+          // 🛡️ BULLETPROOF MERGE LOGIC 🛡️
+
+          // 1. Check Standard Nested Map: inventory { frames: [...] }
+          const mapFrames = Array.isArray(data.inventory?.frames) ? data.inventory.frames : [];
+
+          // 2. Get frames from Root (e.g., data.frames)
+          const rootFrames = Array.isArray(data.frames) ? data.frames : [];
+
+         // 3. Check "Dot Notation" String Key: "inventory.frames" [...]
+          // (Sometimes Firestore saves fields with dots as literal keys)
+          const dotFrames = Array.isArray(data["inventory.frames"]) ? data["inventory.frames"] : [];
+
+          // 4. Merge ALL sources and remove duplicates
+          const allFrames = [...new Set([
+            ...mapFrames, 
+            ...rootFrames, 
+            ...dotFrames
+          ])];
+
+          console.log("✅ [GameContext] Merged Frames:", allFrames);
+
+         // 5. Update State with the merged list
+          setInventory({
+            ...data.inventory,  // Keep other inventory items like badges
+            frames: allFrames   // Overwrite frames with the complete list
+          }); // ✅ Extract inventory
+          setEquippedFrame(data.equippedFrame || null); // ✅ Extract equippedFrame
         }
         setGameLoading(false);
       },
@@ -106,6 +140,23 @@ export const GameProvider = ({ children }) => {
       return !!joinedQuests[questId];
     },
     [joinedQuests],
+  );
+
+  // ✅ MEMOIZED: Equip a cosmetic frame
+  const equipFrame = useCallback(
+    async (frameId) => {
+      if (!user?.uid) return;
+
+      try {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, { equippedFrame: frameId });
+        toast.success("Frame equipped! 🎨");
+      } catch (err) {
+        console.error("Failed to equip frame:", err);
+        toast.error("Failed to equip frame");
+      }
+    },
+    [user?.uid],
   );
 
   // ✅ SECURITY UPGRADE: Call the Node.js API instead of Firebase directly
@@ -225,6 +276,9 @@ export const GameProvider = ({ children }) => {
       leaveQuest,
       isJoined,
       gameLoading,
+      inventory,
+      equippedFrame,
+      equipFrame,
     }),
     [
       city,
@@ -234,6 +288,9 @@ export const GameProvider = ({ children }) => {
       leaveQuest,
       isJoined,
       gameLoading,
+      inventory,
+      equippedFrame,
+      equipFrame,
     ],
   );
 

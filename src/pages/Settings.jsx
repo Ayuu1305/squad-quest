@@ -35,7 +35,7 @@ const Settings = () => {
 
   const handleSwitchRealm = () => {
     selectCity("");
-    navigate("/");
+    navigate("/city-select");
   };
 
   const handleResetPassword = async () => {
@@ -112,7 +112,7 @@ const Settings = () => {
         {/* Section 2: Security & Realm */}
         <section>
           <h2 className="text-sm font-mono text-gray-500 uppercase tracking-wider mb-4 px-2">
-            Security & Realm
+            Security & City
           </h2>
           <div className="glassmorphism-dark rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5">
             <button
@@ -138,7 +138,7 @@ const Settings = () => {
               <div className="flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-green-400" />
                 <div>
-                  <span className="block font-medium">Switch Realm</span>
+                  <span className="block font-medium">Switch City</span>
                   <span className="text-xs text-gray-500">Current: {city}</span>
                 </div>
               </div>

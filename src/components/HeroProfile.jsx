@@ -40,6 +40,8 @@ import { getLevelProgress } from "../utils/leveling";
 
 import OnboardingGuide from "./OnboardingGuide";
 import ProfileOverview from "./ProfileOverview";
+import { useGame } from "../context/GameContext";
+import AvatarFrame from "./AvatarFrame";
 
 const HeroicStatItem = ({
   label,
@@ -475,6 +477,7 @@ const CardPreviewModal = ({
 };
 
 const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
+  const { inventory, equippedFrame, equipFrame } = useGame();
   // Default to "overview" for new users (Level 1, 0 XP)
   const isNewUser =
     (user?.level === 1 || !user?.level) && (user?.xp === 0 || !user?.xp);
@@ -889,6 +892,7 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                       />
                       {/* UNIFIED BORDER VISUALS (Fixed Spinning Face) */}
                       {(() => {
+                        const hasCosmetic = equippedFrame;
                         const specialBorder = user.activeBorder || null;
                         const borderVisuals = specialBorder
                           ? getBorderConfig(specialBorder, currentTier.name)
@@ -896,26 +900,32 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
 
                         return (
                           <div className="relative w-[110px] h-[110px] sm:w-32 sm:h-32 flex items-center justify-center">
-                            {/* LAYER 1: Animated Border (Background) */}
-                            <motion.div
-                              className={`absolute inset-[-8px] rounded-full ${borderVisuals.style}`}
-                              style={{
-                                boxShadow: borderVisuals.shadow,
-                                filter: borderVisuals.filter,
-                              }}
-                              animate={borderVisuals.animate}
-                              transition={borderVisuals.transition}
-                            />
-
-                            {/* LAYER 2: Static Avatar (Foreground - NO INTERNAL BORDER) */}
-                            <div className="relative z-10 w-full h-full rounded-full border-4 border-[#15171E] bg-[#15171E] overflow-hidden">
-                              <HeroAvatar
-                                user={user}
-                                tierName={currentTier.name}
-                                size={128}
-                                hideBorder={true} // <--- CRITICAL FIX: Stops the double border
-                                className="w-full h-full"
+                            {/* LAYER 1: Animated Border (Background) - Hidden if cosmetic frame exists */}
+                            {!hasCosmetic && (
+                              <motion.div
+                                className={`absolute inset-[-8px] rounded-full ${borderVisuals.style}`}
+                                style={{
+                                  boxShadow: borderVisuals.shadow,
+                                  filter: borderVisuals.filter,
+                                }}
+                                animate={borderVisuals.animate}
+                                transition={borderVisuals.transition}
                               />
+                            )}
+
+                            {/* LAYER 2: Avatar with optional cosmetic frame */}
+                            <div
+                              className={`relative z-10 ${hasCosmetic ? "w-full h-full" : "w-full h-full"} rounded-full ${!hasCosmetic && "border-4 border-[#15171E] bg-[#15171E]"} overflow-hidden`}
+                            >
+                              <AvatarFrame frameId={equippedFrame} size="lg">
+                                <HeroAvatar
+                                  user={user}
+                                  tierName={currentTier.name}
+                                  size={128}
+                                  hideBorder={true}
+                                  className="w-full h-full"
+                                />
+                              </AvatarFrame>
                             </div>
 
                             {/* BUTTONS (Inside Relative Container) */}
@@ -1197,6 +1207,9 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
         isOpen={showBorderModal}
         onClose={() => setShowBorderModal(false)}
         user={user}
+        equipFrame={equipFrame}
+        equippedFrame={equippedFrame}
+        inventory={inventory}
       />
     </div>
   );

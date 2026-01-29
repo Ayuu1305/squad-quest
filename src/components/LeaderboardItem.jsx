@@ -3,6 +3,7 @@ import { getTier, getRarity } from "../utils/xp";
 import { getLevelProgress } from "../utils/leveling"; // ✅ Import for level calculation
 import { getBorderConfig } from "../utils/borderStyles";
 import HeroAvatar from "./HeroAvatar";
+import AvatarFrame from "./AvatarFrame";
 import { MapPin } from "lucide-react";
 
 const LeaderboardItem = ({
@@ -81,33 +82,40 @@ const LeaderboardItem = ({
         </div>
 
         {/* Avatar Section */}
-        {/* Avatar Section */}
         <div className="relative flex-shrink-0 w-14 h-14 flex items-center justify-center">
           {(() => {
+            const hasCosmetic = hero.equippedFrame;
             const borderVisuals = getBorderConfig(hero.activeBorder, tier.name);
+
             return (
               <>
-                {/* LAYER 1: Animated Border (Background) */}
-                <motion.div
-                  className={`absolute inset-0 rounded-full ${borderVisuals.style}`}
-                  style={{
-                    boxShadow: borderVisuals.shadow,
-                    filter: borderVisuals.filter,
-                  }}
-                  animate={borderVisuals.animate} // Rotate applies ONLY to this div
-                  transition={borderVisuals.transition}
-                />
-
-                {/* LAYER 2: Static Avatar (Foreground) */}
-                <div className="relative z-10 w-[85%] h-[85%] rounded-full border-2 border-dark-bg bg-dark-bg overflow-hidden flex items-center justify-center">
-                  <HeroAvatar
-                    user={hero}
-                    seed={hero.avatarSeed || hero.name}
-                    tierName={tier.name}
-                    size={42}
-                    className="rounded-full"
-                    hideBorder={true}
+                {/* LAYER 1: Animated Border (Background) - Hidden if cosmetic frame exists */}
+                {!hasCosmetic && (
+                  <motion.div
+                    className={`absolute inset-0 rounded-full ${borderVisuals.style}`}
+                    style={{
+                      boxShadow: borderVisuals.shadow,
+                      filter: borderVisuals.filter,
+                    }}
+                    animate={borderVisuals.animate}
+                    transition={borderVisuals.transition}
                   />
+                )}
+
+                {/* LAYER 2: Avatar with optional cosmetic frame */}
+                <div
+                  className={`relative z-10 ${hasCosmetic ? "w-full h-full" : "w-[85%] h-[85%]"} rounded-full ${!hasCosmetic && "border-2 border-dark-bg bg-dark-bg"} flex items-center justify-center`}
+                >
+                  <AvatarFrame frameId={hero.equippedFrame} size="sm">
+                    <HeroAvatar
+                      user={hero}
+                      seed={hero.avatarSeed || hero.name}
+                      tierName={tier.name}
+                      size={42}
+                      className="rounded-full overflow-hidden"
+                      hideBorder={true}
+                    />
+                  </AvatarFrame>
                 </div>
               </>
             );
