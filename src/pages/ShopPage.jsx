@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../backend/firebaseConfig";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
@@ -25,6 +25,33 @@ const ShopPage = () => {
 
   // Extract user stats safely
   const userXP = user?.xp || 0;
+
+  // Touch tracking for internal swipe navigation
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const tabs = ["buy", "rewards"];
+  const categoryList = ["all", "real-world", "powerup", "cosmetic", "badge"];
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+
+    // Swipe between main tabs
+    const tabIndex = tabs.indexOf(activeTab);
+    if (deltaX > threshold && tabIndex > 0) {
+      setActiveTab(tabs[tabIndex - 1]);
+    } else if (deltaX < -threshold && tabIndex < tabs.length - 1) {
+      setActiveTab(tabs[tabIndex + 1]);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
 
   // Fetch shop items from Firestore
   useEffect(() => {
@@ -237,6 +264,9 @@ const ShopPage = () => {
         paddingBottom: "140px",
         paddingTop: "env(safe-area-inset-top, 60px)",
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <SEO title="Shop" description="Spend your XP on rewards and cosmetics." />
 
@@ -259,7 +289,10 @@ const ShopPage = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 max-w-md mx-auto">
+        <div
+          data-swipeable="shop-tabs"
+          className="flex gap-2 mb-6 max-w-md mx-auto"
+        >
           <button
             onClick={() => setActiveTab("buy")}
             className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${
@@ -322,7 +355,10 @@ const ShopPage = () => {
 
         {/* Category Pills (Buy Tab Only) */}
         {activeTab === "buy" && (
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar">
+          <div
+            data-swipeable="shop-categories"
+            className="flex gap-2 mb-6 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar"
+          >
             {[
               { id: "all", label: "All", icon: "🛍️" },
               { id: "real-world", label: "Vouchers", icon: "🎟️" },

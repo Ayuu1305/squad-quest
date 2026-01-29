@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useSwipeable } from "react-swipeable";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toPng, toBlob } from "html-to-image";
 import toast from "react-hot-toast";
@@ -673,18 +672,30 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
 
   // ✅ Internal Profile Swipe Handler
   const tabs = ["dashboard", "card", "overview"];
-  const handlers = useSwipeable({
-    onSwipedLeft: () => {
-      const currIndex = tabs.indexOf(activeTab);
-      if (currIndex < tabs.length - 1) setActiveTab(tabs[currIndex + 1]);
-    },
-    onSwipedRight: () => {
-      const currIndex = tabs.indexOf(activeTab);
-      if (currIndex > 0) setActiveTab(tabs[currIndex - 1]);
-    },
-    preventScrollOnSwipe: false,
-    trackMouse: true,
-  });
+
+  // Touch tracking for internal swipe navigation
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+    const currIndex = tabs.indexOf(activeTab);
+
+    if (deltaX > threshold && currIndex > 0) {
+      setActiveTab(tabs[currIndex - 1]);
+    } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
+      setActiveTab(tabs[currIndex + 1]);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
 
   // Social Share Handler (Whatsapp/Instagram)
   const handleDirectShare = async () => {
@@ -741,8 +752,10 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
 
   return (
     <div
-      {...handlers}
       className="w-full text-white font-sans px-4 sm:px-8 pb-8 relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <AnimatePresence>
         {showGuide && <OnboardingGuide onClose={() => setShowGuide(false)} />}
@@ -786,7 +799,7 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
           <div className="w-1 h-6 bg-neon-purple rounded-full" />
           Profile
         </h1>
-        <div className="flex gap-2">
+        <div data-swipeable="profile-tabs" className="flex gap-2">
           <button
             onClick={() => setActiveTab("dashboard")}
             className={`p-2 sm:px-4 sm:py-2 rounded-xl transition-all ${

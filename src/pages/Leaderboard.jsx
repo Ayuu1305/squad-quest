@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Zap, Shield, Star, Gift } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -30,6 +30,30 @@ const Leaderboard = () => {
   const [refreshTick, setRefreshTick] = useState(0);
 
   const [myStats, setMyStats] = useState(null);
+
+  // Touch tracking for internal swipe navigation
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+    const currentIndex = categories.findIndex((c) => c.id === category);
+
+    if (deltaX > threshold && currentIndex > 0) {
+      setCategory(categories[currentIndex - 1].id);
+    } else if (deltaX < -threshold && currentIndex < categories.length - 1) {
+      setCategory(categories[currentIndex + 1].id);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
 
   // ✅ Auto-refresh every 60s during showdown
   useEffect(() => {
@@ -133,6 +157,9 @@ const Leaderboard = () => {
         paddingBottom: "140px",
         paddingTop: "env(safe-area-inset-top, 60px)",
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Header */}
       <div className="relative pt-0 pb-8 px-6 text-center">
@@ -237,6 +264,7 @@ const Leaderboard = () => {
 
       {/* Category Toggle */}
       <div
+        data-swipeable="leaderboard-tabs"
         className={`flex bg-white/5 backdrop-blur-md rounded-2xl mx-6 p-1 mb-8 border border-white/5 sticky z-40 top-4 ${
           activeShowdown ? "border-red-500/30" : ""
         }`}

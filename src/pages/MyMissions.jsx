@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useSwipeable } from "react-swipeable";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, ChevronRight, Trophy } from "lucide-react";
@@ -199,15 +198,39 @@ const MyMissions = () => {
     activeTab === "upcoming" ? upcomingMissions : pastMissions;
 
   // ✅ Internal Swipe Handler
-  const handlers = useSwipeable({
-    onSwipedLeft: () => setActiveTab("past"),
-    onSwipedRight: () => setActiveTab("upcoming"),
-    preventScrollOnSwipe: false,
-    trackMouse: true,
-  });
+  const tabs = ["upcoming", "past"];
+
+  // Touch tracking for internal swipe navigation
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+    const currIndex = tabs.indexOf(activeTab);
+
+    if (deltaX > threshold && currIndex > 0) {
+      setActiveTab(tabs[currIndex - 1]);
+    } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
+      setActiveTab(tabs[currIndex + 1]);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
 
   return (
-    <div {...handlers} className="app-container min-h-screen pb-32 bg-dark-bg">
+    <div
+      className="app-container min-h-screen pb-32 bg-dark-bg"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Header */}
       <header className="pt-12 pb-8 px-6">
         <div className="flex items-center justify-between mb-6">
@@ -229,7 +252,10 @@ const MyMissions = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-white/5 rounded-2xl p-1">
+        <div
+          data-swipeable="missions-tabs"
+          className="flex bg-white/5 rounded-2xl p-1"
+        >
           <button
             onClick={() => setActiveTab("upcoming")}
             className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
