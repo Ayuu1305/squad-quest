@@ -17,37 +17,50 @@ const SwipeWrapper = ({ children }) => {
     "/profile",
   ];
 
-  // 2. Block swipes on pages with internal horizontal scrolling/sections
-  // These pages have their own internal swipe logic (tabs, carousels, etc.)
-  const locallySwipeablePages = [
-    "/my-missions", // Has 2 sections
-    "/profile", // Has 3 sections
-    "/leaderboard", // Has 3 sections (All-Time, Weekly, City)
-    "/shop", // Has 2 sections (Categories)
-  ];
+  const handleDragStart = (event) => {
+    // Store the drag start target to check later
+    event.currentTarget.dragStartTarget = event.target;
+  };
 
   const handleDragEnd = (event, info) => {
-    // If blocked page, do nothing
-    if (locallySwipeablePages.includes(location.pathname)) return;
-
     const offset = info.offset.x;
     const velocity = info.velocity.x;
     const currentIndex = tabs.indexOf(location.pathname);
 
     if (currentIndex === -1) return;
 
-    // 🔥 INSTAGRAM-OPTIMIZED THRESHOLDS 🔥
-    // Lower thresholds = More responsive (feels faster)
-    const swipeThreshold = 80; // Reduced from 100px
-    const swipeVelocity = 300; // Reduced from 500 (more sensitive to flicks)
+    // 🔥 SMART DETECTION: Check if drag started inside a scrollable container
+    // This allows internal section swipes to work while still enabling page navigation
+    const target = event.currentTarget.dragStartTarget;
+    let element = target;
 
-    // SWIPE RIGHT (Go Backwards: Board <- Journey)
+    // Walk up the DOM tree to check if we're inside a horizontally scrollable element
+    while (element && element !== event.currentTarget) {
+      const style = window.getComputedStyle(element);
+      const overflowX = style.overflowX;
+
+      // If we find a horizontal scroll container, don't navigate
+      if (overflowX === "scroll" || overflowX === "auto") {
+        const canScrollHorizontally = element.scrollWidth > element.clientWidth;
+        if (canScrollHorizontally) {
+          return; // Let the internal swipe handle it
+        }
+      }
+
+      element = element.parentElement;
+    }
+
+    // 🔥 INSTAGRAM-OPTIMIZED THRESHOLDS 🔥
+    const swipeThreshold = 80;
+    const swipeVelocity = 300;
+
+    // SWIPE RIGHT (Go Backwards)
     if (offset > swipeThreshold || velocity > swipeVelocity) {
       if (currentIndex > 0) {
         navigate(tabs[currentIndex - 1]);
       }
     }
-    // SWIPE LEFT (Go Forward: Board -> Journey)
+    // SWIPE LEFT (Go Forward)
     else if (offset < -swipeThreshold || velocity < -swipeVelocity) {
       if (currentIndex < tabs.length - 1) {
         navigate(tabs[currentIndex + 1]);
