@@ -31,23 +31,26 @@ import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
 
 // Protects routes that require both login AND city selection
+// Protects routes that require both login AND city selection
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const { city } = useGame();
+  const { city, gameLoading } = useGame();
 
-  if (loading) return null;
+  if (loading || gameLoading) return null;
   // ✅ Check for existence AND verification
   if (!user || !user.emailVerified) return <Navigate to="/" />;
-  if (!city) return <Navigate to="/" />;
+  if (!city) return <Navigate to="/city-select" />;
 
   return children;
 };
 
 // Protects routes that require ONLY login
+// Protects routes that require ONLY login
 const UserProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const { gameLoading } = useGame();
 
-  if (loading) return null;
+  if (loading || gameLoading) return null;
   // ✅ Check for existence AND verification
   if (!user || !user.emailVerified) return <Navigate to="/" />;
 
@@ -55,11 +58,12 @@ const UserProtectedRoute = ({ children }) => {
 };
 
 // Protects the city selection (Landing) - requires login but NO city yet
+// Protects the city selection (Landing) - requires login but NO city yet
 const CitySelectionRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const { city } = useGame();
+  const { city, gameLoading } = useGame();
 
-  if (loading) return null;
+  if (loading || gameLoading) return null;
   // ✅ Check for existence AND verification
   if (!user || !user.emailVerified) return <Navigate to="/login" />;
   if (city) return <Navigate to="/board" />;
@@ -70,11 +74,12 @@ const CitySelectionRoute = ({ children }) => {
 import LandingPage from "./pages/LandingPage"; // Import LandingPage
 
 // Updated AuthRoute to handle City Selection flow
+// Updated AuthRoute to handle City Selection flow
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const { city } = useGame(); // Need city context here
+  const { city, gameLoading } = useGame(); // Need city context here
 
-  if (loading) return null;
+  if (loading || gameLoading) return null;
 
   if (user && user.emailVerified) {
     // If they have a city, go to game. If not, go to selection.

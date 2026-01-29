@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   Mail,
   Lock,
@@ -19,6 +19,8 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/board";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -27,7 +29,7 @@ const Login = () => {
     try {
       await signInWithEmail(email, password);
       toast.success("Access Granted. Welcome back, Hero.");
-      navigate("/board");
+      // navigate(from, { replace: true });
     } catch (err) {
       if (err.message === "EMAIL_NOT_VERIFIED") {
         const msg =
@@ -69,7 +71,7 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
-      navigate("/board");
+      // navigate(from, { replace: true });
     } catch (err) {
       setError("External Sync Failed");
     }

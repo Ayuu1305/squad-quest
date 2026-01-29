@@ -23,12 +23,14 @@ const GameContext = createContext({
   joinQuest: () => {},
   leaveQuest: () => {},
   isJoined: () => false,
+  gameLoading: true,
 });
 
 export const GameProvider = ({ children }) => {
   const { user } = useAuth();
   const [city, setCity] = useState(localStorage.getItem("selectedCity") || "");
   const [joinedQuests, setJoinedQuests] = useState([]);
+  const [gameLoading, setGameLoading] = useState(true);
 
   console.log("🎮 GameProvider Rendering...");
 
@@ -40,6 +42,7 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (!user?.uid) {
       setJoinedQuests([]);
+      setGameLoading(false);
       return;
     }
 
@@ -48,8 +51,11 @@ export const GameProvider = ({ children }) => {
       (docSnap) => {
         trackRead("GameContext.joinedQuests"); // ✅ TRACK READ
         if (docSnap.exists()) {
-          setJoinedQuests(docSnap.data().joinedQuests || []); // ✅ Reads from subcollection or map
+          const data = docSnap.data();
+          setJoinedQuests(data.joinedQuests || []); // ✅ Reads from subcollection or map
+          setCity(data.city || ""); // ✅ Sync City
         }
+        setGameLoading(false);
       },
       (error) => {
         if (error?.code === "permission-denied") return;
@@ -218,8 +224,17 @@ export const GameProvider = ({ children }) => {
       joinQuest,
       leaveQuest,
       isJoined,
+      gameLoading,
     }),
-    [city, selectCity, joinedQuests, joinQuest, leaveQuest, isJoined],
+    [
+      city,
+      selectCity,
+      joinedQuests,
+      joinQuest,
+      leaveQuest,
+      isJoined,
+      gameLoading,
+    ],
   );
 
   return (
