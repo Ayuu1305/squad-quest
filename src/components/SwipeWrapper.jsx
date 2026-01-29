@@ -68,31 +68,23 @@ const SwipeWrapper = ({ children }) => {
     }
   };
 
-  // Check if swipes are allowed on this page
-  const isSwipeDisabled = locallySwipeablePages.includes(location.pathname);
-
   return (
     <motion.div
-      className="min-h-screen w-full touch-pan-y"
-      // 3. THE INSTAGRAM PHYSICS ENGINE
-      drag={isSwipeDisabled ? false : "x"} // Only drag horizontally
-      // Constraints=0 creates "Rubber Banding" (Resistance)
-      // This makes it feel like you are "pulling" the page
+      className="min-h-screen w-full"
+      // 🔥 INSTAGRAM-OPTIMIZED PHYSICS 🔥
+      drag="x" // Always enable horizontal drag
       dragConstraints={{ left: 0, right: 0 }}
-      // Elasticity: How "stretchy" the drag is.
-      // 0.2 = Heavy/Premium feel (Like Instagram)
-      // 0.8 = Loose/Bouncy feel
       dragElastic={0.15}
-      // Momentum-based inertia (Instagram uses this!)
       dragMomentum={true}
-      // Reduced friction = smoother glide
       dragTransition={{
         bounceStiffness: 600,
         bounceDamping: 20,
       }}
+      // Track where drag starts
+      onDragStart={handleDragStart}
       // Handle the release
       onDragEnd={handleDragEnd}
-      // Ensure vertical scrolling still works perfectly
+      // CRITICAL: Allow vertical scroll, capture horizontal swipes
       style={{ x, touchAction: "pan-y" }}
     >
       {children}
