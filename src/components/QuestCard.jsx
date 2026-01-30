@@ -1,8 +1,6 @@
 import { Users, MapPin, Clock, Gift, Flame, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "../backend/firebaseConfig";
+import { useRef } from "react";
 import HeroAvatar from "./HeroAvatar";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -10,44 +8,21 @@ import { useAuth } from "../context/AuthContext";
 
 const QuestCard = ({ quest, hub, isMyMission = false }) => {
   const { user } = useAuth();
-  const [members, setMembers] = useState([]);
+  
+  // ❌ REMOVED: const [members, setMembers] = useState([]); 
+  // ❌ REMOVED: The useEffect that fetched members (The Battery Drainer)
+
+  // ✅ NEW: Read directly from the prop (Instant & Free)
+  // If the 'members' array exists on the quest object, use it. Otherwise empty array.
+  const displayMembers = quest.members || [];
+  
+  // ✅ NEW: Calculate count safely (uses 'membersCount' number if available, else array length)
+  const displayCount = quest.membersCount || displayMembers.length || 0;
+  
   const maxPlayers = quest.maxPlayers || 5;
   const cardRef = useRef(null);
   const titleRef = useRef(null);
   const glowRef = useRef(null);
-
-  // Subscribe to Members Subcollection
-  useEffect(() => {
-    if (!quest?.id) return; // ✅ Guard against undefined
-
-    console.log(`🔔 [QuestCard] Subscribing to members for quest: ${quest.id}`);
-
-    const membersRef = collection(db, "quests", quest.id, "members");
-    const unsubscribe = onSnapshot(
-      membersRef,
-      (snapshot) => {
-        const memberIds = snapshot.docs.map((doc) => doc.id);
-        setMembers(memberIds);
-        console.log(
-          `✅ [QuestCard] Members updated for ${quest.id}: ${memberIds.length}`,
-        );
-      },
-      (error) => {
-        if (error?.code !== "permission-denied") {
-          console.warn(
-            `❌ [QuestCard] Members listener error for ${quest.id}:`,
-            error,
-          );
-        }
-      },
-    );
-
-    // ✅ CRITICAL: Explicitly return cleanup function
-    return () => {
-      console.log(`🔕 [QuestCard] Unsubscribing from quest: ${quest.id}`);
-      unsubscribe();
-    };
-  }, [quest?.id]); // ✅ Use optional chaining to prevent crashes
 
   // Rarity styling logic - Cyberpunk Dark Theme
   const getRarity = (difficulty = 1) => {
@@ -146,8 +121,8 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
 
   // Hot Zone Logic (High Demand / Urgency)
   const isHotZone = () => {
-    // 1. High Capacity (>75%)
-    const capacityRatio = members.length / maxPlayers;
+    // 1. High Capacity (>75%) using displayCount
+    const capacityRatio = displayCount / maxPlayers;
     if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
 
     // 2. Starts Soon (<30 mins)
@@ -298,13 +273,13 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
               Squad Capacity
             </span>
             <span className="text-[10px] font-mono text-white font-bold">
-              {members.length}/{maxPlayers}
+              {displayCount}/{maxPlayers}
             </span>
           </div>
           <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden border border-white/5">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${(members.length / maxPlayers) * 100}%` }}
+              animate={{ width: `${(displayCount / maxPlayers) * 100}%` }}
               transition={{ duration: 1, ease: "circOut" }}
               className="h-full relative overflow-hidden"
               style={{ backgroundColor: displayRarity.color }}
@@ -340,7 +315,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
           <div className="bg-white/5 rounded-xl p-3 border border-white/5 group-hover:border-white/10 transition-colors">
             <div className="flex items-center gap-2 mb-1">
               <Gift
-                className={`w-3 h-3 ${isMyMission || members.includes(quest.hostId) ? "text-yellow-400 animate-pulse" : "text-gray-400"}`}
+                className={`w-3 h-3 ${isMyMission || displayMembers.includes(quest.hostId) ? "text-yellow-400 animate-pulse" : "text-gray-400"}`}
               />
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                 Loot
@@ -357,7 +332,8 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
         {/* Footer: Joined Members and Count */}
         <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
           <div className="flex -space-x-2">
-            {members.slice(0, 3).map((uid) => (
+            {/* Safely map over displayMembers */}
+            {displayMembers.slice(0, 3).map((uid) => (
               <div
                 key={uid}
                 className="w-8 h-8 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center overflow-hidden"
@@ -365,10 +341,10 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
                 <HeroAvatar seed={uid} size={32} />
               </div>
             ))}
-            {members.length > 3 && (
+            {displayMembers.length > 3 && (
               <div className="w-8 h-8 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center z-0">
                 <span className="text-[9px] font-bold text-gray-400">
-                  +{members.length - 3}
+                  +{displayMembers.length - 3}
                 </span>
               </div>
             )}
@@ -378,13 +354,13 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
             <Users className="w-3 h-3 text-gray-500" />
             <AnimatePresence mode="popLayout">
               <motion.span
-                key={members.length}
+                key={displayCount}
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -10, opacity: 0 }}
                 className="text-xs font-bold text-white"
               >
-                {members.length} Joined
+                {displayCount} Joined
               </motion.span>
             </AnimatePresence>
           </div>

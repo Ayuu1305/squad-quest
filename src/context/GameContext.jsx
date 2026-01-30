@@ -6,15 +6,12 @@ import {
   useMemo,
   useCallback,
 } from "react";
-import { useAuth } from "./AuthContext";
-import {
-  // We will deal with this later
-  subscribeToQuest,
-} from "../backend/firebaseService"; // ❌ Removed firebaseJoin import
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { useAuth } from "./AuthContext"; // ✅ IMPORT AUTH
+import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
-import { trackRead } from "../utils/firestoreMonitor"; // ✅ ADD TRACKING
+// ❌ REMOVED: import { onSnapshot } ... (This was the double billing source)
+// ❌ REMOVED: import { trackRead } ... (No longer needed since we don't read DB here)
 
 const GameContext = createContext({
   city: "",
@@ -27,7 +24,10 @@ const GameContext = createContext({
 });
 
 export const GameProvider = ({ children }) => {
+  // ✅ OPTIMIZATION 1: Get 'user' from AuthContext. 
+  // AuthContext has already paid for the read, so we get the data for FREE here.
   const { user } = useAuth();
+  
   const [city, setCity] = useState(localStorage.getItem("selectedCity") || "");
   const [joinedQuests, setJoinedQuests] = useState([]);
   const [inventory, setInventory] = useState(null);
@@ -40,113 +40,80 @@ export const GameProvider = ({ children }) => {
     localStorage.setItem("selectedCity", city);
   }, [city]);
 
-  // Sync joined quests from user profile
+  // ✅ OPTIMIZATION 2: REPLACED THE HUGE 'onSnapshot' BLOCK
+  // Instead of opening a NEW connection to Firebase, we just watch the 'user' object.
+  // When AuthContext updates 'user', this runs automatically.
   useEffect(() => {
-    if (!user?.uid) {
+    if (!user) {
       setJoinedQuests([]);
+      setInventory(null);
       setGameLoading(false);
       return;
     }
 
-    const unsub = onSnapshot(
-      doc(db, "users", user.uid),
-      (docSnap) => {
-        trackRead("GameContext.joinedQuests"); // ✅ TRACK READ
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+    // 1. Sync Basic Data directly from the Auth user object
+    setJoinedQuests(user.joinedQuests || []);
+    setCity(user.city || "");
+    setEquippedFrame(user.equippedFrame || null);
 
-          // Debug: See exactly what fields exist
-          console.log("🔥 [GameContext] Raw Firestore Data:", data);
+    // 🛡️ BULLETPROOF MERGE LOGIC (PRESERVED) 🛡️
+    // We run the exact same logic, but on the 'user' object instead of 'docSnap.data()'
 
-          setJoinedQuests(data.joinedQuests || []); // ✅ Reads from subcollection or map
-          setCity(data.city || ""); // ✅ Sync City
-          
-          // 🛡️ BULLETPROOF MERGE LOGIC 🛡️
+    // A. Check Standard Nested Map
+    const mapFrames = Array.isArray(user.inventory?.frames) ? user.inventory.frames : [];
 
-          // 1. Check Standard Nested Map: inventory { frames: [...] }
-          const mapFrames = Array.isArray(data.inventory?.frames) ? data.inventory.frames : [];
+    // B. Get frames from Root
+    const rootFrames = Array.isArray(user.frames) ? user.frames : [];
 
-          // 2. Get frames from Root (e.g., data.frames)
-          const rootFrames = Array.isArray(data.frames) ? data.frames : [];
+    // C. Check "Dot Notation" String Key
+    const dotFrames = Array.isArray(user["inventory.frames"]) ? user["inventory.frames"] : [];
 
-         // 3. Check "Dot Notation" String Key: "inventory.frames" [...]
-          // (Sometimes Firestore saves fields with dots as literal keys)
-          const dotFrames = Array.isArray(data["inventory.frames"]) ? data["inventory.frames"] : [];
+    // D. Merge ALL sources and remove duplicates
+    const allFrames = [...new Set([
+      ...mapFrames, 
+      ...rootFrames, 
+      ...dotFrames
+    ])];
 
-          // 4. Merge ALL sources and remove duplicates
-          const allFrames = [...new Set([
-            ...mapFrames, 
-            ...rootFrames, 
-            ...dotFrames
-          ])];
+    console.log("✅ [GameContext] Merged Frames (from Auth):", allFrames);
 
-          console.log("✅ [GameContext] Merged Frames:", allFrames);
+    // E. Update State
+    setInventory({
+      ...user.inventory,  // Keep other inventory items like badges
+      frames: allFrames   // Overwrite frames with the complete list
+    });
 
-         // 5. Update State with the merged list
-          setInventory({
-            ...data.inventory,  // Keep other inventory items like badges
-            frames: allFrames   // Overwrite frames with the complete list
-          }); // ✅ Extract inventory
-          setEquippedFrame(data.equippedFrame || null); // ✅ Extract equippedFrame
-        }
-        setGameLoading(false);
-      },
-      (error) => {
-        if (error?.code === "permission-denied") return;
-        if (
-          error?.message?.includes("ERR_BLOCKED") ||
-          error?.code === "unavailable"
-        ) {
-          console.warn(
-            "⚠️ GameContext: Connection blocked. If using an ad-blocker, try disabling it.",
-          );
-        } else {
-          console.error("GameContext: User listener error:", error);
-        }
-      },
-    );
+    setGameLoading(false);
 
-    return () => unsub();
-  }, [user?.uid]);
+  }, [user]); // 👈 This dependency ensures we stay in sync with Auth
 
-  // ✅ MEMOIZED: Prevents function recreation on every render
-  const selectCity = useCallback(
-    async (cityName) => {
-      // ✅ FIX: Only update if city actually changed
-      if (city === cityName) return;
+  // ✅ FUNCTION 1: Select City (Memoized)
+  const selectCity = useCallback(async (cityName) => {
+    if (city === cityName) return;
 
-      setCity(cityName);
-      if (user?.uid) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          // Only write to Firestore if value changed
-          await updateDoc(userRef, { city: cityName });
-        } catch (err) {
-          console.warn("City sync failed:", err);
-        }
+    setCity(cityName);
+    if (user?.uid) {
+      try {
+        const userRef = doc(db, "users", user.uid);
+        // We still WRITE to Firestore, which is fine and correct.
+        await updateDoc(userRef, { city: cityName });
+      } catch (err) {
+        console.warn("City sync failed:", err);
       }
-    },
-    [city, user?.uid],
-  );
+    }
+  }, [city, user?.uid]);
 
-  // ✅ MEMOIZED: Quest membership check - MUST be defined BEFORE joinQuest
-  const isJoined = useCallback(
-    (questId) => {
-      // Handle both array format and map/subcollection format
+  // ✅ FUNCTION 2: Is Joined Check (Memoized)
+  const isJoined = useCallback((questId) => {
       if (Array.isArray(joinedQuests)) {
         return joinedQuests.includes(questId);
       }
-      // If joinedQuests is an object (map), check for key existence
       return !!joinedQuests[questId];
-    },
-    [joinedQuests],
-  );
+    }, [joinedQuests]);
 
-  // ✅ MEMOIZED: Equip a cosmetic frame
-  const equipFrame = useCallback(
-    async (frameId) => {
+  // ✅ FUNCTION 3: Equip Frame (Memoized)
+  const equipFrame = useCallback(async (frameId) => {
       if (!user?.uid) return;
-
       try {
         const userRef = doc(db, "users", user.uid);
         await updateDoc(userRef, { equippedFrame: frameId });
@@ -155,41 +122,31 @@ export const GameProvider = ({ children }) => {
         console.error("Failed to equip frame:", err);
         toast.error("Failed to equip frame");
       }
-    },
-    [user?.uid],
-  );
+    }, [user?.uid]);
 
-  // ✅ SECURITY UPGRADE: Call the Node.js API instead of Firebase directly
-  // ✅ MEMOIZED: Prevents function recreation on every render
-  const joinQuest = useCallback(
-    async (questId, secretCode = "") => {
-      if (!user) return;
+  // ✅ FUNCTION 4: Join Quest (FULL LOGIC PRESERVED)
+  const joinQuest = useCallback(async (questId, secretCode = "") => {
+     if (!user) return;
 
-      // Optimistic UI check (optional)
-      if (isJoined(questId)) {
+     if (isJoined(questId)) {
         toast("You are already in this squad!", { icon: "🫡" });
         return;
-      }
+     }
 
-      const loadingToast = toast.loading("Joining Squad...");
+     const loadingToast = toast.loading("Joining Squad...");
 
-      try {
-        // 1. Get the Security Token (The ID Card)
+     try {
         if (!auth.currentUser) throw new Error("User not authenticated");
         const token = await auth.currentUser.getIdToken();
 
-        // 2. Call the Police (Your Backend API)
-        // Replace with your actual backend URL if not using a proxy
+        // Note: Ensure this URL is correct (use https://squad-quest.onrender.com for Live)
         const response = await fetch("http://localhost:5000/api/quest/join", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // 🔒 CRITICAL
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            questId,
-            secretCode,
-          }),
+          body: JSON.stringify({ questId, secretCode }),
         });
 
         const data = await response.json();
@@ -199,31 +156,19 @@ export const GameProvider = ({ children }) => {
         }
 
         toast.success("Squad Joined! 🚀", { id: loadingToast });
-
-        // Note: No need to update state manually.
-        // The backend updates Firestore -> The onSnapshot above sees the change -> React re-renders.
-      } catch (error) {
+     } catch (error) {
         console.error("Failed to join quest:", error);
         toast.error(error.message, { id: loadingToast });
-      }
-    },
-    [user, isJoined],
-  );
+     }
+  }, [user, isJoined]);
 
-  // ⚠️ WARNING: If you applied strict rules, 'leaveQuest' might also break
-  // if it uses updateDoc in firebaseService.
-  // For now, we assume you haven't locked down 'leave' yet.
-  // ✅ MEMOIZED: Prevents function recreation on every render
-  const leaveQuest = useCallback(
-    async (questId) => {
-      if (!user) return;
+  // ✅ FUNCTION 5: Leave Quest (FULL LOGIC PRESERVED)
+  const leaveQuest = useCallback(async (questId) => {
+     if (!user) return;
 
-      // Optimistic UI: Don't wait for server to remove from list visually?
-      // Better to wait for confirmation to show the penalty toast correctly.
+     const loadingToast = toast.loading("Processing...");
 
-      const loadingToast = toast.loading("Processing...");
-
-      try {
+     try {
         if (!auth.currentUser) throw new Error("User not authenticated");
         const token = await auth.currentUser.getIdToken();
 
@@ -242,31 +187,20 @@ export const GameProvider = ({ children }) => {
           throw new Error(data.error || "Failed to leave quest");
         }
 
-        // Handle Success & Penalties
         if (data.xpPenalty > 0) {
           toast.error(
             `Left Quest. Penalty: -${data.xpPenalty} XP & Reputation Drop`,
-            {
-              id: loadingToast,
-              icon: "📉",
-              duration: 5000,
-            },
+            { id: loadingToast, icon: "📉", duration: 5000 }
           );
         } else {
-          toast.success("Left Quest Successfully", {
-            id: loadingToast,
-            icon: "👋",
-          });
+          toast.success("Left Quest Successfully", { id: loadingToast, icon: "👋" });
         }
-      } catch (error) {
+     } catch (error) {
         console.error("Failed to leave quest:", error);
         toast.error(error.message || "Failed to leave", { id: loadingToast });
-      }
-    },
-    [user],
-  );
+     }
+  }, [user]);
 
-  // ✅ MEMOIZED: Wrap provider value to prevent object recreation on every render
   const contextValue = useMemo(
     () => ({
       city,
@@ -291,12 +225,10 @@ export const GameProvider = ({ children }) => {
       inventory,
       equippedFrame,
       equipFrame,
-    ],
+    ]
   );
 
-  return (
-    <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>
-  );
+  return <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>;
 };
 
 export const useGame = () => {

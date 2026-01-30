@@ -107,49 +107,46 @@ function App() {
       "/shop",
     ].includes(location.pathname) && user;
 
-  // ✅ FCM Token Management
+  
+  // ✅ FCM Token Management (FIXED)
   useEffect(() => {
     const setupNotifications = async () => {
-      if (!user || !messaging) return;
+      // 1. Guard Clause: Need user and messaging
+      if (!user?.uid || !messaging) return;
 
       try {
-        console.log("🔔 [FCM] Requesting notification permission...");
-        const permission = await Notification.requestPermission();
-        console.log("🔔 [FCM] Permission result:", permission);
+        // 2. Check Permission (Silent check first)
+        if (Notification.permission !== "granted") {
+           // Optional: Request permission only if you want to annoy them immediately
+           // Otherwise, wait for a user action (better UX)
+           const permission = await Notification.requestPermission();
+           if (permission !== "granted") return;
+        }
 
-        if (permission === "granted") {
-          console.log("🔔 [FCM] Generating token...");
-          const currentToken = await getToken(messaging, {
-            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY, // User must provide this
-          });
+        const currentToken = await getToken(messaging, {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        });
 
-          if (currentToken) {
-            console.log(
-              "✅ [FCM] Token generated:",
-              currentToken.substring(0, 20) + "...",
-            );
-            if (user?.fcmToken !== currentToken) {
-              // Save token to user profile ONLY if different
-              const userRef = doc(db, "users", user.uid);
-              await updateDoc(userRef, { fcmToken: currentToken });
-              console.log(
-                "✅ [FCM] Token updated in Firestore for user:",
-                user.uid,
-              );
-            } else {
-              console.log("✅ [FCM] Token already up-to-date.");
-            }
+        if (currentToken) {
+          // 🛑 CRITICAL CHECK: compare with the value in memory to prevent loop
+          if (user.fcmToken !== currentToken) {
+            console.log("🔔 [FCM] Saving new token to Firestore...");
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, { fcmToken: currentToken });
+            console.log("✅ [FCM] Token updated.");
           } else {
-            console.warn("⚠️ [FCM] No token received");
+             // Debug log only (optional)
+             // console.log("✅ [FCM] Token already matches.");
           }
         }
       } catch (err) {
-        console.error("❌ [FCM] Permission/token error:", err);
+        console.error("❌ [FCM] Error:", err);
       }
     };
 
     setupNotifications();
-  }, [user]);
+    // 🛑 THE FIX: Watch 'user.uid', NOT the entire 'user' object
+  }, [user?.uid, messaging]);
 
   // ✅ Foreground Message Listener
   useEffect(() => {
