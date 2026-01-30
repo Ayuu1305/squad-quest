@@ -33,6 +33,8 @@ export const GameProvider = ({ children }) => {
   const [inventory, setInventory] = useState(null);
   const [equippedFrame, setEquippedFrame] = useState(null);
   const [gameLoading, setGameLoading] = useState(true);
+  // ✅ DEFINE API URL: Uses your .env variable, or falls back to localhost for dev
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
   console.log("🎮 GameProvider Rendering...");
 
@@ -140,7 +142,7 @@ export const GameProvider = ({ children }) => {
         const token = await auth.currentUser.getIdToken();
 
         // Note: Ensure this URL is correct (use https://squad-quest.onrender.com for Live)
-        const response = await fetch("http://localhost:5000/api/quest/join", {
+        const response = await fetch(`${API_BASE}/quest/join`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -172,7 +174,7 @@ export const GameProvider = ({ children }) => {
         if (!auth.currentUser) throw new Error("User not authenticated");
         const token = await auth.currentUser.getIdToken();
 
-        const response = await fetch("http://localhost:5000/api/quest/leave", {
+        const response = await fetch(`${API_BASE}/quest/leave`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
