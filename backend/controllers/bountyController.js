@@ -59,7 +59,7 @@ export const claimBounty = async (req, res) => {
       // 2. Cooldown Check (25 hours)
       if (lastClaimed && !isNaN(lastClaimed.getTime())) {
         const diffHours = (now - lastClaimed) / (1000 * 60 * 60);
-        if (diffHours < 25) {
+        if (diffHours < 24) {
           throw new Error("Cooldown active");
         }
       }
