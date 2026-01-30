@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { motion } from "framer-motion";
 import { X, Check, Frame, Crown, Sparkles } from "lucide-react";
@@ -23,8 +23,6 @@ const BorderSelectorModal = ({
   const [selectedBorder, setSelectedBorder] = useState(null);
   const [allBorders, setAllBorders] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
-
-
 
   // 1. COMPILE UNIFIED LIST (Rank Borders + Cosmetic Frames)
   useEffect(() => {
@@ -60,13 +58,30 @@ const BorderSelectorModal = ({
 
     // B. Add Cosmetic Frames
     const cosmeticFrames = inventory?.frames || [];
-    
+
     // Explicitly Log the processing of frames
-    console.log("🔍 [BorderModal] Processing Frames:", cosmeticFrames);
 
-   
+    // B1. Add Champion Aura explicitly (ALWAYS ADD for visibility)
+    // Check if user owns it (either in inventory or active)
+    const ownsChampionAura =
+      cosmeticFrames.includes("champion_aura") ||
+      user.activeBorder === "champion_aura";
 
+    unified.push({
+      id: "champion_aura",
+      type: "cosmetic",
+      label: "Champion Aura",
+      isPremium: true,
+      icon: "👑",
+      // Optional: Add a 'locked' property if you want to show lock icon
+      // isLocked: !ownsChampionAura
+    });
+
+    // B2. Add other cosmetic frames
     cosmeticFrames.forEach((frameId) => {
+      // Skip champion_aura since we added it explicitly above
+      if (frameId === "champion_aura") return;
+
       const metadata = COSMETIC_METADATA[frameId] || {
         label: frameId.replace(/_/g, " "),
         icon: "🎨",
@@ -80,25 +95,48 @@ const BorderSelectorModal = ({
         isPremium: true,
       });
     });
-    
-    console.log("✅ [BorderModal] Final Unified List:", unified);
+
     setAllBorders(unified);
   }, [user, inventory]);
 
   // 2. SET INITIAL SELECTION
+  // 2. SET INITIAL SELECTION (FIXED: Only run once on mount/open)
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
-    if (isOpen && user) {
-      if (equippedFrame) {
-        setSelectedBorder(equippedFrame);
-      } else {
-        const { level: calcLevel } = getLevelProgress(
-          user.lifetimeXP || user.xp || 0,
-        );
-        const currentTierName = getTier(calcLevel).name;
-        setSelectedBorder(user.activeBorder || currentTierName);
-      }
+    // Reset initialization tracker when modal closes
+    if (!isOpen) {
+      hasInitialized.current = false;
+      return;
     }
-  }, [isOpen, equippedFrame, user]);
+
+    // Only run once per open, when we have borders to choose from
+    if (isOpen && user && allBorders.length > 0 && !hasInitialized.current) {
+      hasInitialized.current = true;
+
+      // 🔍 Priority: Equipped > Active > Rank (From List)
+      let effectiveBorder;
+
+      if (equippedFrame) {
+        effectiveBorder = equippedFrame;
+      } else if (user.activeBorder) {
+        // Validation: Does this active border actually exist in our list?
+        // (This fixes the "Ghost Selection" if the ID changed)
+        const exists = allBorders.find((b) => b.id === user.activeBorder);
+        effectiveBorder = exists ? user.activeBorder : null;
+      }
+
+      // 🛡️ FALLBACK: If nothing is set (or invalid), find the RANK item in the list
+      if (!effectiveBorder) {
+        const rankItem = allBorders.find((b) => b.type === "rank");
+        if (rankItem) {
+          effectiveBorder = rankItem.id; // Correctly grabs "Gold"
+        }
+      }
+
+      setSelectedBorder(effectiveBorder);
+    }
+  }, [isOpen, equippedFrame, user, allBorders]); // Added allBorders dependency
 
   const handleEquip = async () => {
     if (!user?.uid || !selectedBorder) return;
@@ -191,11 +229,14 @@ const BorderSelectorModal = ({
                         <motion.div
                           className={`absolute inset-[-4px] rounded-full ${getBorderConfig(option.id, tierName).style}`}
                           style={{
-                            boxShadow: getBorderConfig(option.id, tierName).shadow,
+                            boxShadow: getBorderConfig(option.id, tierName)
+                              .shadow,
                             filter: getBorderConfig(option.id, tierName).filter,
                           }}
                           animate={getBorderConfig(option.id, tierName).animate}
-                          transition={getBorderConfig(option.id, tierName).transition}
+                          transition={
+                            getBorderConfig(option.id, tierName).transition
+                          }
                         />
                         <div className="relative w-full h-full rounded-full overflow-hidden z-10 bg-[#15171E]">
                           <HeroAvatar

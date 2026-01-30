@@ -39,7 +39,7 @@ const MilestoneNode = ({ level, reward, isUnlocked, isCurrent, index }) => {
       whileInView={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.1, duration: 0.6 }}
       viewport={{ once: true }}
-      className={`relative flex items-center gap-6 mb-24 ${
+      className={`relative flex items-center gap-3 md:gap-6 mb-24 ${
         index % 2 === 0 ? "flex-row" : "flex-row-reverse text-right"
       }`}
     >
@@ -56,8 +56,8 @@ const MilestoneNode = ({ level, reward, isUnlocked, isCurrent, index }) => {
               isUnlocked
                 ? "bg-neon-purple/20 border-neon-purple shadow-[0_0_20px_#a855f7]"
                 : isCurrent
-                ? "bg-white/10 border-white/50 border-dashed"
-                : "bg-white/5 border-white/10 grayscale opacity-60"
+                  ? "bg-white/10 border-white/50 border-dashed"
+                  : "bg-white/5 border-white/10 grayscale opacity-60"
             }`}
         >
           {(isUnlocked || isCurrent) && <div className="scanline" />}

@@ -133,7 +133,7 @@ const HeroJourney = () => {
       </div>
 
       {/* The Roadmap */}
-      <div className="relative px-8 pt-12 pb-24 max-w-lg mx-auto">
+      <div className="relative px-4 md:px-8 pt-12 pb-24 max-w-lg mx-auto">
         {/* SVG Journey Path */}
         <svg className="absolute left-1/2 -translate-x-1/2 top-0 w-full h-full pointer-events-none z-0 overflow-visible opacity-20">
           <motion.path

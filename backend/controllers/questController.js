@@ -466,7 +466,7 @@ export const leaveQuest = async (req, res) => {
         const hoursUntilStart = (startTime - now) / (1000 * 60 * 60);
 
         // If "flaking" last minute (less than 2 hours)
-        if (hoursUntilStart < 2 && hoursUntilStart > -1) {
+        if (hoursUntilStart < 1 && hoursUntilStart > -1) {
           xpPenalty = 50; // Deduction amount
         }
       }

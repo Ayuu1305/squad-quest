@@ -257,7 +257,7 @@ const Verification = () => {
 
   const finishQuest = () => {
     // ✅ always go to board
-    navigate(`/board/${id}`);
+    navigate("/board");
   };
 
   const handleMissionClose = () => {

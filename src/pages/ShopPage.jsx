@@ -678,7 +678,7 @@ const ShopItemCard = ({
   const showOwned = (type === "cosmetic" || type === "badge") && isOwned;
 
   return (
-    <div className="glassmorphism rounded-2xl p-6 relative overflow-hidden border-2 border-purple-500/30 bg-gradient-to-br from-purple-900/20 via-fuchsia-900/10 to-transparent">
+    <div className="glassmorphism rounded-2xl p-4 md:p-6 relative overflow-hidden border-2 border-purple-500/30 bg-gradient-to-br from-purple-900/20 via-fuchsia-900/10 to-transparent">
       {/* Animated Glow */}
       <div className="absolute -top-20 -right-20 w-40 h-40 bg-fuchsia-500/10 rounded-full blur-3xl animate-pulse" />
 
@@ -729,8 +729,8 @@ const ShopItemCard = ({
         </p>
 
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 glassmorphism-dark rounded-lg px-4 py-2 border border-yellow-500/20">
-            <span className="text-yellow-400 text-2xl font-black font-mono">
+          <div className="flex items-center gap-2 glassmorphism-dark rounded-lg px-2.5 md:px-4 py-2 border border-yellow-500/20">
+            <span className="text-yellow-400 text-xl sm:text-2xl font-black font-mono">
               {cost}
             </span>
             <span className="text-yellow-300 font-bold text-xs uppercase">
@@ -741,7 +741,7 @@ const ShopItemCard = ({
           <button
             onClick={() => onBuy(id)}
             disabled={!canAfford || isPurchasing || showOwned}
-            className={`px-5 py-2.5 rounded-xl font-black uppercase tracking-wider text-xs transition-all transform relative overflow-hidden ${
+            className={`px-3 md:px-5 py-2.5 rounded-xl font-black uppercase tracking-wider text-xs transition-all transform relative overflow-hidden ${
               showOwned
                 ? "bg-gray-700 text-gray-400 border border-gray-600 cursor-not-allowed" // Owned State
                 : canAfford && !isPurchasing

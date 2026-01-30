@@ -1,6 +1,8 @@
 import React from "react";
 import { getHeroAvatarUrl } from "../utils/avatars";
 import { useAuth } from "../context/AuthContext";
+import { motion } from "framer-motion";
+import { getBorderConfig } from "../utils/borderStyles";
 
 const HeroAvatar = ({
   user, // [NEW] Accept user prop for Leaderboard/Profile data
@@ -139,58 +141,30 @@ const HeroAvatar = ({
     );
   }
 
-  // Special Frame Logic (Neon Warlord)
-  const isNeonWarlord = activeFrame === "neon_frame_01";
+  // 2. Dynamic Border Rendering (Replaces Legacy Hardcoded & Neon Warlord Logic)
+  // This unifies logic: Gold (Solid) vs Golden Glitch (Animated)
+  const borderConfig = getBorderConfig(activeFrame, tierName);
 
-  // 2. Neon Warlord Mode (Legacy support)
-  if (isNeonWarlord) {
-    return (
-      <div
-        className={`relative inline-flex items-center justify-center ${className} ${auraClass} z-10`}
-        style={{ width: size, height: size, borderRadius: "50%" }}
-      >
-        <div className="relative w-full h-full rounded-full ring-4 ring-fuchsia-500 shadow-[0_0_20px_rgba(217,70,239,0.8)] overflow-hidden bg-dark-bg/80">
-          <img
-            src={avatarUrl}
-            alt="Hero Avatar"
-            className="w-full h-full object-cover"
-            {...imgProps}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // 3. Standard Mode (Default Tier Borders)
   return (
     <div
       className={`relative inline-flex items-center justify-center ${className} ${auraClass}`}
       style={{ width: size, height: size, borderRadius: "50%" }}
     >
-      {/* Standard Glow Ring */}
+      {/* Dynamic Border from Config */}
       {!aura && (
-        <div
-          className="absolute inset-0 rounded-full animate-pulse-slow"
+        <motion.div
+          className={`absolute inset-[-4px] rounded-full ${borderConfig.style}`}
           style={{
-            boxShadow: `0 0 30px ${colors.glow}`,
-            border: `2px solid ${colors.ring}30`,
+            boxShadow: borderConfig.shadow,
+            filter: borderConfig.filter,
           }}
-        />
-      )}
-
-      {/* Inner Rotating Ring */}
-      {!aura && (
-        <div
-          className="absolute inset-[-4px] rounded-full border-2 border-dashed transition-transform duration-[10s] animate-spin-slow opacity-50"
-          style={{ borderColor: colors.ring }}
+          animate={borderConfig.animate}
+          transition={borderConfig.transition}
         />
       )}
 
       {/* Main Avatar Container */}
-      <div
-        className="relative w-full h-full rounded-full overflow-hidden border-2 bg-dark-bg/80"
-        style={{ borderColor: aura ? "transparent" : colors.ring }}
-      >
+      <div className="relative w-full h-full rounded-full overflow-hidden bg-dark-bg/80 z-10">
         <img
           src={avatarUrl}
           alt="Hero Avatar"

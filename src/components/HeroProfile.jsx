@@ -99,7 +99,8 @@ const HeroCardExport = ({
   return (
     <div
       style={{
-        width: "350px",
+        width: "100%",
+        maxWidth: "350px",
         height: "600px",
         background: "#0f0f23",
         display: "flex",
@@ -111,267 +112,299 @@ const HeroCardExport = ({
         overflow: "hidden",
       }}
     >
-      {/* Card Container */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          background: "rgba(15, 7, 32, 0.9)",
-          borderRadius: "24px",
-          border: "1px solid rgba(168, 85, 247, 0.3)",
-          overflow: "hidden",
-          boxShadow: "0 0 50px rgba(168, 85, 247, 0.3)",
-          display: "flex",
-          flexDirection: "column",
-          padding: "24px",
-        }}
-      >
-        {/* Top Glow */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "4px",
-            background:
-              "linear-gradient(90deg, transparent, #a855f7, transparent)",
-            opacity: 0.8,
-          }}
-        />
+      {/* Helper for Tier Names */}
+      {(() => {
+        const tierName = tier?.name || "Recruit";
+        const tierColor =
+          tierName === "Legendary"
+            ? "#c026d3" // fuchsia-600
+            : tierName === "Gold"
+              ? "#eab308" // yellow-500
+              : tierName === "Silver"
+                ? "#cbd5e1" // slate-300
+                : tierName === "Bronze"
+                  ? "#c2410c" // orange-700
+                  : "#1a1a2e"; // dark blue default
 
-        {/* Header */}
-        <div
-          style={{
-            position: "relative",
-            background:
-              "linear-gradient(90deg, rgba(88, 28, 135, 0.5), transparent)",
-            padding: "12px 0",
-            borderBottom: "1px solid rgba(168, 85, 247, 0.2)",
-            marginBottom: "24px",
-          }}
-        >
-          <h2
-            style={{
-              textAlign: "center",
-              color: "rgba(255, 255, 255, 0.9)",
-              fontWeight: 900,
-              letterSpacing: "0.3em",
-              fontSize: "14px",
-              textTransform: "uppercase",
-              fontFamily: "Orbitron, sans-serif",
-              textShadow: "0 0 5px rgba(168, 85, 247, 0.8)",
-            }}
-          >
-            IDENTITY MODULE
-          </h2>
-        </div>
+        // Handle Cosmetic Frame Override
+        const hasCosmetic = user?.equippedFrame;
+        const borderColor = hasCosmetic ? "transparent" : tierColor;
+        const borderWidth = hasCosmetic ? "0px" : "4px";
 
-        {/* Avatar */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "24px",
-          }}
-        >
-          <div
-            style={{
-              width: "128px",
-              height: "128px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "4px solid #1a1a2e",
-              boxShadow: "0 0 30px rgba(168, 85, 247, 0.5)",
-              background: "#000",
-            }}
-          >
-            <HeroAvatar
-              seed={avatarSeed}
-              tierName={tierName}
-              size={128}
-              equippedFrame={user?.equippedFrame}
-              imgProps={{ crossOrigin: "anonymous" }}
-            />
-          </div>
-        </div>
-
-        {/* Name & Tier */}
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "20px",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "24px",
-              fontWeight: 900,
-              color: "#fff",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              fontFamily: "Orbitron, sans-serif",
-              textShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
-              marginBottom: "8px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {user?.name || "OPERATIVE"}
-          </h1>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background:
-                "linear-gradient(90deg, rgba(88,28,135,0) 0%, rgba(88,28,135,0.6) 50%, rgba(88,28,135,0) 100%)",
-              padding: "4px 32px",
-            }}
-          >
-            <Award
-              style={{
-                width: "16px",
-                height: "16px",
-                color: tierName === "Gold" ? "#fbbf24" : "#a855f7",
-              }}
-            />
-            <span
-              style={{
-                fontSize: "12px",
-                fontWeight: "bold",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                color: tierName === "Gold" ? "#fbbf24" : "#a855f7",
-              }}
-            >
-              {tierName} TIER
-            </span>
-          </div>
-        </div>
-
-        {/* XP Bar */}
-        <div
-          style={{
-            marginBottom: "20px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: "10px",
-              fontWeight: "bold",
-              color: "rgba(196, 181, 253, 0.8)",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              marginBottom: "4px",
-            }}
-          >
-            <span>Level {level}</span>
-            <span style={{ color: "#fff" }}>
-              {Math.floor(lifetime)} / {Math.floor(lifetime + xpNeeded)} XP
-            </span>
-          </div>
-          <div
-            style={{
-              height: "12px",
-              background: "rgba(0, 0, 0, 0.6)",
-              borderRadius: "4px",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              overflow: "hidden",
-            }}
-          >
+        return (
+          <>
+            {/* Card Container */}
             <div
               style={{
+                position: "relative",
+                width: "100%",
                 height: "100%",
-                background: "linear-gradient(90deg, #7c3aed, #d946ef, #ec4899)",
-                width: `${progressPercent}%`,
+                background: "rgba(15, 7, 32, 0.9)",
+                borderRadius: "24px",
+                border: `1px solid ${hasCosmetic ? "#a855f7" : tierColor}`, // Outer card border matches tier
+                overflow: "hidden",
+                boxShadow: `0 0 50px ${hasCosmetic ? "rgba(168, 85, 247, 0.3)" : tierColor + "40"}`,
+                display: "flex",
+                flexDirection: "column",
+                padding: "24px",
               }}
-            />
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "12px",
-            marginBottom: "20px",
-          }}
-        >
-          {stats.map((stat, i) => {
-            const IconComponent = stat.icon;
-            return (
+            >
+              {/* Top Glow */}
               <div
-                key={i}
                 style={{
-                  background: "rgba(88, 28, 135, 0.1)",
-                  border: "1px solid rgba(168, 85, 247, 0.2)",
-                  borderRadius: "12px",
-                  padding: "12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "4px",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "4px",
+                  background: `linear-gradient(90deg, transparent, ${hasCosmetic ? "#a855f7" : tierColor}, transparent)`,
+                  opacity: 0.8,
+                }}
+              />
+
+              {/* Header */}
+              <div
+                style={{
+                  position: "relative",
+                  background: `linear-gradient(90deg, ${hasCosmetic ? "rgba(88, 28, 135, 0.5)" : tierColor + "20"}, transparent)`,
+                  padding: "12px 0",
+                  borderBottom: `1px solid ${hasCosmetic ? "rgba(168, 85, 247, 0.2)" : tierColor + "30"}`,
+                  marginBottom: "24px",
                 }}
               >
-                <IconComponent
+                <h2
                   style={{
-                    width: "16px",
-                    height: "16px",
-                    color: "#a855f7",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: "9px",
-                    color: "rgba(255, 255, 255, 0.5)",
-                    fontWeight: "bold",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {stat.label}
-                </span>
-                <span
-                  style={{
-                    fontSize: "14px",
+                    textAlign: "center",
+                    color: "rgba(255, 255, 255, 0.9)",
                     fontWeight: 900,
-                    color: "#fbbf24",
+                    letterSpacing: "0.3em",
+                    fontSize: "14px",
+                    textTransform: "uppercase",
                     fontFamily: "Orbitron, sans-serif",
+                    textShadow: `0 0 5px ${hasCosmetic ? "rgba(168, 85, 247, 0.8)" : tierColor + "80"}`,
                   }}
                 >
-                  {stat.value}
-                </span>
+                  IDENTITY MODULE
+                </h2>
               </div>
-            );
-          })}
-        </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: "16px",
-            borderTop: "1px solid rgba(168, 85, 247, 0.2)",
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "10px",
-              color: "rgba(255, 255, 255, 0.4)",
-              fontFamily: "monospace",
-            }}
-          >
-            ID: {user?.uid?.substring(0, 8) || "UNKNOWN"}
-          </p>
-        </div>
-      </div>
+              {/* Avatar */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "24px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "128px",
+                    height: "128px",
+                    borderRadius: "50%",
+                    overflow: "visible", // Allow cosmetic frames to spill out
+                    border: `${borderWidth} solid ${borderColor}`,
+                    boxShadow: `0 0 30px ${hasCosmetic ? "rgba(168, 85, 247, 0.5)" : tierColor + "60"}`,
+                    background: "#000",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {/* Reuse AvatarFrame logic if possible, or Naked Avatar for Rank */}
+                  {/* Since we can't easily import AvatarFrame with styles here, we rely on HeroAvatar taking the frame */}
+                  {/* BUT HeroAvatar handles frames internally? Yes, let's use that but strip defaults */}
+
+                  <HeroAvatar
+                    seed={avatarSeed}
+                    tierName={tierName}
+                    size={120} // Slightly smaller to fit inside border
+                    equippedFrame={user?.equippedFrame}
+                    imgProps={{ crossOrigin: "anonymous" }}
+                    hideBorder={!hasCosmetic} // HIDE internal border if using Rank (we draw it on wrapper). SHOW if Cosmetic (HeroAvatar handles it).
+                  />
+                </div>
+              </div>
+
+              {/* Name & Tier */}
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "20px",
+                }}
+              >
+                <h1
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 900,
+                    color: "#fff",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    fontFamily: "Orbitron, sans-serif",
+                    textShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
+                    marginBottom: "8px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {user?.name || "OPERATIVE"}
+                </h1>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background:
+                      "linear-gradient(90deg, rgba(88,28,135,0) 0%, rgba(88,28,135,0.6) 50%, rgba(88,28,135,0) 100%)",
+                    padding: "4px 32px",
+                  }}
+                >
+                  <Award
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      color: tierName === "Gold" ? "#fbbf24" : "#a855f7",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      color: tierName === "Gold" ? "#fbbf24" : "#a855f7",
+                    }}
+                  >
+                    {tierName} TIER
+                  </span>
+                </div>
+              </div>
+
+              {/* XP Bar */}
+              <div
+                style={{
+                  marginBottom: "20px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "10px",
+                    fontWeight: "bold",
+                    color: "rgba(196, 181, 253, 0.8)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <span>Level {level}</span>
+                  <span style={{ color: "#fff" }}>
+                    {Math.floor(lifetime)} / {Math.floor(lifetime + xpNeeded)}{" "}
+                    XP
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: "12px",
+                    background: "rgba(0, 0, 0, 0.6)",
+                    borderRadius: "4px",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      background:
+                        "linear-gradient(90deg, #7c3aed, #d946ef, #ec4899)",
+                      width: `${progressPercent}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "12px",
+                  marginBottom: "20px",
+                }}
+              >
+                {stats.map((stat, i) => {
+                  const IconComponent = stat.icon;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        background: "rgba(88, 28, 135, 0.1)",
+                        border: "1px solid rgba(168, 85, 247, 0.2)",
+                        borderRadius: "12px",
+                        padding: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <IconComponent
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          color: "#a855f7",
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          color: "rgba(255, 255, 255, 0.5)",
+                          fontWeight: "bold",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {stat.label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 900,
+                          color: "#fbbf24",
+                          fontFamily: "Orbitron, sans-serif",
+                        }}
+                      >
+                        {stat.value}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div
+                style={{
+                  marginTop: "auto",
+                  paddingTop: "16px",
+                  borderTop: "1px solid rgba(168, 85, 247, 0.2)",
+                  textAlign: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "10px",
+                    color: "rgba(255, 255, 255, 0.4)",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  ID: {user?.uid?.substring(0, 8) || "UNKNOWN"}
+                </p>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 };
@@ -588,6 +621,16 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
 
   // Calculate XP needed for next level
   const xpNeeded = nextTargetXP - xpInLevel;
+
+  // 🔍 DEBUGGING PROBE
+  const debugUser = user || {};
+  console.log("🕵️‍♂️ [HeroProfile] RENDER CHECK:");
+  console.log("   -> user.equippedFrame:", debugUser.equippedFrame);
+  console.log("   -> currentTier.name:", currentTier.name);
+  console.log(
+    "   -> derived frameId:",
+    debugUser.equippedFrame || currentTier.name,
+  );
 
   // Capture card function for export
 
@@ -892,7 +935,7 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                       {/* Aura Glow - Priority: Special Border > Tier */}
                       <div
                         className={`absolute inset-0 blur-2xl rounded-full transition-all duration-500 ${
-                          specialBorder === "golden_glitch"
+                          specialBorder === "champion_aura"
                             ? "bg-yellow-500/60 opacity-100"
                             : specialBorder === "silver_shimmer"
                               ? "bg-slate-100/40 opacity-90"

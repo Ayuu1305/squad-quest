@@ -168,7 +168,7 @@ const Leaderboard = () => {
       onTouchEnd={handleTouchEnd}
     >
       {/* Header */}
-      <div className="relative pt-0 pb-8 px-6 text-center">
+      <div className="relative pt-0 pb-8 px-4 md:px-6 text-center">
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -179,7 +179,7 @@ const Leaderboard = () => {
           </span>
         </motion.div>
 
-        <h1 className="text-5xl font-['Orbitron'] font-black text-white italic tracking-tighter uppercase mb-2 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+        <h1 className="text-3xl md:text-5xl font-['Orbitron'] font-black text-white italic tracking-tighter uppercase mb-2 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
           LEADERBOARD
         </h1>
 
@@ -271,7 +271,7 @@ const Leaderboard = () => {
       {/* Category Toggle */}
       <div
         data-swipeable="leaderboard-tabs"
-        className={`flex bg-white/5 backdrop-blur-md rounded-2xl mx-6 p-1 mb-8 border border-white/5 sticky z-40 top-4 ${
+        className={`flex justify-between gap-1 bg-white/5 backdrop-blur-md rounded-2xl mx-4 md:mx-6 p-0.5 md:p-1 mb-3 md:mb-6 border border-white/5 sticky z-40 top-4 ${
           activeShowdown ? "border-red-500/30" : ""
         }`}
       >
@@ -279,16 +279,16 @@ const Leaderboard = () => {
           <button
             key={cat.id}
             onClick={() => setCategory(cat.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+            className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-3 px-2 rounded-xl transition-all duration-300 ${
               category === cat.id
                 ? "bg-neon-purple text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] border border-white/20"
                 : "text-gray-500 hover:text-gray-300"
             }`}
           >
             <cat.icon
-              className={`w-4 h-4 ${category === cat.id ? "text-white" : ""}`}
+              className={`w-3 h-3 md:w-4 md:h-4 ${category === cat.id ? "text-white" : ""}`}
             />
-            <span className="text-[10px] font-black uppercase tracking-widest">
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-widest truncate">
               {cat.label}
             </span>
           </button>

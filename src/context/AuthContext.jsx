@@ -22,18 +22,26 @@ export const AuthProvider = ({ children }) => {
   // ✅ COMBINER: Merge profile + stats into unified user object
   const user = useMemo(() => {
     if (!profile) return null;
+
+    // 🛡️ SAFETY CLEANUP: Remove cosmetic fields from stats before merge
+    // These visual preferences should ONLY come from the public profile
+    const cleanStats = { ...stats };
+    delete cleanStats.equippedFrame; // 🗑️ Cosmetic choice - use public version
+    delete cleanStats.avatar; // 🗑️ Visual asset - use public version
+    delete cleanStats.avatarSeed; // 🗑️ Visual seed - use public version
+
     const merged = {
-      ...profile,
-      ...stats,
+      ...profile, // ✅ Public profile data (cosmetics, name, city)
+      ...cleanStats, // ✅ Private stats (XP, level, reliability)
       // 🔥 deep merge inventory to keep both badges (public) and consumables (private)
       inventory: {
         ...(profile?.inventory || {}),
-        ...(stats?.inventory || {}),
+        ...(cleanStats?.inventory || {}),
       },
       // 🔥 CRITICAL: Prioritize private stats for claim logic to prevent flicker
       // If stats has it, use it. Otherwise fall back to profile.
-      last_claimed_at: stats?.last_claimed_at || profile?.last_claimed_at,
-      daily_streak: stats?.daily_streak ?? profile?.daily_streak,
+      last_claimed_at: cleanStats?.last_claimed_at || profile?.last_claimed_at,
+      daily_streak: cleanStats?.daily_streak ?? profile?.daily_streak,
     };
 
     // 🔍 DEBUG: Log merged user inventory (expanded)
@@ -188,14 +196,11 @@ export const AuthProvider = ({ children }) => {
     const framesMismatch =
       (stats.inventory?.frames?.length || 0) !==
       (profile.inventory?.frames?.length || 0);
-    const equippedFrameMismatch = stats.equippedFrame !== profile.equippedFrame;
+    // ❌ REMOVED: equippedFrameMismatch - Cosmetic preferences should NOT be synced from Private Stats
 
     // ✅ CRITICAL FIX: Only sync if truly ahead OR inventory changed AND not already synced
     if (
-      (privateXP > publicXP ||
-        badgesMismatch ||
-        framesMismatch ||
-        equippedFrameMismatch) &&
+      (privateXP > publicXP || badgesMismatch || framesMismatch) &&
       lastSyncedXP.current !== privateXP
     ) {
       console.log(
@@ -205,7 +210,6 @@ export const AuthProvider = ({ children }) => {
           public: publicXP,
           badgesMismatch,
           framesMismatch,
-          equippedFrameMismatch,
           statsBadges: stats.inventory?.badges?.length || 0,
           profileBadges: profile.inventory?.badges?.length || 0,
           statsFrames: stats.inventory?.frames?.length || 0,
@@ -226,7 +230,7 @@ export const AuthProvider = ({ children }) => {
           badges: stats.badges || [], // Legacy field (for old code compatibility)
           "inventory.badges": stats.inventory?.badges || [], // ✅ Shop purchases
           "inventory.frames": stats.inventory?.frames || [], // ✅ Cosmetic purchases
-          equippedFrame: stats.equippedFrame || null, // ✅ Active cosmetic
+          // ❌ REMOVED: equippedFrame - This is a UI preference, not a stat to sync
           updatedAt: new Date(),
         },
         { merge: true },
@@ -240,7 +244,6 @@ export const AuthProvider = ({ children }) => {
           public: publicXP,
           badgesMismatch,
           framesMismatch,
-          equippedFrameMismatch,
           lastSynced: lastSyncedXP.current,
         },
       );
@@ -250,12 +253,11 @@ export const AuthProvider = ({ children }) => {
     stats?.level,
     stats?.inventory?.badges?.length,
     stats?.inventory?.frames?.length,
-    stats?.equippedFrame,
+    // ❌ REMOVED: stats?.equippedFrame and profile?.equippedFrame from deps
     profile?.xp,
     profile?.uid,
     profile?.inventory?.badges?.length,
     profile?.inventory?.frames?.length,
-    profile?.equippedFrame,
   ]); // ✅ ZERO-LOOP PROTOCOL: Use .length primitives, NOT array objects
 
   return (

@@ -60,7 +60,7 @@ const EditProfileModal = ({ user, onClose }) => {
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
-        className="relative w-full max-w-md glassmorphism border border-white/10 rounded-[2.5rem] overflow-hidden"
+        className="relative w-full max-w-md glassmorphism border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col max-h-[85vh]"
       >
         {/* Header */}
         <div className="bg-white/5 px-8 py-6 flex items-center justify-between border-b border-white/5">
@@ -80,7 +80,10 @@ const EditProfileModal = ({ user, onClose }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="p-8 space-y-6 overflow-y-auto custom-scrollbar"
+        >
           {/* Avatar Section */}
           <div className="flex flex-col items-center gap-4 mb-2">
             <HeroAvatar
