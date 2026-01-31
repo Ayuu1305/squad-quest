@@ -1,22 +1,9 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Landing from "./pages/Landing";
-import QuestBoard from "./pages/QuestBoard";
-import QuestDetails from "./pages/QuestDetails";
-import Lobby from "./pages/Lobby";
-import Verification from "./pages/Verification";
-import Profile from "./pages/Profile";
-import Review from "./pages/Review";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import CreateQuest from "./pages/CreateQuest";
-import Leaderboard from "./pages/Leaderboard";
-import MyMissions from "./pages/MyMissions";
-import WorldGuide from "./pages/WorldGuide";
-import HeroJourney from "./pages/HeroJourney";
-import ShopPage from "./pages/ShopPage";
-import AdminDashboard from "./pages/AdminDashboard";
-import Settings from "./pages/Settings";
 import Navbar from "./components/Navbar";
 import { Toaster, toast } from "react-hot-toast"; // Added toast
 import { useGame } from "./context/GameContext";
@@ -29,6 +16,24 @@ import MaintenanceBanner from "./components/MaintenanceBanner"; // ✅ Quota exh
 import RewardModal from "./components/RewardModal"; // ✅ Reward Popup
 import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
+
+
+const QuestBoard = lazy(() => import("./pages/QuestBoard"));
+const QuestDetails = lazy(() => import("./pages/QuestDetails"));
+const Lobby = lazy(() => import("./pages/Lobby"));
+const Verification = lazy(() => import("./pages/Verification"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Review = lazy(() => import("./pages/Review"));
+const CreateQuest = lazy(() => import("./pages/CreateQuest"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const MyMissions = lazy(() => import("./pages/MyMissions"));
+const WorldGuide = lazy(() => import("./pages/WorldGuide"));
+const HeroJourney = lazy(() => import("./pages/HeroJourney"));
+const ShopPage = lazy(() => import("./pages/ShopPage"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Settings = lazy(() => import("./pages/Settings"));
+
+
 
 // Protects routes that require both login AND city selection
 // Protects routes that require both login AND city selection
@@ -179,6 +184,15 @@ function App() {
       )}
 
       <SwipeWrapper>
+
+      <Suspense
+    fallback={
+      <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+        <div className="w-10 h-10 rounded-full border-2 border-neon-purple border-t-transparent animate-spin" />
+      </div>
+    }
+  >
+
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             {/* Public Auth Routes */}
@@ -426,6 +440,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </AnimatePresence>
+        </Suspense>
       </SwipeWrapper>
 
       {showNavbar && <Navbar />}

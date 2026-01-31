@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import QuestCard from "../components/QuestCard";
-import DailyBounty from "../components/DailyBounty";
-import FloatingLiveFeed from "../components/FloatingLiveFeed";
 import TacticalErrorModal from "../components/TacticalErrorModal";
 import SecretCodeModal from "../components/SecretCodeModal";
-import CyberGridBackground from "../components/CyberGridBackground";
-import HallOfFameIntro from "../components/HallOfFameIntro"; // IMPORTED
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../backend/firebaseConfig";
@@ -37,6 +33,13 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SEO from "../components/SEO"; // Added SEO Import
+const QuestCard = lazy(() => import("../components/QuestCard"));
+const DailyBounty = lazy(() => import("../components/DailyBounty"));
+const FloatingLiveFeed = lazy(() => import("../components/FloatingLiveFeed"));
+const CyberGridBackground = lazy(
+  () => import("../components/CyberGridBackground"),
+);
+const HallOfFameIntro = lazy(() => import("../components/HallOfFameIntro"));
 
 const QuestBoard = () => {
   const { city } = useGame();
@@ -72,12 +75,22 @@ const QuestBoard = () => {
   const [lastDoc, setLastDoc] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [enableRealtime, setEnableRealtime] = useState(false);
 
   const containerRef = useRef(null);
 
+  // ⏱️ Delay realtime Firestore until UI paints
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setEnableRealtime(true);
+    }, 1500);
+
+    return () => clearTimeout(id);
+  }, []);
+
   // ✅ FIXED: Realtime Listener for Top Quests
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !enableRealtime) return;
 
     let isSubscribed = true; // ✅ Prevent state updates after unmount
 
@@ -100,7 +113,7 @@ const QuestBoard = () => {
       clearInterval(timer);
       unsubQuests();
     };
-  }, [user?.uid, city]); // ✅ REMOVED olderQuests.length - prevents re-subscription!
+  }, [user?.uid, city, enableRealtime]); // ✅ REMOVED olderQuests.length - prevents re-subscription!
 
   // ✅ Load More Function
   const handleLoadMore = async () => {
@@ -227,7 +240,7 @@ const QuestBoard = () => {
   // GSAP Background Effects (Showdown Pulse)
   useGSAP(() => {
     // Disable on mobile/touch devices for performance
-    if (window.innerWidth < 768) return;
+    if (window.innerWidth < 1024 || !containerRef.current) return;
 
     if (activeShowdown) {
       gsap.to(containerRef.current, {
@@ -262,13 +275,17 @@ const QuestBoard = () => {
       <SEO title="Quests" description="Find active missions near you." />
       {/* Hall Of Fame Ceremony Overlay */}
       {showHallOfFame && (
-        <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
+        <Suspense fallback={null}>
+          <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
+        </Suspense>
       )}
 
       {activeShowdown && (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,0,0,0.1)_0%,_transparent_70%)] pointer-events-none z-0" />
       )}
-      <CyberGridBackground />
+      <Suspense fallback={null}>
+        <CyberGridBackground />
+      </Suspense>
 
       {/* Showdown Event Bar / Reset Timer */}
       <div
@@ -358,7 +375,18 @@ const QuestBoard = () => {
 
                 <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col justify-between">
                   {/* Glitch Overlay */}
-                  <div className="absolute inset-0 bg-[url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif')] opacity-[0.03] pointer-events-none mix-blend-screen" />
+                  {/* ✅ OPTIMIZED GLITCH OVERLAY (Video instead of GIF) */}
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="none" // 🚀 Critical: does NOT block initial render
+                    className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
+                  >
+                    <source src="/assets/cyber-grid.webm" type="video/webm" />
+                    <source src="/assets/cyber-grid.mp4" type="video/mp4" />
+                  </video>
 
                   <div>
                     <div className="flex items-center justify-between mb-4">
@@ -483,7 +511,13 @@ const QuestBoard = () => {
                       }}
                     >
                       <Link to={`/quest/${quest.id}`} className="block">
-                        <QuestCard quest={quest} hub={null} />
+                        <Suspense
+                          fallback={
+                            <div className="h-32 bg-black/20 rounded-xl animate-pulse" />
+                          }
+                        >
+                          <QuestCard quest={quest} hub={null} />
+                        </Suspense>
                       </Link>
                     </motion.div>
                   ))
@@ -532,7 +566,9 @@ const QuestBoard = () => {
         </div>
 
         {/* ✅ NEW: Floating Live Feed - YouTube style notifications */}
-        <FloatingLiveFeed />
+        <Suspense fallback={null}>
+          <FloatingLiveFeed />
+        </Suspense>
 
         {/* Floating Action Button - Optimized for Mobile Touch */}
         {/* Floating Action Button - Nuclear Launch Style */}
