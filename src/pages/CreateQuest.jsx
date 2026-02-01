@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGame } from "../context/GameContext";
-import { createQuest } from "../backend/firebaseService";
+import { createQuest } from "../backend/services/quest.service";
 import { db } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
 import HubSelectionModal from "../components/HubSelectionModal";
@@ -74,57 +74,71 @@ const CreateQuest = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Strict Validation
-    if (!selectedHub) {
-      alert("CRITICAL: Tactical Hub selection required.");
-      return;
-    }
-    if (!selectedHub.id) {
-      alert("CRITICAL: Selected Hub data is invalid. Please re-select.");
+    // --- 1. Basic Validation ---
+    if (!selectedHub || !selectedHub.id) {
+      toast.error("Please select a tactical hub location!");
       return;
     }
     if (!user?.city) {
-      alert(
-        "CRITICAL: Your sector (city) is unknown. Update your profile first.",
-      );
+      toast.error("Your sector (city) is unknown. Update your profile first.");
       return;
     }
     if (!formData.title || formData.title.length > 60) {
-      alert("CRITICAL: Title required (max 60 chars).");
+      toast.error("CRITICAL: Title required (max 60 chars).");
       return;
     }
     if (!formData.objective) {
-      alert("CRITICAL: Mission objective required.");
+      toast.error("CRITICAL: Mission objective required.");
       return;
     }
     const maxCapacityNum = parseInt(formData.maxPlayers);
     if (isNaN(maxCapacityNum) || maxCapacityNum < 2 || maxCapacityNum > 20) {
-      alert("CRITICAL: Max players must be between 2 and 20.");
+      toast.error("CRITICAL: Max players must be between 2 and 20.");
       return;
     }
 
     setLoading(true);
+
     try {
-      // Map gender requirement to proper case for rules
       const genderRequirementMap = {
         everyone: "Everyone",
         female: "Female",
         male: "Male",
       };
 
-      // ✅ NEW: Validate start time is in the future
-      const startTimeDate = new Date(formData.startTime);
-      const now = new Date();
+      // --- 2. Fix Timezone Shift (Manual Construction) ---
+      // We parse the ISO string and reconstruct it using Local Time methods
+      const _pDate = new Date(formData.startTime);
+      const startTimeDate = new Date(
+        _pDate.getFullYear(),
+        _pDate.getMonth(),
+        _pDate.getDate(),
+        _pDate.getHours(),
+        _pDate.getMinutes()
+      );
 
-      if (startTimeDate <= now) {
-        toast.error("Start time must be in the future! Choose a later time.", {
+      // --- 3. Validate Future Time (The Logic You Wanted) ---
+      const now = new Date();
+      // Reset seconds so "current minute" is allowed
+      now.setSeconds(0);
+      now.setMilliseconds(0);
+
+      if (startTimeDate < now) {
+        toast.error("Time travel denied! 🚫 You cannot set a mission in the past.", {
           icon: "⏰",
+          style: {
+            borderRadius: "10px",
+            background: "#1a1a2e",
+            color: "#fff",
+            border: "1px solid #ef4444",
+          },
           duration: 4000,
         });
         setLoading(false);
-        return;
+        return; // 🛑 Stops the function here
       }
 
+      // --- 4. Payload ---
       const questData = {
         title: formData.title,
         objective: formData.objective,
@@ -134,11 +148,10 @@ const CreateQuest = () => {
         loot: formData.loot || "Bonus XP",
         vibeCheck: formData.vibeCheck || "Neutral",
         isPrivate: !!formData.isPrivate,
-        genderRequirement:
-          genderRequirementMap[formData.genderPreference] || "Everyone",
+        genderRequirement: genderRequirementMap[formData.genderPreference] || "Everyone",
         genderPreference: formData.genderPreference || "everyone",
         maxPlayers: maxCapacityNum,
-        startTime: startTimeDate, // Firestore Timestamp via SDK
+        startTime: startTimeDate, // ✅ Uses the validated Date object
         hostId: user.uid,
         hostName: user.name || user.displayName || "Unknown Hero",
         hubId: selectedHub.id,
@@ -158,16 +171,16 @@ const CreateQuest = () => {
         secretCode: formData.secretCode || "",
       };
 
-      // Ensure no undefined values enter the payload
+      // Cleanup undefined values
       Object.keys(questData).forEach((key) => {
         if (questData[key] === undefined) questData[key] = null;
       });
 
-      const questId = await createQuest(questData);
+      await createQuest(questData);
       navigate(`/board`);
     } catch (error) {
       console.error("Failed to post mission:", error);
-      alert(`Mission Transmission Failed: ${error.message || "Unknown Error"}`);
+      toast.error(`Mission Transmission Failed: ${error.message || "Unknown Error"}`);
     } finally {
       setLoading(false);
     }
@@ -429,7 +442,10 @@ const CreateQuest = () => {
                 <input
                   type="date"
                   required
-                  min={new Date().toISOString().split("T")[0]}
+                  min={(() => {
+                    const d = new Date();
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                  })()}
                   value={
                     formData.startTime
                       ? (() => {
@@ -450,6 +466,10 @@ const CreateQuest = () => {
                     const dateVal = e.target.value; // YYYY-MM-DD
                     if (!dateVal) return;
 
+                    // ✅ FIX 2: Robust Date Construction (Local Time)
+                    // Instead of new Date(string) which defaults to UTC, we parse manually
+                    const [year, month, day] = dateVal.split("-").map(Number);
+
                     const currentStart = formData.startTime
                       ? new Date(formData.startTime)
                       : new Date();
@@ -458,8 +478,14 @@ const CreateQuest = () => {
                     const hours = currentStart.getHours();
                     const minutes = currentStart.getMinutes();
 
-                    const newDate = new Date(dateVal);
-                    newDate.setHours(hours, minutes);
+                    // Construct new date strictly in Local Time
+                    const newDate = new Date(
+                      year,
+                      month - 1,
+                      day,
+                      hours,
+                      minutes,
+                    );
 
                     setFormData({
                       ...formData,
@@ -502,6 +528,9 @@ const CreateQuest = () => {
 
                     // Set new time on existing date
                     currentStart.setHours(h, m);
+                    currentStart.setMinutes(m);
+                    currentStart.setSeconds(0);
+                    currentStart.setMilliseconds(0);
 
                     setFormData({
                       ...formData,

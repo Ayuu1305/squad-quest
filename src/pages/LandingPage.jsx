@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Canvas, useFrame } from "@react-three/fiber";
 import {
   motion,
   useScroll,
@@ -10,7 +9,6 @@ import {
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import * as THREE from "three";
 import {
   Trophy,
   Users,
@@ -34,118 +32,18 @@ import {
   Youtube,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
+import { lazy, Suspense } from "react";
 // Register GSAP Plugin
 gsap.registerPlugin(ScrollTrigger);
 
 // ============================================
 // 3D BACKGROUND COMPONENT
 // ============================================
-function ParticleField() {
-  const meshRef = useRef();
-  const particleCount = 250;
+const Landing3DScene = lazy(
+  () => import("./Landing3DScene"),
+);
 
-  const { positions, colors } = useMemo(() => {
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
 
-    for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 25;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 25;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 25;
-
-      const colorChoice = Math.random();
-      if (colorChoice < 0.33) {
-        colors[i * 3] = 0.66;
-        colors[i * 3 + 1] = 0.33;
-        colors[i * 3 + 2] = 0.97; // Purple
-      } else if (colorChoice < 0.66) {
-        colors[i * 3] = 0.02;
-        colors[i * 3 + 1] = 0.71;
-        colors[i * 3 + 2] = 0.83; // Cyan
-      } else {
-        colors[i * 3] = 0.92;
-        colors[i * 3 + 1] = 0.7;
-        colors[i * 3 + 2] = 0.03; // Gold
-      }
-    }
-    return { positions, colors };
-  }, []);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.05;
-      meshRef.current.rotation.x =
-        Math.sin(state.clock.elapsedTime * 0.03) * 0.1;
-    }
-  });
-
-  return (
-    <points ref={meshRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={particleCount}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          count={particleCount}
-          array={colors}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.12}
-        vertexColors
-        transparent
-        opacity={0.8}
-        sizeAttenuation
-      />
-    </points>
-  );
-}
-
-function FloatingOrb() {
-  const meshRef = useRef();
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.3;
-      meshRef.current.rotation.z =
-        Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
-      meshRef.current.position.y =
-        Math.sin(state.clock.elapsedTime * 0.8) * 0.2;
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} position={[0, 0, 0]} scale={1.8}>
-      <icosahedronGeometry args={[1, 2]} />
-      <meshStandardMaterial
-        color="#a855f7"
-        emissive="#a855f7"
-        emissiveIntensity={0.8}
-        wireframe
-        transparent
-        opacity={0.3}
-      />
-    </mesh>
-  );
-}
-
-function Scene3D() {
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} color="#a855f7" intensity={2} />
-      <pointLight position={[-10, -10, -10]} color="#06b6d4" intensity={1} />
-      <ParticleField />
-      <FloatingOrb />
-    </>
-  );
-}
 
 // ============================================
 // UI SUB-COMPONENTS
@@ -517,6 +415,13 @@ function LandingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [show3D, setShow3D] = useState(false);
+
+useEffect(() => {
+  const id = setTimeout(() => setShow3D(true), 1200);
+  return () => clearTimeout(id);
+}, []);
+
 
   useEffect(() => {
     // Initialize Lenis
@@ -574,9 +479,9 @@ function LandingPage() {
           {/* HERO SECTION */}
           <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden">
             <div className="absolute inset-0 z-0">
-              <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
-                <Scene3D />
-              </Canvas>
+              <Suspense fallback={null}>
+                {show3D && <Landing3DScene />}
+              </Suspense>
             </div>
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0f23]/60 to-[#0f0f23] z-10 pointer-events-none" />
 

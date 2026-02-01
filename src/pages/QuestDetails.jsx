@@ -24,7 +24,7 @@ import {
   getUserVerificationStatus,
   deleteQuestAPI,
   editQuestAPI,
-} from "../backend/firebaseService";
+} from "../backend/services/quest.service";
 import { collection, onSnapshot, query, where, doc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import TacticalErrorModal from "../components/TacticalErrorModal";

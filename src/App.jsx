@@ -9,14 +9,11 @@ import { Toaster, toast } from "react-hot-toast"; // Added toast
 import { useGame } from "./context/GameContext";
 import { useAuth } from "./context/AuthContext";
 import { useEffect } from "react"; // Added useEffect
-import { messaging, db } from "./backend/firebaseConfig"; // Added Messaging & DB
-import { getToken, onMessage } from "firebase/messaging"; // Added FCM functions
-import { doc, updateDoc } from "firebase/firestore"; // Added Firestore functions
+import { loadFirebase } from "./backend/firebase.lazy"; // ✅ Lazy load Firebase
 import MaintenanceBanner from "./components/MaintenanceBanner"; // ✅ Quota exhaustion banner
 import RewardModal from "./components/RewardModal"; // ✅ Reward Popup
 import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
-
 
 const QuestBoard = lazy(() => import("./pages/QuestBoard"));
 const QuestDetails = lazy(() => import("./pages/QuestDetails"));
@@ -32,8 +29,6 @@ const HeroJourney = lazy(() => import("./pages/HeroJourney"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Settings = lazy(() => import("./pages/Settings"));
-
-
 
 // Protects routes that require both login AND city selection
 // Protects routes that require both login AND city selection
@@ -112,20 +107,23 @@ function App() {
       "/shop",
     ].includes(location.pathname) && user;
 
-  
   // ✅ FCM Token Management (FIXED)
   useEffect(() => {
     const setupNotifications = async () => {
-      // 1. Guard Clause: Need user and messaging
-      if (!user?.uid || !messaging) return;
+      // 1. Guard Clause: Need user
+      if (!user?.uid) return;
 
       try {
+        const { messaging, db, doc, updateDoc, getToken } =
+          await loadFirebase();
+        if (!messaging) return;
+
         // 2. Check Permission (Silent check first)
         if (Notification.permission !== "granted") {
-           // Optional: Request permission only if you want to annoy them immediately
-           // Otherwise, wait for a user action (better UX)
-           const permission = await Notification.requestPermission();
-           if (permission !== "granted") return;
+          // Optional: Request permission only if you want to annoy them immediately
+          // Otherwise, wait for a user action (better UX)
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") return;
         }
 
         const currentToken = await getToken(messaging, {
@@ -140,8 +138,8 @@ function App() {
             await updateDoc(userRef, { fcmToken: currentToken });
             console.log("✅ [FCM] Token updated.");
           } else {
-             // Debug log only (optional)
-             // console.log("✅ [FCM] Token already matches.");
+            // Debug log only (optional)
+            // console.log("✅ [FCM] Token already matches.");
           }
         }
       } catch (err) {
@@ -151,28 +149,34 @@ function App() {
 
     setupNotifications();
     // 🛑 THE FIX: Watch 'user.uid', NOT the entire 'user' object
-  }, [user?.uid, messaging]);
+  }, [user?.uid]);
 
   // ✅ Foreground Message Listener
   useEffect(() => {
-    if (!messaging) return;
+    if (!user?.uid) return;
 
-    console.log("🔔 [FCM] Foreground listener initialized");
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log("🔔 [FCM] Foreground message received!", payload);
-      toast(payload.notification.body, {
-        icon: "📣",
-        style: {
-          background: "#0f0f23",
-          color: "#ffffff",
-          border: "1px solid #a855f7",
-        },
-        duration: 5000,
+    let unsubscribe = () => {};
+
+    loadFirebase().then(({ messaging, onMessage }) => {
+      if (!messaging) return;
+
+      console.log("🔔 [FCM] Foreground listener initialized");
+      unsubscribe = onMessage(messaging, (payload) => {
+        console.log("🔔 [FCM] Foreground message received!", payload);
+        toast(payload.notification.body, {
+          icon: "📣",
+          style: {
+            background: "#0f0f23",
+            color: "#ffffff",
+            border: "1px solid #a855f7",
+          },
+          duration: 5000,
+        });
       });
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user?.uid]);
 
   return (
     <div className="bg-dark-bg min-h-screen text-white font-['Inter'] selection:bg-neon-purple selection:text-white">
@@ -184,262 +188,260 @@ function App() {
       )}
 
       <SwipeWrapper>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+              <div className="w-10 h-10 rounded-full border-2 border-neon-purple border-t-transparent animate-spin" />
+            </div>
+          }
+        >
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              {/* Public Auth Routes */}
+              <Route
+                path="/login"
+                element={
+                  <AuthRoute>
+                    <Login />
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <AuthRoute>
+                    <Signup />
+                  </AuthRoute>
+                }
+              />
 
-      <Suspense
-    fallback={
-      <div className="min-h-screen flex items-center justify-center bg-dark-bg">
-        <div className="w-10 h-10 rounded-full border-2 border-neon-purple border-t-transparent animate-spin" />
-      </div>
-    }
-  >
+              {/* 1. PUBLIC LANDING PAGE (Root) */}
+              <Route path="/" element={<LandingPage />} />
 
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            {/* Public Auth Routes */}
-            <Route
-              path="/login"
-              element={
-                <AuthRoute>
-                  <Login />
-                </AuthRoute>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <AuthRoute>
-                  <Signup />
-                </AuthRoute>
-              }
-            />
+              {/* 2. CITY SELECTION (Moved from / to /city-select) */}
+              <Route
+                path="/city-select"
+                element={
+                  <CitySelectionRoute>
+                    <Landing />
+                  </CitySelectionRoute>
+                }
+              />
 
-            {/* 1. PUBLIC LANDING PAGE (Root) */}
-            <Route path="/" element={<LandingPage />} />
+              <Route
+                path="/board"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <QuestBoard />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* 2. CITY SELECTION (Moved from / to /city-select) */}
-            <Route
-              path="/city-select"
-              element={
-                <CitySelectionRoute>
-                  <Landing />
-                </CitySelectionRoute>
-              }
-            />
+              <Route
+                path="/quest/:id"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -50 }}
+                    >
+                      <QuestDetails />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/board"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <QuestBoard />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/create-quest"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -50 }}
+                    >
+                      <CreateQuest />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/quest/:id"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                  >
-                    <QuestDetails />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/lobby/:id"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -50 }}
+                    >
+                      <Lobby />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/create-quest"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -50 }}
-                  >
-                    <CreateQuest />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/verify/:id"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.1 }}
+                    >
+                      <Verification />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/lobby/:id"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -50 }}
-                  >
-                    <Lobby />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/review/:id"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <Review />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/verify/:id"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.1 }}
-                  >
-                    <Verification />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/my-missions"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -50 }}
+                    >
+                      <MyMissions />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/review/:id"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <Review />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/profile"
+                element={
+                  <UserProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, x: -50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 50 }}
+                    >
+                      <Profile />
+                    </motion.div>
+                  </UserProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/my-missions"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -50 }}
-                  >
-                    <MyMissions />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <Leaderboard />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/profile"
-              element={
-                <UserProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, x: -50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 50 }}
-                  >
-                    <Profile />
-                  </motion.div>
-                </UserProtectedRoute>
-              }
-            />
+              <Route
+                path="/journey"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                    >
+                      <HeroJourney />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/leaderboard"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <Leaderboard />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/world-guide"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                    >
+                      <WorldGuide />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/journey"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                  >
-                    <HeroJourney />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/shop"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                    >
+                      <ShopPage />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/world-guide"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                  >
-                    <WorldGuide />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/settings"
+                element={
+                  <UserProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -50 }}
+                    >
+                      <Settings />
+                    </motion.div>
+                  </UserProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/shop"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                  >
-                    <ShopPage />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/secret-admin"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                    >
+                      <AdminDashboard />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/settings"
-              element={
-                <UserProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                  >
-                    <Settings />
-                  </motion.div>
-                </UserProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/secret-admin"
-              element={
-                <ProtectedRoute>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                  >
-                    <AdminDashboard />
-                  </motion.div>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </AnimatePresence>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </AnimatePresence>
         </Suspense>
       </SwipeWrapper>
 

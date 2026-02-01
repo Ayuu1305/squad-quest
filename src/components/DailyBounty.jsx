@@ -4,7 +4,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Flame, Gift, Clock, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { claimDailyBounty, checkStreak } from "../backend/firebaseService";
+import { claimDailyBounty } from "../backend/services/quest.service";
+import { checkStreak } from "../backend/services/user.service";
 import toast from "react-hot-toast";
 
 const DailyBounty = () => {

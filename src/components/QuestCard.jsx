@@ -17,7 +17,7 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
   const displayMembers = quest.members || [];
   
   // ✅ NEW: Calculate count safely (uses 'membersCount' number if available, else array length)
-  const displayCount = quest.membersCount || displayMembers.length || 0;
+ const displayCount = displayMembers.length > 0 ? displayMembers.length : (quest.membersCount || 0);
   
   const maxPlayers = quest.maxPlayers || 5;
   const cardRef = useRef(null);

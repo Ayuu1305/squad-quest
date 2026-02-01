@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { X, Save } from "lucide-react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
+import toast from "react-hot-toast";
 
 const EditQuestModal = ({
   isOpen,
@@ -112,13 +113,47 @@ const EditQuestModal = ({
     }));
   };
 
-  const handleSubmit = (e) => {
+ const handleSubmit = (e) => {
     e.preventDefault();
 
+    let startTimeDate;
+    const timeStr = formData.startTime; // Could be "2026-02-01T12:30" OR ISO string
+
+    // --- 1. Parse Date Safely (Fixes 12:30 -> 00:30 Bug) ---
+    if (timeStr.endsWith("Z")) {
+      // It is an ISO string (from DB)
+      const d = new Date(timeStr);
+      startTimeDate = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        d.getHours(),
+        d.getMinutes()
+      );
+    } else {
+      // It is a Local string from input (YYYY-MM-DDTHH:mm)
+      const [datePart, timePart] = timeStr.split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hours, minutes] = timePart.split(":").map(Number);
+      startTimeDate = new Date(year, month - 1, day, hours, minutes);
+    }
+
+    // --- 2. Validate Future Time ---
+    const now = new Date();
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+
+    if (startTimeDate < now) {
+      // Use alert since toast might not be imported in this modal
+      toast.error("⚠️ Invalid Time: You cannot reschedule a mission to the past!");
+      return; // 🛑 Stops save
+    }
+
+    // --- 3. Save ---
     const updates = {
       ...formData,
-      roomCode: formData.secretCode, // ✅ Ensure roomCode updates from secretCode
-      startTime: new Date(formData.startTime),
+      roomCode: formData.secretCode,
+      startTime: startTimeDate, // ✅ Correct Local Date
     };
 
     onSave(updates);
@@ -489,7 +524,7 @@ const EditQuestModal = ({
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(formData.secretCode);
-                        alert("Code copied!");
+                        toast.success("Code copied!");
                       }}
                       className="px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-bold uppercase text-sm transition-colors w-full sm:w-auto shadow-lg shadow-purple-600/20"
                     >

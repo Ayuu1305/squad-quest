@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { markRewardAsClaimed } from "../backend/firebaseService";
+import { markRewardAsClaimed } from "../backend/services/user.service";
 import { useAuth } from "./AuthContext";
 
 const RewardContext = createContext();

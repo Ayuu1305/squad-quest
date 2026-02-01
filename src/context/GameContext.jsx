@@ -7,8 +7,7 @@ import {
   useCallback,
 } from "react";
 import { useAuth } from "./AuthContext"; // ✅ IMPORT AUTH
-import { doc, updateDoc } from "firebase/firestore";
-import { db, auth } from "../backend/firebaseConfig";
+import { loadFirebase } from "../backend/firebase.lazy";
 import toast from "react-hot-toast";
 // ❌ REMOVED: import { onSnapshot } ... (This was the double billing source)
 // ❌ REMOVED: import { trackRead } ... (No longer needed since we don't read DB here)
@@ -96,6 +95,7 @@ export const GameProvider = ({ children }) => {
       setCity(cityName);
       if (user?.uid) {
         try {
+          const { db, doc, updateDoc } = await loadFirebase();
           const userRef = doc(db, "users", user.uid);
           // We still WRITE to Firestore, which is fine and correct.
           await updateDoc(userRef, { city: cityName });
@@ -126,6 +126,7 @@ export const GameProvider = ({ children }) => {
 
       if (!user?.uid) return;
       try {
+        const { db, doc, updateDoc } = await loadFirebase();
         const userRef = doc(db, "users", user.uid);
 
         console.log("   -> Writing to DB: { equippedFrame:", frameId, "}");
@@ -152,6 +153,7 @@ export const GameProvider = ({ children }) => {
       const loadingToast = toast.loading("Joining Squad...");
 
       try {
+        const { auth } = await loadFirebase();
         if (!auth.currentUser) throw new Error("User not authenticated");
         const token = await auth.currentUser.getIdToken();
 
@@ -188,6 +190,7 @@ export const GameProvider = ({ children }) => {
       const loadingToast = toast.loading("Processing...");
 
       try {
+        const { auth } = await loadFirebase();
         if (!auth.currentUser) throw new Error("User not authenticated");
         const token = await auth.currentUser.getIdToken();
 

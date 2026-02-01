@@ -12,8 +12,8 @@ import {
 import {
   subscribeToSquadChat,
   sendSquadMessage,
-  createReport,
-} from "../backend/firebaseService";
+} from "../backend/services/chat.service";
+import { createReport } from "../backend/services/user.service";
 import { isWithinOneHour } from "../utils/notifications";
 import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";

@@ -6,9 +6,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { auth, db } from "../backend/firebaseConfig";
+import { loadFirebase } from "../backend/firebase.lazy";
 import { trackRead, trackWrite } from "../utils/firestoreMonitor"; // ✅ ADD TRACKING
 
 const AuthContext = createContext();
@@ -64,45 +62,48 @@ export const AuthProvider = ({ children }) => {
   // ✅ EFFECT 1: Listen to Firebase Auth + Public Profile (users/{uid})
   useEffect(() => {
     let unsubscribeFirestore = () => {};
+    let unsubscribeAuth = () => {};
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
-      // Cleanup previous profile listener
-      unsubscribeFirestore();
-      unsubscribeFirestore = () => {};
+    loadFirebase().then(({ auth, db, onAuthStateChanged, doc, onSnapshot }) => {
+      unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+        // Cleanup previous profile listener
+        unsubscribeFirestore();
+        unsubscribeFirestore = () => {};
 
-      if (authUser) {
-        // Subscribe to Public Profile
-        unsubscribeFirestore = onSnapshot(
-          doc(db, "users", authUser.uid),
-          (docSnap) => {
-            trackRead("AuthContext.profile"); // ✅ TRACK READ
-            const profileData = docSnap.exists() ? docSnap.data() : {};
-            setProfile({
-              ...authUser,
-              ...profileData,
-            });
-            setLoading(false);
-          },
-          (error) => {
-            if (error?.code === "permission-denied") return;
+        if (authUser) {
+          // Subscribe to Public Profile
+          unsubscribeFirestore = onSnapshot(
+            doc(db, "users", authUser.uid),
+            (docSnap) => {
+              trackRead("AuthContext.profile"); // ✅ TRACK READ
+              const profileData = docSnap.exists() ? docSnap.data() : {};
+              setProfile({
+                ...authUser,
+                ...profileData,
+              });
+              setLoading(false);
+            },
+            (error) => {
+              if (error?.code === "permission-denied") return;
 
-            // ✅ QUOTA EXHAUSTION DETECTION
-            if (error?.code === "resource-exhausted") {
-              console.warn(
-                "⚠️ [AuthContext] Quota Exceeded. Enabling Maintenance Mode.",
-              );
-              setIsOverloaded(true);
-            }
+              // ✅ QUOTA EXHAUSTION DETECTION
+              if (error?.code === "resource-exhausted") {
+                console.warn(
+                  "⚠️ [AuthContext] Quota Exceeded. Enabling Maintenance Mode.",
+                );
+                setIsOverloaded(true);
+              }
 
-            console.error("User profile listener error:", error);
-            setLoading(false);
-          },
-        );
-      } else {
-        setProfile(null);
-        setStats(null);
-        setLoading(false);
-      }
+              console.error("User profile listener error:", error);
+              setLoading(false);
+            },
+          );
+        } else {
+          setProfile(null);
+          setStats(null);
+          setLoading(false);
+        }
+      });
     });
 
     return () => {
@@ -118,64 +119,68 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    const unsubscribeStats = onSnapshot(
-      doc(db, "userStats", profile.uid),
-      (statsSnap) => {
-        trackRead("AuthContext.stats"); // ✅ TRACK READ
-        const rawStatsData = statsSnap.exists()
-          ? statsSnap.data()
-          : {
-              xp: profile.xp || 0,
-              level: profile.level || 1,
-              reliabilityScore: profile.reliabilityScore || 100,
-              badges: profile.badges || [],
-            };
+    let unsubscribeStats = () => {};
 
-        // 🔍 DEBUG: Log raw inventory data (expanded)
-        console.log(
-          "📦 [AuthContext] userStats inventory:",
-          JSON.stringify(rawStatsData.inventory || {}, null, 2), // 🔥 Log FULL inventory to see neuro_boost
-        );
+    loadFirebase().then(({ db, doc, onSnapshot }) => {
+      unsubscribeStats = onSnapshot(
+        doc(db, "userStats", profile.uid),
+        (statsSnap) => {
+          trackRead("AuthContext.stats"); // ✅ TRACK READ
+          const rawStatsData = statsSnap.exists()
+            ? statsSnap.data()
+            : {
+                xp: profile.xp || 0,
+                level: profile.level || 1,
+                reliabilityScore: profile.reliabilityScore || 100,
+                badges: profile.badges || [],
+              };
 
-        // ✅ Transform flat "feedbackCounts.X" keys
-        const feedbackCounts = {};
-        const statsData = { ...rawStatsData };
-
-        Object.keys(statsData).forEach((key) => {
-          if (key.startsWith("feedbackCounts.")) {
-            const tagName = key.replace("feedbackCounts.", "");
-            feedbackCounts[tagName] = statsData[key];
-            delete statsData[key];
-          }
-        });
-
-        if (Object.keys(feedbackCounts).length > 0) {
-          statsData.feedbackCounts = feedbackCounts;
-        }
-
-        setStats(statsData);
-      },
-      (error) => {
-        if (error?.code === "permission-denied") return;
-
-        // ✅ QUOTA EXHAUSTION DETECTION
-        if (error?.code === "resource-exhausted") {
-          console.warn(
-            "⚠️ [AuthContext] Quota Exceeded. Enabling Maintenance Mode.",
+          // 🔍 DEBUG: Log raw inventory data (expanded)
+          console.log(
+            "📦 [AuthContext] userStats inventory:",
+            JSON.stringify(rawStatsData.inventory || {}, null, 2), // 🔥 Log FULL inventory to see neuro_boost
           );
-          setIsOverloaded(true);
-        }
 
-        console.warn("Stats listener error:", error);
-        // Fallback to profile data
-        setStats({
-          xp: profile.xp || 0,
-          level: profile.level || 1,
-          reliabilityScore: profile.reliabilityScore || 100,
-          badges: profile.badges || [],
-        });
-      },
-    );
+          // ✅ Transform flat "feedbackCounts.X" keys
+          const feedbackCounts = {};
+          const statsData = { ...rawStatsData };
+
+          Object.keys(statsData).forEach((key) => {
+            if (key.startsWith("feedbackCounts.")) {
+              const tagName = key.replace("feedbackCounts.", "");
+              feedbackCounts[tagName] = statsData[key];
+              delete statsData[key];
+            }
+          });
+
+          if (Object.keys(feedbackCounts).length > 0) {
+            statsData.feedbackCounts = feedbackCounts;
+          }
+
+          setStats(statsData);
+        },
+        (error) => {
+          if (error?.code === "permission-denied") return;
+
+          // ✅ QUOTA EXHAUSTION DETECTION
+          if (error?.code === "resource-exhausted") {
+            console.warn(
+              "⚠️ [AuthContext] Quota Exceeded. Enabling Maintenance Mode.",
+            );
+            setIsOverloaded(true);
+          }
+
+          console.warn("Stats listener error:", error);
+          // Fallback to profile data
+          setStats({
+            xp: profile.xp || 0,
+            level: profile.level || 1,
+            reliabilityScore: profile.reliabilityScore || 100,
+            badges: profile.badges || [],
+          });
+        },
+      );
+    });
 
     return () => unsubscribeStats();
   }, [profile?.uid]); // Only resubscribe if UID changes
@@ -220,21 +225,24 @@ export const AuthProvider = ({ children }) => {
       lastSyncedXP.current = privateXP; // ✅ Mark as synced BEFORE writing
 
       trackWrite("AuthContext.syncProfile"); // ✅ TRACK WRITE
-      setDoc(
-        doc(db, "users", profile.uid),
-        {
-          xp: stats.xp,
-          level: stats.level,
-          reliabilityScore: stats.reliabilityScore,
-          questsCompleted: stats.questsCompleted || profile.questsCompleted,
-          badges: stats.badges || [], // Legacy field (for old code compatibility)
-          "inventory.badges": stats.inventory?.badges || [], // ✅ Shop purchases
-          "inventory.frames": stats.inventory?.frames || [], // ✅ Cosmetic purchases
-          // ❌ REMOVED: equippedFrame - This is a UI preference, not a stat to sync
-          updatedAt: new Date(),
-        },
-        { merge: true },
-      ).catch((err) => console.error("Sync Failed:", err));
+
+      loadFirebase().then(({ db, doc, setDoc }) => {
+        setDoc(
+          doc(db, "users", profile.uid),
+          {
+            xp: stats.xp,
+            level: stats.level,
+            reliabilityScore: stats.reliabilityScore,
+            questsCompleted: stats.questsCompleted || profile.questsCompleted,
+            badges: stats.badges || [], // Legacy field (for old code compatibility)
+            "inventory.badges": stats.inventory?.badges || [], // ✅ Shop purchases
+            "inventory.frames": stats.inventory?.frames || [], // ✅ Cosmetic purchases
+            // ❌ REMOVED: equippedFrame - This is a UI preference, not a stat to sync
+            updatedAt: new Date(),
+          },
+          { merge: true },
+        ).catch((err) => console.error("Sync Failed:", err));
+      });
     } else {
       // ✅ CRUCIAL: Log when sync is blocked (proves loop is dead)
       console.log(

@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGame } from "../context/GameContext";
-import { signOutUser, resetHeroPassword } from "../backend/firebaseService";
+import {
+  signOutUser,
+  resetHeroPassword,
+} from "../backend/services/auth.service";
 import PersonalDetailsModal from "../components/Settings/PersonalDetailsModal";
 import toast from "react-hot-toast";
 

@@ -15,10 +15,9 @@ import { db } from "../backend/firebaseConfig";
 import AscensionNotification from "../components/AscensionNotification";
 import { getTier, checkBadgeUnlock } from "../utils/xp";
 import {
-  awardXP,
   subscribeToQuest,
   submitVibeChecks,
-} from "../backend/firebaseService";
+} from "../backend/services/quest.service";
 
 const Review = () => {
   const { id } = useParams();

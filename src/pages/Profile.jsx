@@ -16,7 +16,7 @@ import EditProfileModal from "../components/EditProfileModal";
 import AvatarEditor from "../components/Profile/AvatarEditor";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
-import { signOutUser } from "../backend/firebaseService";
+import { signOutUser } from "../backend/services/auth.service";
 import SEO from "../components/SEO"; // Added SEO Import
 
 const Profile = () => {

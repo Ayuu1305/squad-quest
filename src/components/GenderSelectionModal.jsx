@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Users, ShieldAlert } from "lucide-react";
-import { updateHeroProfile } from "../backend/firebaseService";
+import { updateHeroProfile } from "../backend/services/auth.service";
 import { useAuth } from "../context/AuthContext";
 
 const GenderSelectionModal = () => {

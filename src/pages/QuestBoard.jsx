@@ -15,7 +15,7 @@ import {
   joinQuestByCode,
   fetchMoreQuests, // ✅ Imported
   joinQuest, // ✅ Added for SecretCodeModal
-} from "../backend/firebaseService";
+} from "../backend/services/quest.service";
 import useShowdown from "../hooks/useShowdown";
 import {
   Shield,
@@ -111,7 +111,10 @@ const QuestBoard = () => {
     return () => {
       isSubscribed = false; // ✅ Mark as unsubscribed
       clearInterval(timer);
-      unsubQuests();
+      if (typeof unsubQuests === "function") {
+    unsubQuests();
+      }
+
     };
   }, [user?.uid, city, enableRealtime]); // ✅ REMOVED olderQuests.length - prevents re-subscription!
 

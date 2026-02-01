@@ -9,12 +9,12 @@ import {
   Globe,
   Wifi,
   Terminal,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
-import { updateHeroProfile } from "../backend/firebaseService";
+import { updateHeroProfile } from "../backend/services/auth.service";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -24,32 +24,32 @@ const Landing = () => {
   const [hoveredCity, setHoveredCity] = useState(null);
 
   const cities = [
-    { 
-      name: "Ahmedabad", 
-      status: "Active Sector", 
-      heroes: "1.2k", 
-      emoji: "🏙️", 
+    {
+      name: "Ahmedabad",
+      status: "Active Sector",
+      heroes: "1.2k",
+      emoji: "🏙️",
       color: "text-green-400",
       bg: "bg-green-500/10",
-      border: "border-green-500/50"
+      border: "border-green-500/50",
     },
-    { 
-      name: "Mumbai", 
-      status: "Signal Lost", 
-      heroes: "0", 
-      emoji: "🌊", 
+    {
+      name: "Mumbai",
+      status: "Signal Lost",
+      heroes: "0",
+      emoji: "🌊",
       color: "text-red-400",
       bg: "bg-red-500/5",
-      border: "border-red-500/30"
+      border: "border-red-500/30",
     },
-    { 
-      name: "Bangalore", 
-      status: "Locked", 
-      heroes: "0", 
-      emoji: "💻", 
+    {
+      name: "Bangalore",
+      status: "Locked",
+      heroes: "0",
+      emoji: "💻",
       color: "text-red-400",
       bg: "bg-red-500/5",
-      border: "border-red-500/30"
+      border: "border-red-500/30",
     },
   ];
 
@@ -61,12 +61,11 @@ const Landing = () => {
           await updateHeroProfile(user.uid, { city: cityName });
         }
         selectCity(cityName);
-        
+
         // Add a slight delay for the "Warp Speed" effect
         setTimeout(() => {
-            navigate("/board");
+          navigate("/board");
         }, 1500);
-        
       } catch (error) {
         console.error("Failed to update realm:", error);
         setIsAnimating(false);
@@ -77,28 +76,30 @@ const Landing = () => {
   // Container Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.3 }
-    }
+      transition: { staggerChildren: 0.1, delayChildren: 0.3 },
+    },
   };
 
   const itemVariants = {
     hidden: { x: -20, opacity: 0 },
-    visible: { x: 0, opacity: 1 }
+    visible: { x: 0, opacity: 1 },
   };
 
   return (
     <div className="relative min-h-screen bg-[#0f0f23] text-white flex items-center justify-center overflow-hidden font-['Rajdhani']">
-      
       {/* ==============================
           BACKGROUND FX (Cyberpunk Grid)
          ============================== */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Grid Floor */}
-        <div 
-          className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" 
-          style={{ transform: "perspective(1000px) rotateX(60deg) translateY(-100px) scale(1.5)" }}
+        <div
+          className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"
+          style={{
+            transform:
+              "perspective(1000px) rotateX(60deg) translateY(-100px) scale(1.5)",
+          }}
         />
         {/* Ambient Glows */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-purple-600/20 blur-[120px] rounded-full" />
@@ -108,13 +109,12 @@ const Landing = () => {
       {/* ==============================
           MAIN CONTENT HUD
          ============================== */}
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-12 p-6 items-center"
       >
-        
         {/* LEFT COLUMN: Welcome & Info */}
         <div className="space-y-8">
           <motion.div variants={itemVariants}>
@@ -129,24 +129,37 @@ const Landing = () => {
               </span>
             </h1>
             <p className="text-xl text-gray-400 mt-4 max-w-md font-light">
-              Connect to a local server to begin your journey. 
-              Earn real XP for completing tasks in your city.
+              Connect to a local server to begin your journey. Earn real XP for
+              completing tasks in your city.
             </p>
           </motion.div>
 
           {/* Stats Row */}
-          <motion.div variants={itemVariants} className="flex gap-8 border-t border-white/10 pt-6">
+          <motion.div
+            variants={itemVariants}
+            className="flex gap-8 border-t border-white/10 pt-6"
+          >
             <div>
               <div className="text-2xl font-bold font-['Orbitron']">3</div>
-              <div className="text-xs text-gray-500 uppercase tracking-widest">Sectors</div>
+              <div className="text-xs text-gray-500 uppercase tracking-widest">
+                Sectors
+              </div>
             </div>
             <div>
-              <div className="text-2xl font-bold font-['Orbitron'] text-green-400">1</div>
-              <div className="text-xs text-gray-500 uppercase tracking-widest">Online</div>
+              <div className="text-2xl font-bold font-['Orbitron'] text-green-400">
+                1
+              </div>
+              <div className="text-xs text-gray-500 uppercase tracking-widest">
+                Online
+              </div>
             </div>
             <div>
-              <div className="text-2xl font-bold font-['Orbitron'] text-cyan-400">50k+</div>
-              <div className="text-xs text-gray-500 uppercase tracking-widest">Heroes</div>
+              <div className="text-2xl font-bold font-['Orbitron'] text-cyan-400">
+                50k+
+              </div>
+              <div className="text-xs text-gray-500 uppercase tracking-widest">
+                Heroes
+              </div>
             </div>
           </motion.div>
         </div>
@@ -155,7 +168,7 @@ const Landing = () => {
         <div className="relative">
           {/* Decorative Border */}
           <div className="absolute -inset-1 bg-gradient-to-b from-cyan-500/20 to-purple-500/20 rounded-3xl blur-sm" />
-          
+
           <div className="relative bg-[#15171E]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-mono text-gray-400 flex items-center gap-2">
@@ -180,12 +193,15 @@ const Landing = () => {
                     variants={itemVariants}
                     onHoverStart={() => setHoveredCity(cityOption.name)}
                     onHoverEnd={() => setHoveredCity(null)}
-                    onClick={() => !isLocked && handleCitySelect(cityOption.name)}
+                    onClick={() =>
+                      !isLocked && handleCitySelect(cityOption.name)
+                    }
                     disabled={isLocked || isAnimating}
                     className={`group w-full relative overflow-hidden rounded-xl border p-4 transition-all duration-300 text-left
-                      ${isLocked 
-                        ? "bg-white/5 border-white/5 opacity-60 cursor-not-allowed" 
-                        : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-cyan-500/50"
+                      ${
+                        isLocked
+                          ? "bg-white/5 border-white/5 opacity-60 cursor-not-allowed"
+                          : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-cyan-500/50"
                       }
                       ${city === cityOption.name ? "ring-2 ring-purple-500 bg-purple-500/10" : ""}
                     `}
@@ -197,14 +213,20 @@ const Landing = () => {
 
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl bg-[#0f0f23] border border-white/10 ${!isLocked && "group-hover:scale-110 transition-transform"}`}>
+                        <div
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl bg-[#0f0f23] border border-white/10 ${!isLocked && "group-hover:scale-110 transition-transform"}`}
+                        >
                           {cityOption.emoji}
                         </div>
                         <div>
-                          <h3 className={`text-lg font-bold font-['Orbitron'] ${isLocked ? "text-gray-500" : "text-white group-hover:text-cyan-400"}`}>
+                          <h3
+                            className={`text-lg font-bold font-['Orbitron'] ${isLocked ? "text-gray-500" : "text-white group-hover:text-cyan-400"}`}
+                          >
                             {cityOption.name}
                           </h3>
-                          <div className={`text-xs font-mono flex items-center gap-1.5 ${cityOption.color}`}>
+                          <div
+                            className={`text-xs font-mono flex items-center gap-1.5 ${cityOption.color}`}
+                          >
                             {isLocked ? (
                               <>
                                 <Lock size={10} />
@@ -233,7 +255,9 @@ const Landing = () => {
                               <Wifi size={10} />
                               {cityOption.heroes}
                             </div>
-                            <ChevronRight className={`text-gray-500 ${isHovered ? "text-cyan-400 translate-x-1" : ""} transition-all`} />
+                            <ChevronRight
+                              className={`text-gray-500 ${isHovered ? "text-cyan-400 translate-x-1" : ""} transition-all`}
+                            />
                           </div>
                         )}
                       </div>

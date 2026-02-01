@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, User, Calendar, AlertTriangle, Save } from "lucide-react";
-import { updateHeroProfile } from "../../backend/firebaseService";
+import { updateHeroProfile } from "../../backend/services/auth.service";
 import toast from "react-hot-toast";
 
 const PersonalDetailsModal = ({ user, onClose }) => {

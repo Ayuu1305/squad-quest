@@ -11,7 +11,7 @@ import {
   Zap,
   RefreshCw,
 } from "lucide-react";
-import { updateHeroProfile } from "../backend/firebaseService";
+import { updateHeroProfile } from "../backend/services/auth.service";
 import HeroAvatar from "./HeroAvatar";
 import { getTier } from "../utils/xp";
 

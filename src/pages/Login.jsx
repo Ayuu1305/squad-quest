@@ -9,7 +9,10 @@ import {
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
-import { signInWithEmail, signInWithGoogle } from "../backend/firebaseService";
+import {
+  signInWithEmail,
+  signInWithGoogle,
+} from "../backend/services/auth.service";
 import { toast } from "react-hot-toast";
 import CyberGridBackground from "../components/CyberGridBackground";
 
@@ -48,23 +51,16 @@ const Login = () => {
 
   const handlePasswordReset = async () => {
     if (!email) {
-      toast.error("Please enter your Comms Address (Email) first.", {
-        icon: "🛡️",
-      });
+      toast.error("Please enter your email address first");
       return;
     }
-
     try {
-      const { resetHeroPassword } = await import("../backend/firebaseService");
+      const { resetHeroPassword } =
+        await import("../backend/services/auth.service");
       await resetHeroPassword(email);
-      toast.success(
-        "Mail Sent. Check your inbox as well as spam folder too, Hero.",
-        {
-          icon: "📧",
-        },
-      );
-    } catch (err) {
-      toast.error("Recovery Dispatch Failed. Check the address.");
+      toast.success("Password reset link sent to your email");
+    } catch (error) {
+      toast.error(error.message || "Failed to send reset link");
     }
   };
 

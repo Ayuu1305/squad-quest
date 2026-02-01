@@ -15,9 +15,9 @@ import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
 import {
   subscribeToQuest,
-  syncServerTime,
   updateQuestStatus,
-} from "../backend/firebaseService";
+} from "../backend/services/quest.service";
+import { syncServerTime } from "../backend/services/user.service";
 
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";

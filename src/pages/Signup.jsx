@@ -10,7 +10,10 @@ import {
   UserPlus,
   ShieldCheck,
 } from "lucide-react";
-import { signUpWithEmail, signInWithGoogle } from "../backend/firebaseService";
+import {
+  signUpWithEmail,
+  signInWithGoogle,
+} from "../backend/services/auth.service";
 import { toast } from "react-hot-toast";
 import CyberGridBackground from "../components/CyberGridBackground";
 
@@ -32,7 +35,7 @@ const Signup = () => {
         "Profile Initialized! Check your comms (email) for verification.",
         {
           duration: 6000,
-        }
+        },
       );
       navigate("/login");
     } catch (err) {

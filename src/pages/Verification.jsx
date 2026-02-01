@@ -6,9 +6,10 @@ import VerificationEngine from "../components/VerificationEngine";
 import { useAuth } from "../context/AuthContext";
 import {
   subscribeToQuest,
-  saveQuestVerification,
   finalizeQuest,
-} from "../backend/firebaseService";
+  saveQuestVerification,
+} from "../backend/services/quest.service";
+import { syncHubLocation } from "../backend/services/user.service";
 import {
   collection,
   query,
@@ -218,6 +219,8 @@ const Verification = () => {
 
     const showdown = isShowdownActive();
     const finalUIXP = showdown ? earnedXP * 2 : earnedXP;
+console.log("AUTH UID:", user?.uid);
+
 
     try {
       // ✅ 1) Save verification + mark quest completedBy
@@ -280,7 +283,8 @@ const Verification = () => {
 
     // ✅ Send to backend API
     try {
-      const { submitVibeChecks } = await import("../backend/firebaseService");
+      const { submitVibeChecks } =
+        await import("../backend/services/quest.service");
       const result = await submitVibeChecks(id, reviews);
       console.log("✅ Vibe Check API success:", result);
     } catch (error) {
