@@ -4,6 +4,7 @@ import { Smartphone } from "lucide-react";
 const InstallPWA = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isReady, setIsReady] = useState(false); // New "Ready" State
 
   useEffect(() => {
     // 1. Check if the app is already running in "App Mode" (Standalone)
@@ -15,6 +16,7 @@ const InstallPWA = () => {
     const handler = (e) => {
       e.preventDefault(); // Prevent Chrome's mini-infobar
       setDeferredPrompt(e); // Save the event to trigger later
+      setIsReady(true);     // ✅ NOW we are ready!
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -52,10 +54,22 @@ const InstallPWA = () => {
   return (
     <button
       onClick={handleInstallClick}
-      className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:scale-105 active:scale-95 text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg transition-all animate-pulse"
+      // Change color based on "isReady" status
+      className={`flex items-center gap-2 px-3 py-1.5 text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg transition-all ${
+        isReady 
+          ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:scale-105 animate-pulse cursor-pointer" 
+          : "bg-gray-700 cursor-help" // Gray if waiting or fallback
+      }`}
     >
-      <Smartphone className="w-4 h-4" />
-      <span>Install App</span>
+      {isReady ? (
+        <Smartphone className="w-4 h-4" />
+      ) : (
+        // Show a different icon if falling back to manual instructions
+        <Smartphone className="w-4 h-4 opacity-50" />
+      )}
+      
+      {/* Change Text based on Status */}
+      <span>{isReady ? "Install App" : "Wait for install"}</span>
     </button>
   );
 };
