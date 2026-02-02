@@ -359,7 +359,7 @@ const QuestBoard = () => {
                     Operative Status
                   </span>
                   <div className="bg-black/40 backdrop-blur-md border border-neon-purple/50 rounded-xl px-4 py-2 text-sm font-black text-neon-purple italic shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                    {(user?.xp || 0).toLocaleString()} XP
+                    {(user?.lifetimeXP || 0).toLocaleString()} XP
                   </div>
                 </div>
               </header>
@@ -385,9 +385,9 @@ const QuestBoard = () => {
                     muted
                     playsInline
                     preload="none" // 🚀 Critical: does NOT block initial render
+                    poster="/assets/cyber-grid.webp"
                     className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
                   >
-                    <source src="/assets/cyber-grid.webm" type="video/webm" />
                     <source src="/assets/cyber-grid.mp4" type="video/mp4" />
                   </video>
 

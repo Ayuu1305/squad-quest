@@ -118,6 +118,32 @@ export const markRewardAsClaimed = async (uid, type, value) => {
   }
 };
 
+/**
+ * Mark onboarding as complete for a user
+ * @param {string} uid - User ID
+ */
+export const completeOnboarding = async (uid) => {
+  if (!uid) {
+    console.warn("❌ [completeOnboarding] No UID provided");
+    return;
+  }
+
+  try {
+    const { db, doc, updateDoc } = await loadFirebase();
+    const userRef = doc(db, "users", uid);
+
+    await updateDoc(userRef, {
+      hasSeenOnboarding: true,
+      onboardingCompletedAt: new Date(),
+    });
+
+    console.log(`✅ Onboarding marked as complete for user ${uid}`);
+  } catch (error) {
+    console.error("❌ Failed to mark onboarding as complete:", error);
+    throw error;
+  }
+};
+
 export const syncServerTime = async () => {
   try {
     // For now, we'll return 0, but ensured it's a valid async function.

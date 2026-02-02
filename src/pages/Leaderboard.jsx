@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Zap, Shield, Star, Gift } from "lucide-react";
+import { MapPin, Zap, Shield, Star, Gift, Trophy } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGame } from "../context/GameContext";
 import { getTopHeroes, getUserRank } from "../backend/leaderboardService";
@@ -11,6 +11,7 @@ import LeaderboardPodium from "../components/LeaderboardPodium";
 import LeaderboardItem from "../components/LeaderboardItem";
 import WinnerCircleModal from "../components/WinnerCircleModal";
 import HeroQuickInspect from "../components/HeroQuickInspect";
+import HallOfFameModal from "../components/HallOfFameModal";
 import { Clock } from "lucide-react";
 
 const Leaderboard = () => {
@@ -26,6 +27,7 @@ const Leaderboard = () => {
   const [category, setCategory] = useState("weekly");
   const [selectedHero, setSelectedHero] = useState(null);
   const [showWinnerCircle, setShowWinnerCircle] = useState(false);
+  const [showHallOfFame, setShowHallOfFame] = useState(false);
   const [error, setError] = useState(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -187,6 +189,18 @@ const Leaderboard = () => {
           <MapPin className="w-3 h-3 text-neon-purple" />
           {city} Sector
         </div>
+
+        {/* History Button */}
+        <motion.button
+          onClick={() => setShowHallOfFame(true)}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="absolute top-4 right-4 w-12 h-12 bg-black/40 backdrop-blur-md border border-neon-purple/30 rounded-full flex items-center justify-center group hover:bg-neon-purple/20 hover:border-neon-purple/50 transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]"
+        >
+          <Trophy className="w-5 h-5 text-neon-purple group-hover:text-white transition-colors" />
+        </motion.button>
 
         {/* Winner’s Circle */}
         <motion.button
@@ -398,6 +412,13 @@ const Leaderboard = () => {
         isOpen={showWinnerCircle}
         onClose={() => setShowWinnerCircle(false)}
       />
+
+      {/* Hall of Fame Modal */}
+      <AnimatePresence>
+        {showHallOfFame && (
+          <HallOfFameModal onClose={() => setShowHallOfFame(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

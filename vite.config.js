@@ -5,11 +5,11 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), visualizer(
-    {
-      open: true,           // auto-opens after build
-      filename: "stats.html",
-      gzipSize: true,
-      brotliSize: true,
-    }
+    // {
+    //   open: true,           // auto-opens after build
+    //   filename: "stats.html",
+    //   gzipSize: true,
+    //   brotliSize: true,
+    // }
   )],
 })

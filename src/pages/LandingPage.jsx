@@ -501,12 +501,13 @@ useEffect(() => {
 
               <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black font-['Orbitron'] mb-6 leading-none tracking-tighter drop-shadow-2xl">
                 <TextReveal
-                  text="CONQUER"
+                  text="CONQUER "
                   delay={0.3}
                   className="block text-white"
-                />
+                /> 
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#a855f7] via-[#d8b4fe] to-[#06b6d4]">
-                  EARN TOGETHER.
+                   
+                   EARN TOGETHER.
                 </span>
               </h1>
 

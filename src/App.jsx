@@ -14,6 +14,7 @@ import MaintenanceBanner from "./components/MaintenanceBanner"; // ✅ Quota exh
 import RewardModal from "./components/RewardModal"; // ✅ Reward Popup
 import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
+import OnboardingModal from "./components/OnboardingModal"; // ✅ New User Onboarding
 
 const QuestBoard = lazy(() => import("./pages/QuestBoard"));
 const QuestDetails = lazy(() => import("./pages/QuestDetails"));
@@ -107,6 +108,24 @@ function App() {
       "/shop",
     ].includes(location.pathname) && user;
 
+  // ... inside your App component ...
+
+  useEffect(() => {
+    // Global Error Handler for "Missing Chunks"
+    const handleChunkError = (event) => {
+      if (
+        event?.message &&
+        /Failed to fetch dynamically imported module/.test(event.message)
+      ) {
+        console.warn("New version detected. Reloading...");
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("error", handleChunkError);
+    return () => window.removeEventListener("error", handleChunkError);
+  }, []);
+
   // ✅ FCM Token Management (FIXED)
   useEffect(() => {
     const setupNotifications = async () => {
@@ -185,6 +204,10 @@ function App() {
 
       {user && !loading && user.emailVerified && !user.gender && (
         <GenderSelectionModal />
+      )}
+
+      {user && !loading && user.emailVerified && !user.hasSeenOnboarding && (
+        <OnboardingModal />
       )}
 
       <SwipeWrapper>
