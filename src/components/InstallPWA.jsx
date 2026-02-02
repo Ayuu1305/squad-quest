@@ -2,34 +2,38 @@ import React, { useEffect, useState } from "react";
 import { Smartphone } from "lucide-react";
 
 const InstallPWA = () => {
+  const [supportsPWA, setSupportsPWA] = useState(false);
   const [promptInstall, setPromptInstall] = useState(null);
-  const [status, setStatus] = useState("Checking..."); // Debug Status
+
 
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
       console.log("PWA Install Event Fired!"); // Check console if possible
       setPromptInstall(e);
-      setStatus("Ready");
+      setSupportsPWA(true);
     };
     
     window.addEventListener("beforeinstallprompt", handler);
+
+    
+
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstallClick = (e) => {
     e.preventDefault();
-    if (!promptInstall) {
-      alert("Browser says: Not ready to install yet. (Try refreshing or interacting with the page)");
-      return;
-    }
+    if (!promptInstall) return;
     promptInstall.prompt();
+    
   };
 
-  // ❌ REMOVED the "return null" check. 
-  // Now we ALWAYS show the button to debug.
+  // If not installable (or already installed), hide the button
+  if (!supportsPWA) return null;
+
 
   return (
+    
     <button
       onClick={handleInstallClick}
       className={`flex items-center gap-2 px-3 py-1.5 text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg transition-all ${
@@ -40,8 +44,10 @@ const InstallPWA = () => {
     >
       <Smartphone className="w-4 h-4" />
       {/* Show Debug Status Text */}
-      <span>{promptInstall ? "Install App" : status}</span>
+      <span>{promptInstall ? "Install App" : "Status: Waiting"}</span>
     </button>
+    
+    
   );
 };
 
