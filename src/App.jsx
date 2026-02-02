@@ -15,6 +15,7 @@ import RewardModal from "./components/RewardModal"; // ✅ Reward Popup
 import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
 import OnboardingModal from "./components/OnboardingModal"; // ✅ New User Onboarding
+import QuestBoardSkeleton from "./components/skeletons/QuestBoardSkeleton"; // ✅ Skeleton Loading
 
 const QuestBoard = lazy(() => import("./pages/QuestBoard"));
 const QuestDetails = lazy(() => import("./pages/QuestDetails"));
@@ -255,13 +256,15 @@ function App() {
                 path="/board"
                 element={
                   <ProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <QuestBoard />
-                    </motion.div>
+                    <Suspense fallback={<QuestBoardSkeleton />}>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <QuestBoard />
+                      </motion.div>
+                    </Suspense>
                   </ProtectedRoute>
                 }
               />

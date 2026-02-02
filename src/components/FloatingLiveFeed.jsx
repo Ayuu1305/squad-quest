@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import { Zap, UserPlus, Target, Award, Gift } from "lucide-react";
+import { runWhenIdle, cancelIdle } from "../utils/idleCallback"; // ✅ Performance optimization
 
 // Track shown notifications for the session (persists across navigation)
 const shownNotificationIds = new Set();
@@ -17,55 +18,70 @@ const FloatingLiveFeed = () => {
   const [notifications, setNotifications] = useState([]);
   const [lastTimestamp, setLastTimestamp] = useState(Date.now());
 
+  // ⚡ OPTIMIZED: Activity Listener (Deferred to Idle - Non-Critical)
   useEffect(() => {
-    const q = query(
-      collection(db, "global_activity"),
-      orderBy("timestamp", "desc"),
-      limit(1),
+    let unsubscribe = null;
+    let idleId = null;
+
+    // ⚡ PERFORMANCE: Defer listener to browser idle (longer timeout for non-critical feature)
+    idleId = runWhenIdle(
+      () => {
+        console.log("⚡ [Performance] Starting live feed listener");
+
+        const q = query(
+          collection(db, "global_activity"),
+          orderBy("timestamp", "desc"),
+          limit(1),
+        );
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              const data = change.doc.data();
+              const timestamp = data.timestamp?.toMillis?.() || Date.now();
+              const id = change.doc.id;
+
+              // Deduplication: Check if we've already shown this ID
+              if (shownNotificationIds.has(id)) return;
+
+              // Only show truly new notifications (within last 30 seconds)
+              if (timestamp > lastTimestamp) {
+                const notification = {
+                  id: id,
+                  ...data,
+                  timestamp,
+                };
+
+                // Mark as shown so it doesn't pop up again on navigation
+                shownNotificationIds.add(id);
+
+                // Add to notifications
+                setNotifications((prev) => {
+                  // Double check against local state just in case
+                  if (prev.some((n) => n.id === notification.id)) return prev;
+                  return [notification, ...prev].slice(0, 5);
+                });
+
+                setLastTimestamp(timestamp);
+
+                // Auto-remove after 3 seconds (was 4s)
+                setTimeout(() => {
+                  setNotifications((prev) =>
+                    prev.filter((n) => n.id !== notification.id),
+                  );
+                }, 3000);
+              }
+            }
+          });
+        });
+      },
+      { timeout: 3000 }, // Longer timeout for non-critical feature
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const data = change.doc.data();
-          const timestamp = data.timestamp?.toMillis?.() || Date.now();
-          const id = change.doc.id;
-
-          // Deduplication: Check if we've already shown this ID
-          if (shownNotificationIds.has(id)) return;
-
-          // Only show truly new notifications (within last 30 seconds)
-          if (timestamp > lastTimestamp) {
-            const notification = {
-              id: id,
-              ...data,
-              timestamp,
-            };
-
-            // Mark as shown so it doesn't pop up again on navigation
-            shownNotificationIds.add(id);
-
-            // Add to notifications
-            setNotifications((prev) => {
-              // Double check against local state just in case
-              if (prev.some((n) => n.id === notification.id)) return prev;
-              return [notification, ...prev].slice(0, 5);
-            });
-
-            setLastTimestamp(timestamp);
-
-            // Auto-remove after 3 seconds (was 4s)
-            setTimeout(() => {
-              setNotifications((prev) =>
-                prev.filter((n) => n.id !== notification.id),
-              );
-            }, 3000);
-          }
-        }
-      });
-    });
-
-    return () => unsubscribe();
+    return () => {
+      if (idleId) cancelIdle(idleId);
+      if (unsubscribe) unsubscribe();
+    };
   }, [lastTimestamp]);
 
   const getIcon = (type) => {
