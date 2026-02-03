@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- 🚀 CRITICAL: Preload LCP image to eliminate 4,180ms delay -->
+    <!-- 🚀 CRITICAL: Preload LCP image to eliminate resource load delay -->
     <link
       rel="preload"
       href="/assets/cyber-grid.webp"
@@ -16,21 +16,10 @@
     <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
     <link rel="dns-prefetch" href="https://securetoken.googleapis.com" />
 
-    <link
-      rel="preconnect"
-      href="https://firestore.googleapis.com"
-      crossorigin
-    />
-    <link
-      rel="preconnect"
-      href="https://identitytoolkit.googleapis.com"
-      crossorigin
-    />
-    <link
-      rel="preconnect"
-      href="https://securetoken.googleapis.com"
-      crossorigin
-    />
+    <!-- ✅ Preconnect without crossorigin for better compatibility -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+    <link rel="preconnect" href="https://securetoken.googleapis.com" />
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <meta
@@ -38,6 +27,15 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
     />
     <title>Squad Quest</title>
+    <meta
+      name="description"
+      content="Join Squad Quest - Real-time multiplayer gaming and quests"
+    />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Defer service worker to prevent render blocking -->
+    <script src="/registerSW.js" defer></script>
   </head>
   <body>
     <div id="root"></div>

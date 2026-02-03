@@ -79,7 +79,6 @@ const QuestBoard = () => {
   const [showNonCritical, setShowNonCritical] = useState(false);
 
   // 🚀 PERFORMANCE: LCP Optimization - Delay video rendering
-  const [showVideo, setShowVideo] = useState(false);
 
   const containerRef = useRef(null);
   // 🚀 PERFORMANCE: ensure first paint completes before Firebase
@@ -112,15 +111,6 @@ const QuestBoard = () => {
 
     return () => clearTimeout(id);
   }, [hasInitialData]);
-
-  // 🚀 PERFORMANCE: Delay video rendering to improve LCP
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowVideo(true);
-    }, 2500); // 2.5 second delay
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // ✅ OPTIMIZED: Realtime Listener for Top Quests (Deferred to Idle)
   useEffect(() => {
@@ -436,43 +426,32 @@ const QuestBoard = () => {
 
             {/* Daily Bounty + Private Channel Row */}
             <div className="mb-8 flex flex-col lg:flex-row gap-6 md:gap-8">
-              <div className="flex-1">
+              {/* 🚨 CLS FIX: Reserve fixed space to prevent shift when Daily Bounty loads */}
+              <div className="flex-1 min-h-[240px]">
                 {showNonCritical && (
-                  <Suspense fallback={null}>
+                  <Suspense fallback={<div className="h-[240px] w-full" />}>
                     <DailyBounty />
                   </Suspense>
                 )}
               </div>
 
               {/* Private Channel Access - Secure Terminal */}
-              {/* 🚨 CLS FIX: Fixed dimensions from first paint, no nested duplicates */}
-              <div className="lg:w-80 min-h-[240px]">
+              {/* 🚨 CLS + LCP FIX: Fixed height on ALL screens, static image only */}
+              <div className="w-full lg:w-80 h-[240px]">
                 <div className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-2xl h-full relative overflow-hidden">
                   {/* Scanning Line Animation */}
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
 
                   <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col">
-                    {/* 🚀 PERFORMANCE FIX: Show static image FIRST, then lazy-load video */}
-                    {!showVideo ? (
-                      <img
-                        src="/assets/cyber-grid.webp"
-                        fetchPriority="high"
-                        alt="Background"
-                        className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
-                      />
-                    ) : (
-                      <video
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        preload="none"
-                        fetchPriority="low"
-                        className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
-                      >
-                        <source src="/assets/cyber-grid.mp4" type="video/mp4" />
-                      </video>
-                    )}
+                    {/* ✅ LCP FIX: Static image only - video was becoming LCP at 10.3s! */}
+                    <img
+                      src="/assets/cyber-grid.webp"
+                      fetchPriority="high"
+                      alt="Background"
+                      width="320"
+                      height="240"
+                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
+                    />
 
                     {/* HEADER - Fixed text, no swapping */}
                     <div className="flex items-center justify-between mb-4 relative z-10">
