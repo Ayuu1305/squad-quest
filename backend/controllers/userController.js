@@ -7,7 +7,8 @@ import { db } from "../server.js";
  */
 export const updateAvatar = async (req, res) => {
   const { uid } = req.user;
-  const { avatarConfig } = req.body;
+  // ✅ Use validated data (from validation middleware)
+  const { avatarConfig } = req.validatedData || req.body;
 
   if (!uid) {
     return res.status(401).json({ error: "Unauthorized" });

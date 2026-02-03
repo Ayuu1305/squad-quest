@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
 import fs from "fs";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -96,28 +95,35 @@ app.use(
   }),
 );
 
+// ----------------------------------------------------
+// 🛡️ SECURITY MIDDLEWARE
+// ----------------------------------------------------
+
+import { sanitizeInput, requestSizeLimiter } from "./middleware/sanitize.js";
+import {
+  globalLimiter,
+  bountyLimiter,
+  vibeLimiter,
+  questActionLimiter,
+  chatLimiter,
+} from "./middleware/rateLimiter.js";
+import { validate } from "./middleware/validation.js";
+
+// 1. Request size limiting (prevent memory attacks)
+app.use(requestSizeLimiter(100)); // Max 100KB payload
+
+// 2. Parse JSON bodies
 app.use(express.json());
+
+// 3. Sanitize all inputs (XSS protection)
+app.use(sanitizeInput);
+
+// 4. Global rate limiting
+app.use("/api", globalLimiter);
 
 // Health check endpoint
 app.use("/ping", (req, res) => {
   res.status(200).send("pong");
-});
-
-// ----------------------------------------------------
-// 🛡️ RATE LIMITING
-// ----------------------------------------------------
-
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-});
-app.use(globalLimiter);
-
-const actionLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10,
-  message: { error: "You are doing that too fast! Please slow down." },
 });
 
 // ----------------------------------------------------
@@ -164,8 +170,8 @@ app.get("/", (req, res) => {
   res.send("Squad Quest API is Online 🚀");
 });
 
-// 💰 Daily Bounty Route
-app.post("/api/bounty/claim", verifyToken, claimBounty);
+// 💰 Daily Bounty Route (with rate limiting + validation)
+app.post("/api/bounty/claim", verifyToken, bountyLimiter, claimBounty);
 
 // 🛒 Shop Routes
 app.post("/api/shop/buy", verifyToken, buyItem);
@@ -182,17 +188,45 @@ app.post("/api/admin/reset-weekly-xp", adminForceReset); // ✅ Manual Reset (Se
 // 🔥 Streak Management
 app.post("/api/user/sync-streak", verifyToken, syncStreak);
 
-// 👤 User Management
-app.post("/api/user/avatar", verifyToken, updateAvatar); // [NEW]
+// 👤 User Management (with validation)
+app.post(
+  "/api/user/avatar",
+  verifyToken,
+  validate("avatarConfig"),
+  updateAvatar,
+);
 
 // 📊 Leaderboard Routes
 app.get("/api/leaderboard/weekly", getWeeklyLeaderboard);
 
-// ⚔️ Quest Routes
-app.post("/api/quest/join", verifyToken, actionLimiter, joinQuest);
-app.post("/api/quest/leave", verifyToken, actionLimiter, leaveQuest);
-app.post("/api/quest/finalize", verifyToken, finalizeQuest);
-app.post("/api/quest/vibe-check", verifyToken, submitVibeCheck);
+// ⚔️ Quest Routes (with validation + rate limiting)
+app.post(
+  "/api/quest/join",
+  verifyToken,
+  questActionLimiter,
+  validate("joinQuest"),
+  joinQuest,
+);
+app.post(
+  "/api/quest/leave",
+  verifyToken,
+  questActionLimiter,
+  validate("leaveQuest"),
+  leaveQuest,
+);
+app.post(
+  "/api/quest/finalize",
+  verifyToken,
+  validate("finalizeQuest"),
+  finalizeQuest,
+);
+app.post(
+  "/api/quest/vibe-check",
+  verifyToken,
+  vibeLimiter,
+  validate("submitVibeCheck"),
+  submitVibeCheck,
+);
 
 // 📝 Quest Management Routes (Edit/Delete)
 app.delete("/api/quest/:questId", verifyToken, deleteQuest);

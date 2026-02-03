@@ -12,6 +12,7 @@ import {
 import {
   signInWithEmail,
   signInWithGoogle,
+  resetHeroPassword,
 } from "../backend/services/auth.service";
 import { toast } from "react-hot-toast";
 import CyberGridBackground from "../components/CyberGridBackground";
@@ -55,8 +56,6 @@ const Login = () => {
       return;
     }
     try {
-      const { resetHeroPassword } =
-        await import("../backend/services/auth.service");
       await resetHeroPassword(email);
       toast.success("Password reset link sent to your email");
     } catch (error) {

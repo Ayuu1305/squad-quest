@@ -4,7 +4,8 @@ import { calculateLevelFromXP } from "../utils/leveling.js";
 import { sendNotification } from "../services/notificationService.js";
 
 export const joinQuest = async (req, res) => {
-  const { questId, secretCode } = req.body;
+  // ✅ Use validated data (from validation middleware)
+  const { questId, secretCode } = req.validatedData || req.body;
   const uid = req.user.uid;
 
   if (!questId) return res.status(400).json({ error: "Missing questId" });
@@ -178,7 +179,8 @@ export const joinQuest = async (req, res) => {
 };
 
 export const finalizeQuest = async (req, res) => {
-  const { questId, photoURL } = req.body;
+  // ✅ Use validated data
+  const { questId, photoURL } = req.validatedData || req.body;
   const uid = req.user.uid;
 
   if (!questId) return res.status(400).json({ error: "Missing questId" });
@@ -416,7 +418,8 @@ export const finalizeQuest = async (req, res) => {
 // Add this to backend/controllers/questController.js
 
 export const leaveQuest = async (req, res) => {
-  const { questId } = req.body;
+  // ✅ Use validated data
+  const { questId } = req.validatedData || req.body;
   const uid = req.user.uid;
 
   if (!questId) return res.status(400).json({ error: "Missing questId" });
@@ -538,7 +541,8 @@ const BADGE_THRESHOLDS = {
 };
 
 export const submitVibeCheck = async (req, res) => {
-  const { questId, reviews } = req.body;
+  // ✅ Use validated data
+  const { questId, reviews } = req.validatedData || req.body;
   const reviewerId = req.user.uid;
 
   console.log("📝 [VibeCheck] Request received:", {
