@@ -426,35 +426,33 @@ const QuestBoard = () => {
 
             {/* Daily Bounty + Private Channel Row */}
             <div className="mb-8 flex flex-col lg:flex-row gap-6 md:gap-8">
-              {/* 🚨 CLS FIX: Reserve fixed space to prevent shift when Daily Bounty loads */}
-              <div className="flex-1 min-h-[240px]">
-                {showNonCritical && (
-                  <Suspense fallback={<div className="h-[240px] w-full" />}>
-                    <DailyBounty />
-                  </Suspense>
-                )}
+              {/* ✅ PERFORMANCE: No gating, render immediately for faster LCP */}
+              <div className="flex-1">
+                <Suspense fallback={<div className="h-[180px] w-full" />}>
+                  <DailyBounty />
+                </Suspense>
               </div>
 
               {/* Private Channel Access - Secure Terminal */}
-              {/* 🚨 CLS + LCP FIX: Fixed height on ALL screens, static image only */}
-              <div className="w-full lg:w-80 h-[240px]">
+              {/* ✅ PERFORMANCE: Match DailyBounty height (180px), remove nested structure */}
+              <div className="w-full lg:w-80">
                 <div className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-2xl h-full relative overflow-hidden">
                   {/* Scanning Line Animation */}
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
 
-                  <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col">
-                    {/* ✅ LCP FIX: Static image only - video was becoming LCP at 10.3s! */}
-                    <img
-                      src="/assets/cyber-grid.webp"
-                      fetchPriority="high"
-                      alt="Background"
-                      width="320"
-                      height="240"
-                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
+                  <div className="min-h-[178px] bg-black rounded-xl p-4 relative font-mono flex flex-col">
+                    {/* ✅ LCP RENDER FIX: Static background, no absolute positioning for faster paint */}
+                    <div
+                      className="absolute inset-0 rounded-xl opacity-[0.03] pointer-events-none mix-blend-screen"
+                      style={{
+                        backgroundImage: "url(/assets/cyber-grid.webp)",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
                     />
 
                     {/* HEADER - Fixed text, no swapping */}
-                    <div className="flex items-center justify-between mb-4 relative z-10">
+                    <div className="flex items-center justify-between mb-3 relative z-10">
                       <div className="flex items-center gap-2">
                         <Lock className="w-4 h-4 text-red-500 animate-pulse" />
                         <span
@@ -468,8 +466,8 @@ const QuestBoard = () => {
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
                     </div>
 
-                    {/* INPUT SECTION - Fixed layout */}
-                    <div className="flex flex-col gap-3 relative z-10 flex-1">
+                    {/* INPUT SECTION - Compact layout to fit 178px */}
+                    <div className="flex flex-col gap-2 relative z-10 flex-1">
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neon-green font-black text-xs">
                           {">"}
@@ -489,17 +487,17 @@ const QuestBoard = () => {
                               handlePrivateJoin();
                             }
                           }}
-                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-3.5 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
+                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
                         />
                       </div>
 
-                      {/* BUTTON - Fixed height */}
+                      {/* BUTTON - Compact for 178px height */}
                       <button
                         onClick={handlePrivateJoin}
                         disabled={
                           privateCode.length !== 6 || joinLoading || !user?.uid
                         }
-                        className={`w-full py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all ${
+                        className={`w-full py-2.5 rounded-xl font-black uppercase tracking-wider text-xs transition-all ${
                           privateCode.length === 6 && !joinLoading
                             ? "bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.5)] hover:scale-[1.02]"
                             : "bg-red-900/10 text-red-900/40 border border-red-900/20 cursor-not-allowed"
@@ -510,7 +508,7 @@ const QuestBoard = () => {
                     </div>
 
                     {/* FOOTER - Fixed text */}
-                    <div className="mt-3 flex justify-between text-[8px] uppercase tracking-widest text-red-900/60 relative z-10">
+                    <div className="mt-2 flex justify-between text-[8px] uppercase tracking-widest text-red-900/60 relative z-10">
                       <span>Secure: AES-256</span>
                       <span>v9.0.1</span>
                     </div>
