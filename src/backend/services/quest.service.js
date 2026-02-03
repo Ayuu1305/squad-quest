@@ -303,34 +303,46 @@ export const saveQuestVerification = async (questId, uid, payload) => {
 };
 
 
-// ✅ Modified for Pagination (Initial Load)
+// ✅ Optimized for Pagination + Performance (SAFE)
 export const subscribeToAllQuests = (callback, cityFilter = null) => {
-  let unsubscribe = () => {};
+  let unsubscribe = null;
+  let cancelled = false;
 
   loadFirebase().then(
     ({ db, collection, query, orderBy, limit, where, onSnapshot }) => {
+      if (cancelled) return;
+
       const questsRef = collection(db, "quests");
 
-      let q = query(questsRef, orderBy("createdAt", "desc"), limit(10));
+      const constraints = [
+        orderBy("createdAt", "desc"),
+        limit(10),
+      ];
 
       if (cityFilter) {
-        q = query(
-          questsRef,
+        constraints.unshift(
           where("city", "==", cityFilter),
           where("status", "==", "open"),
-          orderBy("createdAt", "desc"),
-          limit(10),
         );
       }
+
+      const q = query(questsRef, ...constraints);
 
       unsubscribe = onSnapshot(
         q,
         (snapshot) => {
           trackRead("subscribeToAllQuests");
-          const quests = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+
+          if (snapshot.empty) {
+            callback([], null);
+            return;
+          }
+
+          const quests = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return { id: doc.id, ...data };
+          });
+
           const lastVisible = snapshot.docs[snapshot.docs.length - 1];
           callback(quests, lastVisible);
         },
@@ -339,47 +351,66 @@ export const subscribeToAllQuests = (callback, cityFilter = null) => {
           console.error("Error subscribing to all quests:", error);
         },
       );
-    },
+    }
   );
 
-  return () => unsubscribe && unsubscribe();
+  // ✅ Safe unsubscribe even if loadFirebase resolves later
+  return () => {
+    cancelled = true;
+    if (typeof unsubscribe === "function") {
+      unsubscribe();
+    }
+  };
 };
 
-// ✅ NEW: Pagination Service
+// ✅ Pagination Service (Optimized, SAFE)
 export const fetchMoreQuests = async (lastDoc, cityFilter = null) => {
   if (!lastDoc) return { quests: [], lastVisible: null };
 
-  const { db, collection, query, orderBy, startAfter, limit, where, getDocs } =
-    await loadFirebase();
+  const {
+    db,
+    collection,
+    query,
+    orderBy,
+    startAfter,
+    limit,
+    where,
+    getDocs,
+  } = await loadFirebase();
 
   const questsRef = collection(db, "quests");
-  let q = query(
-    questsRef,
+
+  const constraints = [
     orderBy("createdAt", "desc"),
     startAfter(lastDoc),
     limit(10),
-  );
+  ];
 
   if (cityFilter) {
-    q = query(
-      questsRef,
+    constraints.unshift(
       where("city", "==", cityFilter),
       where("status", "==", "open"),
-      orderBy("createdAt", "desc"),
-      startAfter(lastDoc),
-      limit(10),
     );
   }
 
+  const q = query(questsRef, ...constraints);
+
   const snapshot = await getDocs(q);
-  const quests = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+
+  if (snapshot.empty) {
+    return { quests: [], lastVisible: null };
+  }
+
+  const quests = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return { id: doc.id, ...data };
+  });
+
   const lastVisible = snapshot.docs[snapshot.docs.length - 1];
 
   return { quests, lastVisible };
 };
+
 
 /**
  * Updates quest status (ONLY host can do this due to Firestore rules)

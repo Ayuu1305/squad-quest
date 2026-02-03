@@ -8,8 +8,6 @@ import SecretCodeModal from "../components/SecretCodeModal";
 import { Link, useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../backend/firebaseConfig";
-import { collection, onSnapshot } from "firebase/firestore";
 import {
   subscribeToAllQuests,
   joinQuestByCode,
@@ -18,7 +16,6 @@ import {
 } from "../backend/services/quest.service";
 import useShowdown from "../hooks/useShowdown";
 import {
-  Shield,
   Lock,
   Search,
   MapPin,
@@ -41,7 +38,6 @@ const CyberGridBackground = lazy(
 );
 const HallOfFameIntro = lazy(() => import("../components/HallOfFameIntro"));
 import QuestBoardSkeleton from "../components/skeletons/QuestBoardSkeleton";
-import { cancelIdle, runWhenIdle } from "../utils/idleCallback";
 import QuestCardSkeleton from "../components/skeletons/QuestCardSkeleton";
 
 const QuestBoard = () => {
@@ -60,7 +56,6 @@ const QuestBoard = () => {
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
-  const [timeTick, setTimeTick] = useState(Date.now());
   const [showHallOfFame, setShowHallOfFame] = useState(true); // State for Intro
 
   // ✅ NEW: Secret Code Modal state
@@ -81,6 +76,10 @@ const QuestBoard = () => {
   const [enableRealtime, setEnableRealtime] = useState(false);
   const [hasInitialData, setHasInitialData] = useState(false);
   const isReady = enableRealtime && hasInitialData;
+  const [showNonCritical, setShowNonCritical] = useState(false);
+
+  // 🚀 PERFORMANCE: LCP Optimization - Delay video rendering
+  const [showVideo, setShowVideo] = useState(false);
 
   const containerRef = useRef(null);
 
@@ -93,24 +92,42 @@ const QuestBoard = () => {
     return () => clearTimeout(id);
   }, []);
 
+  useEffect(() => {
+    if (!hasInitialData) return;
+
+    const id = setTimeout(() => {
+      setShowNonCritical(true);
+    }, 2000); // wait 2s AFTER quests render
+
+    return () => clearTimeout(id);
+  }, [hasInitialData]);
+
+  // 🚀 PERFORMANCE: Delay video rendering to improve LCP
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowVideo(true);
+    }, 2500); // 2.5 second delay
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // ✅ OPTIMIZED: Realtime Listener for Top Quests (Deferred to Idle)
   useEffect(() => {
+    const startedRef = { current: false };
+
     if (!user?.uid || !enableRealtime) return;
 
     let isSubscribed = true; // ✅ Prevent state updates after unmount
     let unsubQuests = null;
-    let idleId = null;
 
-    // ⚡ PERFORMANCE: Defer listener to browser idle time
-    idleId = runWhenIdle(
+    // 🚀 CRITICAL PERFORMANCE FIX: Use requestIdleCallback to defer Firebase listener
+    const idleCallbackId = requestIdleCallback(
       () => {
-        if (!isSubscribed) return; // Guard against race condition
-        console.log("⚡ [Performance] Starting quest listener");
-
-        // ⚡ PERFORMANCE: Throttled re-render (60s instead of 10s)
-        const timer = setInterval(() => {
-          if (isSubscribed) setTimeTick(Date.now());
-        }, 60000); // Changed from 10000 to 60000
+        if (!isSubscribed || startedRef.current) return; // Guard against race condition
+        startedRef.current = true;
+        console.log(
+          "⚡ [Performance] Starting quest listener (deferred to idle)",
+        );
 
         unsubQuests = subscribeToAllQuests((newTopQuests, newLastDoc) => {
           if (!isSubscribed) return; // ✅ Guard against stale updates
@@ -122,17 +139,15 @@ const QuestBoard = () => {
           setLastDoc((prevLastDoc) => prevLastDoc || newLastDoc);
         }, city);
 
-        // Store timer cleanup
-        unsubQuests._timer = timer;
+        
       },
-      { timeout: 2000 },
+      { timeout: 3000 }, // Wait up to 3 seconds for idle time
     );
 
     return () => {
       isSubscribed = false; // ✅ Mark as unsubscribed
-      if (idleId) cancelIdle(idleId);
+      if (idleCallbackId) cancelIdleCallback(idleCallbackId);
       if (typeof unsubQuests === "function") {
-        if (unsubQuests._timer) clearInterval(unsubQuests._timer);
         unsubQuests();
       }
     };
@@ -229,8 +244,8 @@ const QuestBoard = () => {
 
           if (!isNaN(startTimeObj.getTime())) {
             const expiryTime = new Date(startTimeObj.getTime()); // Vanish at Start Time
-            const now = new Date(timeTick); // Forces re-filter on tick
-            isExpired = now > expiryTime;
+            const now = Date.now();
+            isExpired = now > expiryTime.getTime();
           }
         }
 
@@ -270,7 +285,6 @@ const QuestBoard = () => {
     city,
     user?.uid,
     user?.gender,
-    timeTick,
     hubs,
   ]);
 
@@ -293,13 +307,16 @@ const QuestBoard = () => {
           ease: "sine.inOut",
           overwrite: "auto",
         });
+        const header =
+  containerRef.current?.querySelector(".showdown-header");
 
-        gsap.to(".showdown-header", {
+        if (header){gsap.to(".showdown-header", {
           textShadow: "0 0 20px #ff0000, 0 0 40px #ff0000",
           duration: 1,
           repeat: -1,
           yoyo: true,
         });
+      }
       } else {
         gsap.to(containerRef.current, {
           backgroundColor: "#0F0F13", // dark-bg
@@ -326,18 +343,20 @@ const QuestBoard = () => {
     >
       <SEO title="Quests" description="Find active missions near you." />
       {/* Hall Of Fame Ceremony Overlay */}
-      {showHallOfFame && (
-        <Suspense fallback={null}>
-          <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
-        </Suspense>
-      )}
+      {showNonCritical && showHallOfFame && (
+  <Suspense fallback={null}>
+    <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
+  </Suspense>
+)}
 
       {activeShowdown && (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,0,0,0.1)_0%,_transparent_70%)] pointer-events-none z-0" />
       )}
-      <Suspense fallback={null}>
-        <CyberGridBackground />
-      </Suspense>
+      {showNonCritical && (
+        <Suspense fallback={null}>
+          <CyberGridBackground />
+        </Suspense>
+      )}
 
       {/* Showdown Event Bar / Reset Timer */}
       <div
@@ -419,7 +438,11 @@ const QuestBoard = () => {
             {/* Daily Bounty + Private Channel Row */}
             <div className="mb-8 flex flex-col lg:flex-row gap-6 md:gap-8">
               <div className="flex-1">
-                <DailyBounty />
+                {showNonCritical && (
+                  <Suspense fallback={null}>
+                    <DailyBounty />
+                  </Suspense>
+                )}
               </div>
 
               {/* Private Channel Access - Secure Terminal */}
@@ -428,19 +451,27 @@ const QuestBoard = () => {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
 
                 <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col justify-between">
-                  {/* Glitch Overlay */}
-                  {/* ✅ OPTIMIZED GLITCH OVERLAY (Video instead of GIF) */}
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="none" // 🚀 Critical: does NOT block initial render
-                    poster="/assets/cyber-grid.webp"
-                    className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
-                  >
-                    <source src="/assets/cyber-grid.mp4" type="video/mp4" />
-                  </video>
+                  {/* 🚀 PERFORMANCE FIX: Show static image FIRST, then lazy-load video */}
+                  {!showVideo ? (
+                    <img
+                      src="/assets/cyber-grid.webp"
+                      fetchPriority="high"
+                      alt="Background"
+                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
+                    />
+                  ) : (
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="none"
+                      fetchPriority="low"
+                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
+                    >
+                      <source src="/assets/cyber-grid.mp4" type="video/mp4" />
+                    </video>
+                  )}
 
                   <div>
                     <div className="flex items-center justify-between mb-4">
@@ -616,9 +647,11 @@ const QuestBoard = () => {
         </div>
 
         {/* ✅ NEW: Floating Live Feed - YouTube style notifications */}
-        <Suspense fallback={null}>
-          <FloatingLiveFeed />
-        </Suspense>
+        {showNonCritical && (
+          <Suspense fallback={null}>
+            <FloatingLiveFeed />
+          </Suspense>
+        )}
 
         {/* Floating Action Button - Optimized for Mobile Touch */}
         {/* Floating Action Button - Nuclear Launch Style */}

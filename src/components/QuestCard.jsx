@@ -1,6 +1,6 @@
 import { Users, MapPin, Clock, Gift, Flame, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import HeroAvatar from "./HeroAvatar";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -91,54 +91,48 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
   const userLevel = user?.level || 1;
   const isLocked = userLevel < requiredLevel;
 
-  // GSAP Animations
-  useGSAP(() => {
-    const card = cardRef.current;
-    if (!card) return;
+ useGSAP(() => {
+  const card = cardRef.current;
+  if (!card) return;
 
-    // Glitch Effect on Title Hover
-    const hoverCtx = gsap.context(() => {
-      card.addEventListener("mouseenter", () => {
-        gsap.to(titleRef.current, {
-          skewX: -10,
-          duration: 0.1,
-          yoyo: true,
-          repeat: 3,
-          onComplete: () => gsap.set(titleRef.current, { skewX: 0 }),
-        });
-
-        // Intensify glow
-        gsap.to(glowRef.current, { opacity: 0.6, duration: 0.3 });
+  const hoverCtx = gsap.context(() => {
+    card.addEventListener("mouseenter", () => {
+      gsap.to(titleRef.current, {
+        skewX: -10,
+        duration: 0.1,
+        yoyo: true,
+        repeat: 3,
+        onComplete: () => gsap.set(titleRef.current, { skewX: 0 }),
       });
-
-      card.addEventListener("mouseleave", () => {
-        gsap.to(glowRef.current, { opacity: 0, duration: 0.3 });
-      });
+      gsap.to(glowRef.current, { opacity: 0.6, duration: 0.3 });
     });
 
-    return () => hoverCtx.revert();
-  }, [quest.difficulty]);
+    card.addEventListener("mouseleave", () => {
+      gsap.to(glowRef.current, { opacity: 0, duration: 0.3 });
+    });
+  });
 
-  // Hot Zone Logic (High Demand / Urgency)
-  const isHotZone = () => {
-    // 1. High Capacity (>75%) using displayCount
-    const capacityRatio = displayCount / maxPlayers;
-    if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
+  return () => hoverCtx.revert();
+}, []); // ✅ EMPTY dependency array
 
-    // 2. Starts Soon (<30 mins)
-    if (quest.startTime) {
-      const now = new Date();
-      const startTime = quest.startTime.toDate
-        ? quest.startTime.toDate()
-        : new Date(quest.startTime);
-      const diffMins = (startTime - now) / 1000 / 60;
-      if (diffMins <= 30 && diffMins > -120) return true; // Active or starting soon
-    }
 
-    return false;
-  };
+  
 
-  const hotZoneActive = isHotZone();
+  const hotZoneActive = useMemo(() => {
+  const capacityRatio = displayCount / maxPlayers;
+  if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
+
+  if (quest.startTime) {
+    const startTime = quest.startTime.toDate
+      ? quest.startTime.toDate()
+      : new Date(quest.startTime);
+    const diffMins = (startTime - Date.now()) / 60000;
+    if (diffMins <= 30 && diffMins > -120) return true;
+  }
+
+  return false;
+}, [displayCount, maxPlayers, quest.startTime]);
+
 
   return (
     <motion.div
@@ -152,7 +146,6 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
       }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: isCompleted ? 0.7 : 1, y: 0 }} // ✅ Dim completed quests
-      layout
       className={`glassmorphism-dark rounded-[24px] p-1 relative group overflow-hidden transition-all duration-300 ${
         hotZoneActive
           ? "border-orange-500/50 animate-[pulse_3s_infinite]"
