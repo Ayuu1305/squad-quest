@@ -2,6 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- 🚀 CRITICAL: Preload LCP image to eliminate 4,180ms delay -->
+    <link
+      rel="preload"
+      href="/assets/cyber-grid.webp"
+      as="image"
+      fetchpriority="high"
+    />
+
+    <!-- 🚀 DNS prefetch for faster resolution -->
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+    <link rel="dns-prefetch" href="https://securetoken.googleapis.com" />
+
     <link
       rel="preconnect"
       href="https://firestore.googleapis.com"

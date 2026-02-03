@@ -85,8 +85,7 @@ const QuestBoard = () => {
   // 🚀 PERFORMANCE: ensure first paint completes before Firebase
   const startedRef = useRef(false);
 
-const [pagePainted, setPagePainted] = useState(false);
-
+  const [pagePainted, setPagePainted] = useState(false);
 
   // ⏱️ Delay realtime Firestore until UI paints
   useEffect(() => {
@@ -98,12 +97,11 @@ const [pagePainted, setPagePainted] = useState(false);
   }, []);
 
   // 🚀 PERFORMANCE: mark page as painted (after first visual frame)
-useEffect(() => {
-  requestAnimationFrame(() => {
-    setPagePainted(true);
-  });
-}, []);
-
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setPagePainted(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!hasInitialData) return;
@@ -126,7 +124,6 @@ useEffect(() => {
 
   // ✅ OPTIMIZED: Realtime Listener for Top Quests (Deferred to Idle)
   useEffect(() => {
-
     if (!user?.uid || !enableRealtime || !pagePainted) return;
 
     let isSubscribed = true; // ✅ Prevent state updates after unmount
@@ -150,10 +147,8 @@ useEffect(() => {
           // ✅ CRITICAL FIX: Use callback form to avoid dependency on olderQuests
           setLastDoc((prevLastDoc) => prevLastDoc || newLastDoc);
         }, city);
-
-        
       },
-      { timeout: 3000 }, // Wait up to 3 seconds for idle time
+      { timeout: 4000 }, // Wait up to 3 seconds for idle time
     );
 
     return () => {
@@ -290,22 +285,14 @@ useEffect(() => {
           : (Math.random() * 5 + 1).toFixed(1);
         return { ...quest, distance };
       });
-  }, [
-    quests,
-    filter,
-    searchTerm,
-    city,
-    user?.uid,
-    user?.gender,
-    hubs,
-  ]);
+  }, [quests, filter, searchTerm, city, user?.uid, user?.gender, hubs]);
 
   // ⚡ PERFORMANCE: GSAP Background Effects (Showdown Pulse) - Gated & Safe
   useGSAP(
     () => {
       // 🛑 SAFETY CHECK: Don't run animations if data isn't ready or on mobile
-      if (!hasInitialData || !enableRealtime) return;
       if (window.innerWidth < 1024 || !containerRef.current) return;
+      if (!hasInitialData || !enableRealtime) return;
 
       // 🧹 PRE-CLEANUP: Kill any old ScrollTriggers to prevent "Ghost" errors
       ScrollTrigger.getAll().forEach((t) => t.kill());
@@ -319,16 +306,16 @@ useEffect(() => {
           ease: "sine.inOut",
           overwrite: "auto",
         });
-        const header =
-  containerRef.current?.querySelector(".showdown-header");
+        const header = containerRef.current?.querySelector(".showdown-header");
 
-        if (header){gsap.to(".showdown-header", {
-          textShadow: "0 0 20px #ff0000, 0 0 40px #ff0000",
-          duration: 1,
-          repeat: -1,
-          yoyo: true,
-        });
-      }
+        if (header) {
+          gsap.to(".showdown-header", {
+            textShadow: "0 0 20px #ff0000, 0 0 40px #ff0000",
+            duration: 1,
+            repeat: -1,
+            yoyo: true,
+          });
+        }
       } else {
         gsap.to(containerRef.current, {
           backgroundColor: "#0F0F13", // dark-bg
@@ -356,10 +343,10 @@ useEffect(() => {
       <SEO title="Quests" description="Find active missions near you." />
       {/* Hall Of Fame Ceremony Overlay */}
       {showNonCritical && showHallOfFame && (
-  <Suspense fallback={null}>
-    <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
-  </Suspense>
-)}
+        <Suspense fallback={null}>
+          <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
+        </Suspense>
+      )}
 
       {activeShowdown && (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,0,0,0.1)_0%,_transparent_70%)] pointer-events-none z-0" />
@@ -458,53 +445,52 @@ useEffect(() => {
               </div>
 
               {/* Private Channel Access - Secure Terminal */}
-              <div className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-2xl lg:w-80 group overflow-hidden relative">
-                {/* Scanning Line Animation */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
+              {/* 🚨 CLS FIX: Fixed dimensions from first paint, no nested duplicates */}
+              <div className="lg:w-80 min-h-[240px]">
+                <div className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-2xl h-full relative overflow-hidden">
+                  {/* Scanning Line Animation */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
 
-                <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col justify-between">
-                  {/* 🚀 PERFORMANCE FIX: Show static image FIRST, then lazy-load video */}
-                  {!showVideo ? (
-                    <img
-                      src="/assets/cyber-grid.webp"
-                      fetchPriority="high"
-                      alt="Background"
-                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
-                    />
-                  ) : (
-                    <video
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      preload="none"
-                      fetchPriority="low"
-                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen"
-                    >
-                      <source src="/assets/cyber-grid.mp4" type="video/mp4" />
-                    </video>
-                  )}
+                  <div className="h-full bg-black rounded-xl p-5 relative font-mono flex flex-col">
+                    {/* 🚀 PERFORMANCE FIX: Show static image FIRST, then lazy-load video */}
+                    {!showVideo ? (
+                      <img
+                        src="/assets/cyber-grid.webp"
+                        fetchPriority="high"
+                        alt="Background"
+                        className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
+                      />
+                    ) : (
+                      <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="none"
+                        fetchPriority="low"
+                        className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
+                      >
+                        <source src="/assets/cyber-grid.mp4" type="video/mp4" />
+                      </video>
+                    )}
 
-                  <div>
-                    <div
-  className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-xl"
-  style={{ minHeight: 160 }}  // 👈 CRITICAL: prevents layout shift
-> 
-                    <div className="flex items-center justify-between mb-4">
+                    {/* HEADER - Fixed text, no swapping */}
+                    <div className="flex items-center justify-between mb-4 relative z-10">
                       <div className="flex items-center gap-2">
                         <Lock className="w-4 h-4 text-red-500 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase text-red-500 tracking-[0.2em] relative">
-                          {isReady ? "PRIVATE ROOM CODE" : "Loading Board……"}
-                          <span className="absolute -inset-1 blur-sm text-red-500 opacity-50">
-                            {isReady ? "PRIVATE ROOM CODE" : "Loading Board……"}
-                          </span>
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-[0.2em] text-red-500 transition-opacity duration-300 ${
+                            isReady ? "opacity-100" : "opacity-60"
+                          }`}
+                        >
+                          PRIVATE ROOM CODE
                         </span>
                       </div>
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
                     </div>
-                    </div>
 
-                    <div className="relative group/input flex flex-col gap-2">
+                    {/* INPUT SECTION - Fixed layout */}
+                    <div className="flex flex-col gap-3 relative z-10 flex-1">
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neon-green font-black text-xs">
                           {">"}
@@ -520,18 +506,15 @@ useEffect(() => {
                             )
                           }
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              if (privateCode.length === 6) {
-                                handlePrivateJoin();
-                              }
+                            if (e.key === "Enter" && privateCode.length === 6) {
+                              handlePrivateJoin();
                             }
                           }}
-                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-4 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
+                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-3.5 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
                         />
-                        {/* Blinking Cursor Effect */}
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-4 bg-neon-green animate-pulse pointer-events-none opacity-0 group-focus-within/input:opacity-100" />
                       </div>
 
+                      {/* BUTTON - Fixed height */}
                       <button
                         onClick={handlePrivateJoin}
                         disabled={
@@ -539,18 +522,19 @@ useEffect(() => {
                         }
                         className={`w-full py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all ${
                           privateCode.length === 6 && !joinLoading
-                            ? "bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.5)] hover:scale-105"
+                            ? "bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.5)] hover:scale-[1.02]"
                             : "bg-red-900/10 text-red-900/40 border border-red-900/20 cursor-not-allowed"
                         }`}
                       >
                         {joinLoading ? "Decrypting..." : "Join Restricted"}
                       </button>
                     </div>
-                  </div>
 
-                  <div className="mt-3 flex justify-between gap-1 text-[8px] text-red-900 uppercase font-bold tracking-widest">
-                    <span>SECURE: AES-256</span>
-                    <span>V.9.0.1</span>
+                    {/* FOOTER - Fixed text */}
+                    <div className="mt-3 flex justify-between text-[8px] uppercase tracking-widest text-red-900/60 relative z-10">
+                      <span>Secure: AES-256</span>
+                      <span>v9.0.1</span>
+                    </div>
                   </div>
                 </div>
               </div>
