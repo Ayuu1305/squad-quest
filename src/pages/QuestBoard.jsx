@@ -82,6 +82,11 @@ const QuestBoard = () => {
   const [showVideo, setShowVideo] = useState(false);
 
   const containerRef = useRef(null);
+  // 🚀 PERFORMANCE: ensure first paint completes before Firebase
+  const startedRef = useRef(false);
+
+const [pagePainted, setPagePainted] = useState(false);
+
 
   // ⏱️ Delay realtime Firestore until UI paints
   useEffect(() => {
@@ -91,6 +96,14 @@ const QuestBoard = () => {
 
     return () => clearTimeout(id);
   }, []);
+
+  // 🚀 PERFORMANCE: mark page as painted (after first visual frame)
+useEffect(() => {
+  requestAnimationFrame(() => {
+    setPagePainted(true);
+  });
+}, []);
+
 
   useEffect(() => {
     if (!hasInitialData) return;
@@ -113,9 +126,8 @@ const QuestBoard = () => {
 
   // ✅ OPTIMIZED: Realtime Listener for Top Quests (Deferred to Idle)
   useEffect(() => {
-    const startedRef = { current: false };
 
-    if (!user?.uid || !enableRealtime) return;
+    if (!user?.uid || !enableRealtime || !pagePainted) return;
 
     let isSubscribed = true; // ✅ Prevent state updates after unmount
     let unsubQuests = null;
@@ -474,6 +486,10 @@ const QuestBoard = () => {
                   )}
 
                   <div>
+                    <div
+  className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-xl"
+  style={{ minHeight: 160 }}  // 👈 CRITICAL: prevents layout shift
+> 
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Lock className="w-4 h-4 text-red-500 animate-pulse" />
@@ -485,6 +501,7 @@ const QuestBoard = () => {
                         </span>
                       </div>
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                    </div>
                     </div>
 
                     <div className="relative group/input flex flex-col gap-2">
