@@ -412,10 +412,20 @@ function RewardIcon({ icon: Icon, label, colorHex }) {
 // MAIN LANDING PAGE COMPONENT
 // ============================================
 function LandingPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [show3D, setShow3D] = useState(false);
+
+
+  // ✅ ADD THIS EFFECT
+  useEffect(() => {
+    if (!loading && user) {
+      // If we know who they are, send them to the game immediately
+      navigate("/board", { replace: true });
+    }
+  }, [user, navigate]);
+
 
 useEffect(() => {
   const id = setTimeout(() => setShow3D(true), 1200);

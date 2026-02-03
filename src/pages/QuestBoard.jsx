@@ -42,6 +42,7 @@ const CyberGridBackground = lazy(
 const HallOfFameIntro = lazy(() => import("../components/HallOfFameIntro"));
 import QuestBoardSkeleton from "../components/skeletons/QuestBoardSkeleton";
 import { cancelIdle, runWhenIdle } from "../utils/idleCallback";
+import QuestCardSkeleton from "../components/skeletons/QuestCardSkeleton";
 
 const QuestBoard = () => {
   const { city } = useGame();
