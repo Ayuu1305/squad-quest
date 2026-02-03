@@ -441,14 +441,15 @@ const QuestBoard = () => {
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
 
                   <div className="min-h-[178px] bg-black rounded-xl p-4 relative font-mono flex flex-col">
-                    {/* ✅ LCP RENDER FIX: Static background, no absolute positioning for faster paint */}
-                    <div
-                      className="absolute inset-0 rounded-xl opacity-[0.03] pointer-events-none mix-blend-screen"
-                      style={{
-                        backgroundImage: "url(/assets/cyber-grid.webp)",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
+                    {/* ✅ LCP FIX: img tag for early discovery + preload */}
+                    <img
+                      src="/assets/cyber-grid.webp"
+                      alt=""
+                      loading="eager"
+                      fetchPriority="high"
+                      width="320"
+                      height="240"
+                      className="absolute inset-0 w-full h-full object-cover opacity-[0.03] pointer-events-none mix-blend-screen rounded-xl"
                     />
 
                     {/* HEADER - Fixed text, no swapping */}
