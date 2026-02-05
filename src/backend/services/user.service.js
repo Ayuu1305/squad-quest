@@ -152,3 +152,32 @@ export const syncServerTime = async () => {
     return 0;
   }
 };
+
+/**
+ * Acknowledge a violation
+ * @param {number} violationIndex - Index of the violation in the violations array
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const acknowledgeViolation = async (violationIndex) => {
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const { auth } = await loadFirebase();
+  const token = await auth.currentUser.getIdToken();
+
+  const response = await fetch(`${API_URL}/user/acknowledge-violation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ violationIndex }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to acknowledge violation");
+  }
+
+  console.log(`✅ Violation ${violationIndex} acknowledged`);
+  return data;
+};

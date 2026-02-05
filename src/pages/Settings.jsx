@@ -18,6 +18,7 @@ import {
   resetHeroPassword,
 } from "../backend/services/auth.service";
 import PersonalDetailsModal from "../components/Settings/PersonalDetailsModal";
+import FeedbackModal from "../components/FeedbackModal";
 import toast from "react-hot-toast";
 
 const Settings = () => {
@@ -25,6 +26,7 @@ const Settings = () => {
   const { user } = useAuth();
   const { city, selectCity } = useGame();
   const [showPersonalDetails, setShowPersonalDetails] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -150,7 +152,31 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Section 3: Danger Zone */}
+        {/* Section 3: Help & Feedback */}
+        <section>
+          <h2 className="text-sm font-mono text-gray-500 uppercase tracking-wider mb-4 px-2">
+            Help & Feedback
+          </h2>
+          <div className="glassmorphism-dark rounded-2xl overflow-hidden border border-white/10">
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-neon-purple" />
+                <div>
+                  <span className="block font-medium">Send Feedback</span>
+                  <span className="text-xs text-gray-500">
+                    Report bugs, request features, or share concerns
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+        </section>
+
+        {/* Section 4: Danger Zone */}
         <section>
           <h2 className="text-sm font-mono text-red-500/70 uppercase tracking-wider mb-4 px-2">
             Danger Zone
@@ -182,6 +208,8 @@ const Settings = () => {
           onClose={() => setShowPersonalDetails(false)}
         />
       )}
+
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
     </div>
   );
 };

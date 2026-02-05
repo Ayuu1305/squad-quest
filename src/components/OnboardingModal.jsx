@@ -18,22 +18,22 @@ const OnboardingModal = () => {
           <Coffee className="w-12 h-12 text-neon-purple" />
         </div>
       ),
-      headline: "Explore & Save Real Money",
-      body: "Pick any location (Cafe, Gaming, Sports). Visit alone or with friends. Get exclusive discounts (Free Coffee, flat 10% OFF) just for being there.",
+      headline: "Save Money at Local Places",
+      body: "Choose a coffee shop, gaming cafe, or sports club. Visit with friends and get instant discounts (Free Coffee, 10% OFF).",
       buttonText: "Next: How?",
     },
     {
       id: 2,
       icon: <Camera className="w-12 h-12 text-neon-purple" />,
-      headline: "Verify to Unlock",
-      body: "Give 2 minutes to verify your location. It's simple: Snap a photo, prove you are there, and boom—Discount Unlocked + XP Earned.",
-      buttonText: "Next: The Game",
+      headline: "Quick Check-In",
+      body: "Take 2 minutes to prove you're there: Share your location + Upload a photo = Discount unlocked!",
+      buttonText: "Next: Rewards",
     },
     {
       id: 3,
       icon: <Trophy className="w-12 h-12 text-neon-purple" />,
-      headline: "Welcome to the Real World Game",
-      body: "You are now in a real-life RPG. Compete with friends, your girlfriend, or your entire city on the Leaderboard. Who is the main character? YOU.",
+      headline: "Earn Points & Rankings",
+      body: "Every visit earns you XP points. Compete with friends on the leaderboard. Top players get exclusive perks and badges!",
       buttonText: `Welcome, ${user?.displayName || "Hero"}!`,
     },
   ];

@@ -150,7 +150,10 @@ import {
   getUserRedemptions,
 } from "./controllers/shopController.js";
 import { syncStreak } from "./controllers/streakController.js";
-import { updateAvatar } from "./controllers/userController.js"; // [NEW]
+import {
+  updateAvatar,
+  acknowledgeViolation,
+} from "./controllers/userController.js"; // ✅ Added acknowledgeViolation
 import { verifyToken } from "./middleware/auth.js";
 import { initArchiver } from "./jobs/questArchiver.js";
 import { initCronJobs } from "./services/cronService.js"; // ✅ Weekly Reset Scheduler
@@ -195,6 +198,9 @@ app.post(
   validate("avatarConfig"),
   updateAvatar,
 );
+
+// 🚨 Violation Management
+app.post("/api/user/acknowledge-violation", verifyToken, acknowledgeViolation);
 
 // 📊 Leaderboard Routes
 app.get("/api/leaderboard/weekly", getWeeklyLeaderboard);

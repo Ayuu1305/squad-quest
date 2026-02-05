@@ -5,13 +5,16 @@ const schemas = {
   // Quest Join Validation
   joinQuest: Joi.object({
     questId: Joi.string()
-      .pattern(/^[a-zA-Z0-9]{20}$/)
+      .alphanum()
+      .min(10) // At least 10 characters
+      .max(50) // Max 50 characters
       .required()
       .messages({
-        "string.pattern.base": "Invalid questId format",
+        "string.alphanum": "Invalid questId format",
         "any.required": "questId is required",
       }),
     secretCode: Joi.string()
+      .allow("") // ✅ Allow empty string for public quests
       .length(6)
       .pattern(/^[A-Z0-9]{6}$/)
       .optional()
@@ -24,24 +27,18 @@ const schemas = {
 
   // Quest Leave Validation
   leaveQuest: Joi.object({
-    questId: Joi.string()
-      .pattern(/^[a-zA-Z0-9]{20}$/)
-      .required(),
+    questId: Joi.string().alphanum().min(10).max(50).required(),
   }),
 
   // Finalize Quest Validation
   finalizeQuest: Joi.object({
-    questId: Joi.string()
-      .pattern(/^[a-zA-Z0-9]{20}$/)
-      .required(),
-    photoURL: Joi.string().uri().max(500).optional().allow(""),
+    questId: Joi.string().alphanum().min(10).max(50).required(),
+    photoURL: Joi.string().max(1000).optional().allow(""),
   }),
 
   // Vibe Check Validation
   submitVibeCheck: Joi.object({
-    questId: Joi.string()
-      .pattern(/^[a-zA-Z0-9]{20}$/)
-      .required(),
+    questId: Joi.string().alphanum().min(10).max(50).required(),
     reviews: Joi.object()
       .pattern(
         Joi.string(), // User ID key
@@ -60,6 +57,10 @@ const schemas = {
       )
       .max(20) // Max 20 users reviewed at once
       .required(),
+    genderMismatchReports: Joi.array()
+      .items(Joi.string().alphanum().min(10).max(50))
+      .max(20)
+      .optional(),
   }),
 
   // Avatar Config Validation

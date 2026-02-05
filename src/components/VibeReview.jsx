@@ -14,6 +14,7 @@ import {
 const VibeReview = ({ squad, onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reviews, setReviews] = useState({});
+  const [genderMismatchReports, setGenderMismatchReports] = useState([]); // Track gender mismatches
   const [animations, setAnimations] = useState([]); // Array for floating XP particles
   const currentHero = squad && squad.length > 0 ? squad[currentIndex] : null;
 
@@ -57,11 +58,22 @@ const VibeReview = ({ squad, onComplete }) => {
     }
   };
 
+  const toggleGenderMismatch = (heroId) => {
+    if (genderMismatchReports.includes(heroId)) {
+      setGenderMismatchReports(
+        genderMismatchReports.filter((id) => id !== heroId),
+      );
+    } else {
+      setGenderMismatchReports([...genderMismatchReports, heroId]);
+    }
+  };
+
   const nextHero = () => {
     if (currentIndex < squad.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      onComplete(reviews);
+      // Pass both reviews and gender mismatch reports
+      onComplete({ reviews, genderMismatchReports });
     }
   };
 
@@ -136,6 +148,51 @@ const VibeReview = ({ squad, onComplete }) => {
             ))}
           </div>
 
+          {/* Gender Mismatch Report (Safety Feature) */}
+          <div className="mb-6">
+            <button
+              onClick={() => toggleGenderMismatch(currentHero.id)}
+              className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                genderMismatchReports.includes(currentHero.id)
+                  ? "bg-red-500/20 border-red-500 text-red-300"
+                  : "glassmorphism border-white/10 text-gray-400 hover:border-red-500/30"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    genderMismatchReports.includes(currentHero.id)
+                      ? "bg-red-500/30"
+                      : "bg-white/5"
+                  }`}
+                >
+                  ⚠️
+                </div>
+                <div className="text-left">
+                  <div className="text-xs font-black uppercase tracking-wide">
+                    Report Gender Mismatch
+                  </div>
+                  <div className="text-[9px] text-gray-500 font-mono">
+                    {genderMismatchReports.includes(currentHero.id)
+                      ? "Reported - Will be reviewed"
+                      : "User misrepresented their gender"}
+                  </div>
+                </div>
+              </div>
+              <div
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                  genderMismatchReports.includes(currentHero.id)
+                    ? "bg-red-500 border-red-500"
+                    : "border-gray-600"
+                }`}
+              >
+                {genderMismatchReports.includes(currentHero.id) && (
+                  <span className="text-white text-xs">✓</span>
+                )}
+              </div>
+            </button>
+          </div>
+
           {/* Progress & Next */}
           <div className="flex items-center justify-between mt-auto">
             <div className="flex gap-1.5">
@@ -146,8 +203,8 @@ const VibeReview = ({ squad, onComplete }) => {
                     i === currentIndex
                       ? "w-6 bg-neon-purple shadow-[0_0_10px_#a855f7]"
                       : i < currentIndex
-                      ? "w-2 bg-green-500"
-                      : "w-2 bg-white/10"
+                        ? "w-2 bg-green-500"
+                        : "w-2 bg-white/10"
                   }`}
                 />
               ))}

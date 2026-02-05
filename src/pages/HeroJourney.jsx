@@ -68,10 +68,10 @@ const HeroJourney = () => {
           </button>
           <div className="flex flex-col items-end">
             <div className="text-[10px] font-black font-mono text-neon-purple uppercase tracking-[0.3em] mb-1">
-              Mission Phase
+              Progress Tracker
             </div>
             <div className="text-xl font-black font-['Orbitron'] italic uppercase italic tracking-tighter">
-              Hero Journey
+              My Progress
             </div>
           </div>
         </div>
@@ -96,7 +96,7 @@ const HeroJourney = () => {
             </div>
             <div className="text-right">
               <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                Next Objective
+                Next Goal
               </div>
               <div className="text-sm font-black text-white italic">
                 LVL {nextMilestone.level}{" "}
@@ -117,11 +117,11 @@ const HeroJourney = () => {
 
           <div className="flex justify-between mt-3">
             <span className="text-[9px] font-mono text-gray-600 uppercase tracking-[0.2em]">
-              Synchronization: {Math.round(progressToNextMilestone)}%
+              Progress: {Math.round(progressToNextMilestone)}%
             </span>
             <div className="flex items-center gap-1.5 text-[9px] font-black text-neon-purple uppercase tracking-widest">
               <Target className="w-3 h-3 animate-pulse" />
-              Sector Clear: {currentLevel}/{nextMilestone.level}
+              Level Progress: {currentLevel}/{nextMilestone.level}
             </div>
           </div>
         </div>
@@ -182,10 +182,10 @@ const HeroJourney = () => {
             <div className="absolute inset-0 bg-gold/5 blur-3xl" />
             <Trophy className="w-12 h-12 text-gold mx-auto mb-4 drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
             <h2 className="text-2xl font-black font-['Orbitron'] italic tracking-tighter text-white mb-2 uppercase">
-              The Sovereign Peak
+              Maximum Level
             </h2>
             <p className="text-xs font-mono text-gray-500 uppercase tracking-widest max-w-[200px] mx-auto">
-              Your legend will be inscribed in the Ahmedabad Archives.
+              Reach the top and earn legendary status in Ahmedabad!
             </p>
           </motion.div>
         </div>

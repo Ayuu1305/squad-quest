@@ -542,13 +542,15 @@ const BADGE_THRESHOLDS = {
 
 export const submitVibeCheck = async (req, res) => {
   // ✅ Use validated data
-  const { questId, reviews } = req.validatedData || req.body;
+  const { questId, reviews, genderMismatchReports } =
+    req.validatedData || req.body;
   const reviewerId = req.user.uid;
 
   console.log("📝 [VibeCheck] Request received:", {
     questId,
     reviews,
     reviewerId,
+    genderMismatchReports: genderMismatchReports || [],
   });
 
   if (!questId || !reviews) {
@@ -690,6 +692,106 @@ export const submitVibeCheck = async (req, res) => {
         // Write to userStats collection (for Profile page)
         t.set(targetStatsRef, targetPayload, { merge: true });
       });
+
+      // 🚨 HANDLE GENDER MISMATCH REPORTS
+      if (genderMismatchReports && genderMismatchReports.length > 0) {
+        console.log(
+          "🚨 [SAFETY] Processing gender mismatch reports:",
+          genderMismatchReports,
+        );
+
+        for (const reportedUserId of genderMismatchReports) {
+          const reportedRef = db.collection("users").doc(reportedUserId);
+          const reportedStatsRef = db
+            .collection("userStats")
+            .doc(reportedUserId);
+
+          // Get current violation data
+          const reportedData = snapMap.get(reportedStatsRef.path) || {};
+          const violations = reportedData.violations || [];
+          const currentStrikes = violations.filter(
+            (v) => v.type === "gender_mismatch",
+          ).length;
+          const newStrike = currentStrikes + 1;
+
+          // Create violation record (use Date() not serverTimestamp for arrays!)
+          const now = new Date();
+          const violation = {
+            type: "gender_mismatch",
+            reportedBy: reviewerId,
+            questId,
+            timestamp: now, // ✅ Cannot use serverTimestamp() in arrays!
+            strike: newStrike,
+            acknowledged: false, // ✅ Track if user has seen this warning
+          };
+
+          // Determine penalty based on strike count
+          let penalty = {
+            xpDeduction: 0,
+            banDuration: null, // null = no ban, 7 = 7 days, "permanent"
+            message: "",
+          };
+
+          if (newStrike === 1) {
+            penalty.xpDeduction = 500;
+            penalty.message = "⚠️ 1st Strike: -500 XP Warning";
+          } else if (newStrike === 2) {
+            penalty.xpDeduction = 500;
+            penalty.banDuration = 7; // 7 day suspension
+            penalty.message = "🚫 2nd Strike: -500 XP + 7-day Ban";
+          } else {
+            penalty.xpDeduction = 500;
+            penalty.banDuration = "permanent";
+            penalty.message = "🔴 3rd Strike: Permanent Ban";
+          }
+
+          console.log(
+            `🚨 [SAFETY] User ${reportedUserId} received strike ${newStrike}:`,
+            penalty.message,
+          );
+
+          // Apply XP deduction from ALL XP fields
+          const currentXP = reportedData.xp || 0;
+          const newXP = Math.max(0, currentXP - penalty.xpDeduction);
+          const { level: penalizedLevel } = calculateLevelFromXP(newXP);
+
+          const penaltyPayload = {
+            xp: FieldValue.increment(-penalty.xpDeduction), // Wallet XP
+            lifetimeXP: FieldValue.increment(-penalty.xpDeduction), // Lifetime XP
+            thisWeekXP: FieldValue.increment(-penalty.xpDeduction), // Weekly XP
+            level: penalizedLevel,
+            violations: FieldValue.arrayUnion(violation),
+            updatedAt: FieldValue.serverTimestamp(),
+          };
+
+          // Apply ban if needed
+          if (penalty.banDuration === "permanent") {
+            penaltyPayload.banned = true;
+            penaltyPayload.banReason = "Gender misrepresentation (3 strikes)";
+          } else if (penalty.banDuration) {
+            const banUntil = new Date();
+            banUntil.setDate(banUntil.getDate() + penalty.banDuration);
+            penaltyPayload.bannedUntil = banUntil; // ✅ Use Date object, not serverTimestamp
+            penaltyPayload.banReason = `Gender misrepresentation (${newStrike} strike${newStrike > 1 ? "s" : ""})`;
+          }
+
+          // Write penalty to BOTH users and userStats collections
+          t.update(reportedRef, penaltyPayload);
+          t.set(reportedStatsRef, penaltyPayload, { merge: true });
+
+          // Log the violation
+          const violationLogRef = db.collection("safety_reports").doc();
+          t.set(violationLogRef, {
+            type: "gender_mismatch",
+            reportedUserId,
+            reportedBy: reviewerId,
+            questId,
+            strike: newStrike,
+            penalty: penalty.message,
+            timestamp: FieldValue.serverTimestamp(), // ✅ Top-level field CAN use serverTimestamp
+          });
+        }
+      }
 
       // 4. Activity Log for Reviewer
       const activityRef = db.collection("global_activity").doc();

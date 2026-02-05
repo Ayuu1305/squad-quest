@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -15,6 +15,7 @@ import RewardModal from "./components/RewardModal"; // ✅ Reward Popup
 import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
 import OnboardingModal from "./components/OnboardingModal"; // ✅ New User Onboarding
+import ViolationWarningModal from "./components/ViolationWarningModal"; // ✅ Gender Mismatch Warnings
 import QuestBoardSkeleton from "./components/skeletons/QuestBoardSkeleton"; // ✅ Skeleton Loading
 
 const QuestBoard = lazy(() => import("./pages/QuestBoard"));
@@ -198,6 +199,46 @@ function App() {
     return () => unsubscribe();
   }, [user?.uid]);
 
+  // \u2705 Handle Violation Acknowledgment
+  const handleAcknowledgeViolation = async (violation, violationIndex) => {
+    try {
+      const { acknowledgeViolation } =
+        await import("./backend/services/user.service");
+
+      // Find the index in the original violations array
+      const actualIndex = user.violations.findIndex(
+        (v) =>
+          v.timestamp === violation.timestamp && v.strike === violation.strike,
+      );
+
+      if (actualIndex !== -1) {
+        await acknowledgeViolation(actualIndex);
+        console.log(
+          `\u2705 Violation acknowledged: Strike ${violation.strike}`,
+        );
+
+        // Show toast feedback
+        toast.success("Acknowledgment recorded", {
+          icon: "\u2705",
+          style: {
+            background: "#111",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+        });
+      }
+    } catch (error) {
+      console.error("\u274c Failed to acknowledge violation:", error);
+      toast.error("Failed to acknowledge violation", {
+        style: {
+          background: "#111",
+          color: "#fff",
+          border: "1px solid #f00",
+        },
+      });
+    }
+  };
+
   return (
     <div className="bg-dark-bg min-h-screen text-white font-['Inter'] selection:bg-neon-purple selection:text-white">
       {/* ✅ QUOTA EXHAUSTION WARNING - Shows on ALL pages */}
@@ -209,6 +250,14 @@ function App() {
 
       {user && !loading && user.emailVerified && !user.hasSeenOnboarding && (
         <OnboardingModal />
+      )}
+
+      {/* ✅ VIOLATION WARNING MODAL - Shows unacknowledged gender mismatch reports */}
+      {user && !loading && user.violations && user.violations.length > 0 && (
+        <ViolationWarningModal
+          violations={user.violations}
+          onAcknowledge={handleAcknowledgeViolation}
+        />
       )}
 
       <SwipeWrapper>

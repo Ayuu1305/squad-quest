@@ -91,33 +91,13 @@ const GenderSelectionModal = () => {
               }`}
             />
           </button>
-
-          <button
-            onClick={() => setSelectedGender("other")}
-            className={`w-full py-4 px-6 rounded-xl border-2 transition-all flex items-center justify-between group ${
-              selectedGender === "other"
-                ? "bg-neon-purple/20 border-neon-purple shadow-[0_0_20px_rgba(168,85,247,0.3)]"
-                : "bg-black/40 border-white/10 hover:border-white/30"
-            }`}
-          >
-            <span className="font-black italic text-white uppercase tracking-wider">
-              Other / Prefer Not to Say
-            </span>
-            <div
-              className={`w-4 h-4 rounded-full border-2 ${
-                selectedGender === "other"
-                  ? "border-neon-purple bg-neon-purple"
-                  : "border-gray-600"
-              }`}
-            />
-          </button>
         </div>
 
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex gap-3">
           <ShieldAlert className="w-5 h-5 text-yellow-500 flex-shrink-0" />
           <p className="text-[10px] text-yellow-500/80 uppercase font-mono leading-relaxed">
-            Changing your biological designation later requires Admin Override.
-            Choose carefully.
+            ⚠️ WARNING: Misrepresenting your gender can result in permanent ban.
+            Choose honestly for safety of all users.
           </p>
         </div>
 

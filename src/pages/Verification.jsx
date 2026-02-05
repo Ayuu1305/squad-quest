@@ -219,8 +219,7 @@ const Verification = () => {
 
     const showdown = isShowdownActive();
     const finalUIXP = showdown ? earnedXP * 2 : earnedXP;
-console.log("AUTH UID:", user?.uid);
-
+    console.log("AUTH UID:", user?.uid);
 
     try {
       // ✅ 1) Save verification + mark quest completedBy
@@ -278,14 +277,19 @@ console.log("AUTH UID:", user?.uid);
     }
   };
 
-  const handleReviewComplete = async (reviews) => {
+  const handleReviewComplete = async (data) => {
+    // Handle both old format (array) and new format (object)
+    const reviews = data?.reviews || data;
+    const genderMismatchReports = data?.genderMismatchReports || [];
+
     console.log("Vibe Checks Submitted:", reviews);
+    console.log("Gender Mismatch Reports:", genderMismatchReports);
 
     // ✅ Send to backend API
     try {
       const { submitVibeChecks } =
         await import("../backend/services/quest.service");
-      const result = await submitVibeChecks(id, reviews);
+      const result = await submitVibeChecks(id, reviews, genderMismatchReports);
       console.log("✅ Vibe Check API success:", result);
     } catch (error) {
       console.error("❌ Vibe Check API failed:", error);

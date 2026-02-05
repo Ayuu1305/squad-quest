@@ -44,3 +44,57 @@ export const updateAvatar = async (req, res) => {
     return res.status(500).json({ error: "Failed to update avatar" });
   }
 };
+
+/**
+ * Acknowledge a violation - marks it as seen by the user
+ * Route: POST /api/user/acknowledge-violation
+ * Access: Protected
+ */
+export const acknowledgeViolation = async (req, res) => {
+  const { violationIndex } = req.validatedData || req.body;
+  const userId = req.user.uid;
+
+  console.log(
+    `📝 [AcknowledgeViolation] User ${userId} acknowledging violation index ${violationIndex}`,
+  );
+
+  if (violationIndex === undefined || violationIndex === null) {
+    return res.status(400).json({ error: "violationIndex is required" });
+  }
+
+  try {
+    const userStatsRef = db.collection("userStats").doc(userId);
+    const userStatsSnap = await userStatsRef.get();
+
+    if (!userStatsSnap.exists) {
+      return res.status(404).json({ error: "User stats not found" });
+    }
+
+    const violations = userStatsSnap.data().violations || [];
+
+    if (violationIndex < 0 || violationIndex >= violations.length) {
+      return res.status(400).json({ error: "Invalid violation index" });
+    }
+
+    // Mark the specific violation as acknowledged
+    violations[violationIndex].acknowledged = true;
+
+    // Update Firestore
+    await userStatsRef.update({
+      violations,
+      updatedAt: new Date(),
+    });
+
+    console.log(
+      `✅ [AcknowledgeViolation] User ${userId} acknowledged violation ${violationIndex}`,
+    );
+
+    return res.json({
+      success: true,
+      message: "Violation acknowledged",
+    });
+  } catch (error) {
+    console.error("Acknowledge Violation Error:", error);
+    return res.status(500).json({ error: "Failed to acknowledge violation" });
+  }
+};

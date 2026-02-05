@@ -261,7 +261,7 @@ export const getUserVerificationStatus = async (questId, uid) => {
 
 // ✅ Save Quest Verification (Client-Side)
 export const saveQuestVerification = async (questId, uid, payload) => {
-   const { db, serverTimestamp, doc, setDoc, updateDoc, getDoc, arrayUnion } =
+  const { db, serverTimestamp, doc, setDoc, updateDoc, getDoc, arrayUnion } =
     await loadFirebase();
   if (!questId) throw new Error("questId missing");
   if (!uid) throw new Error("uid missing");
@@ -292,16 +292,15 @@ export const saveQuestVerification = async (questId, uid, payload) => {
   );
 
   // ✅ Mark quest completed for THIS USER (THIS FIXES YOUR REDIRECT LOOP)
-    // Allowed by rules: status, completedBy, updatedAt
-    const questRef = doc(db, "quests", questId);
-    await updateDoc(questRef, {
-      completedBy: arrayUnion(uid),
-      updatedAt: serverTimestamp(),
-    });
+  // Allowed by rules: status, completedBy, updatedAt
+  const questRef = doc(db, "quests", questId);
+  await updateDoc(questRef, {
+    completedBy: arrayUnion(uid),
+    updatedAt: serverTimestamp(),
+  });
 
   return true;
 };
-
 
 // ✅ Optimized for Pagination + Performance (SAFE)
 export const subscribeToAllQuests = (callback, cityFilter = null) => {
@@ -314,10 +313,7 @@ export const subscribeToAllQuests = (callback, cityFilter = null) => {
 
       const questsRef = collection(db, "quests");
 
-      const constraints = [
-        orderBy("createdAt", "desc"),
-        limit(10),
-      ];
+      const constraints = [orderBy("createdAt", "desc"), limit(10)];
 
       if (cityFilter) {
         constraints.unshift(
@@ -351,7 +347,7 @@ export const subscribeToAllQuests = (callback, cityFilter = null) => {
           console.error("Error subscribing to all quests:", error);
         },
       );
-    }
+    },
   );
 
   // ✅ Safe unsubscribe even if loadFirebase resolves later
@@ -367,16 +363,8 @@ export const subscribeToAllQuests = (callback, cityFilter = null) => {
 export const fetchMoreQuests = async (lastDoc, cityFilter = null) => {
   if (!lastDoc) return { quests: [], lastVisible: null };
 
-  const {
-    db,
-    collection,
-    query,
-    orderBy,
-    startAfter,
-    limit,
-    where,
-    getDocs,
-  } = await loadFirebase();
+  const { db, collection, query, orderBy, startAfter, limit, where, getDocs } =
+    await loadFirebase();
 
   const questsRef = collection(db, "quests");
 
@@ -411,7 +399,6 @@ export const fetchMoreQuests = async (lastDoc, cityFilter = null) => {
   return { quests, lastVisible };
 };
 
-
 /**
  * Updates quest status (ONLY host can do this due to Firestore rules)
  */
@@ -428,7 +415,11 @@ export const updateQuestStatus = async (questId, status) => {
   });
 };
 
-export const submitVibeChecks = async (questId, reviews) => {
+export const submitVibeChecks = async (
+  questId,
+  reviews,
+  genderMismatchReports = [],
+) => {
   const token = await getAuthToken();
   const response = await fetch(`${API_URL}/quest/vibe-check`, {
     method: "POST",
@@ -439,6 +430,7 @@ export const submitVibeChecks = async (questId, reviews) => {
     body: JSON.stringify({
       questId,
       reviews,
+      genderMismatchReports, // ✅ Now included!
     }),
   });
 

@@ -5,39 +5,41 @@ const ProfileOverview = () => {
   const sections = [
     {
       icon: Sword,
-      title: "The Mission",
-      subtitle: "Join a Squad",
+      title: "Step 1: Join a Group",
+      subtitle: "Find People Near You",
       description:
-        "Browse quests, join a squad, and meet real people in Ahmedabad.",
+        "Browse meetups at local venues (cafes, gaming zones, sports clubs). Join a group of 2-5 people and meet them in real life.",
       color: "neon-purple",
       steps: [
-        { icon: MapPin, text: "Pick a quest at a local hub" },
-        { icon: Users, text: "Squad up with 2-5 heroes" },
-        { icon: Zap, text: "Meet in real life" },
+        { icon: MapPin, text: "Pick a venue near you" },
+        { icon: Users, text: "Join a group of 2-5 people" },
+        { icon: Zap, text: "Meet them in person" },
       ],
     },
     {
       icon: Camera,
-      title: "Verification",
-      subtitle: "Prove Your Arrival",
-      description: "Complete 3-layer verification to clear the mission.",
+      title: "Step 2: Check-In",
+      subtitle: "Prove You Visited",
+      description:
+        "Simple 3-step check-in to confirm your visit and unlock rewards.",
       color: "cyan",
       steps: [
-        { icon: MapPin, text: "GPS: Verify you're at the hub" },
-        { icon: Sword, text: "Secret Code: Unlock the protocol" },
-        { icon: Camera, text: "Photo: Upload loot proof" },
+        { icon: MapPin, text: "GPS: Confirm you're at the venue" },
+        { icon: Sword, text: "Secret Code: Enter the group code" },
+        { icon: Camera, text: "Photo: Upload a picture as proof" },
       ],
     },
     {
       icon: Trophy,
-      title: "Rewards",
-      subtitle: "Rank Up",
-      description: "Earn XP, level up, and unlock exclusive badges.",
+      title: "Step 3: Get Rewards",
+      subtitle: "Earn Points & Badges",
+      description:
+        "Earn XP for every visit, level up, and unlock exclusive badges and perks.",
       color: "yellow",
       steps: [
-        { icon: Zap, text: "Gain XP for completed quests" },
-        { icon: Trophy, text: "Unlock badges via feedback" },
-        { icon: Sword, text: "Rise through the ranks" },
+        { icon: Zap, text: "Gain XP for completed meetups" },
+        { icon: Trophy, text: "Unlock badges from peer feedback" },
+        { icon: Sword, text: "Climb the leaderboard rankings" },
       ],
     },
   ];
@@ -122,7 +124,7 @@ const ProfileOverview = () => {
       <div className="p-6 bg-neon-purple/10 border border-neon-purple/30 rounded-2xl text-center">
         <p className="text-sm font-bold text-white mb-1">Ready to start?</p>
         <p className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">
-          Head to the Quest Board and join your first squad!
+          Head to the Meetups tab and join your first group!
         </p>
       </div>
     </motion.div>
