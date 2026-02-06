@@ -41,6 +41,7 @@ import OnboardingGuide from "./OnboardingGuide";
 import ProfileOverview from "./ProfileOverview";
 import { useGame } from "../context/GameContext";
 import AvatarFrame from "./AvatarFrame";
+import TrustBadges from "./TrustBadges"; // 🚨 NEW: For verified badge display
 
 const HeroicStatItem = ({
   label,
@@ -249,6 +250,41 @@ const HeroCardExport = ({
                 >
                   {user?.name || "OPERATIVE"}
                 </h1>
+
+                {/* 🚨 NEW: Verified Badge on ID Card */}
+                {user?.verifiedGender && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      background:
+                        user.verifiedGender === "Female"
+                          ? "rgba(219, 39, 119, 0.2)" // Pink for female
+                          : "rgba(37, 99, 235, 0.2)", // Blue for male
+                      padding: "4px 12px",
+                      borderRadius: "6px",
+                      marginBottom: "8px",
+                      border: `1px solid ${user.verifiedGender === "Female" ? "#db2777" : "#2563eb"}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color:
+                          user.verifiedGender === "Female"
+                            ? "#f9a8d4"
+                            : "#93c5fd",
+                      }}
+                    >
+                      ✓ Verified {user.verifiedGender}
+                    </span>
+                  </div>
+                )}
+
                 <div
                   style={{
                     display: "inline-flex",
@@ -1036,6 +1072,11 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                       <h2 className="text-2xl sm:text-4xl font-['Orbitron'] font-black text-white italic tracking-tighter uppercase mb-1 drop-shadow-md">
                         {user.name || "Unknown Hero"}
                       </h2>
+
+                      {/* 🚨 NEW: Trust Badges (Verified Gender Badge) */}
+                      <div className="mb-3 flex justify-center lg:justify-start">
+                        <TrustBadges user={user} />
+                      </div>
 
                       {/* Level & Progress (Subtle below name) */}
                       <div className="w-full max-w-[200px] mb-6 lg:mb-0">

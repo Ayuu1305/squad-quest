@@ -16,6 +16,8 @@ import RewardListener from "./components/RewardListener"; // ✅ Reward Watcher
 import SwipeWrapper from "./components/SwipeWrapper"; // ✅ Swipe Wrapper
 import OnboardingModal from "./components/OnboardingModal"; // ✅ New User Onboarding
 import ViolationWarningModal from "./components/ViolationWarningModal"; // ✅ Gender Mismatch Warnings
+import BanScreen from "./components/BanScreen"; // ✅ Ban Enforcement
+import { isBanned } from "./utils/banCheck"; // ✅ Ban status checker
 import QuestBoardSkeleton from "./components/skeletons/QuestBoardSkeleton"; // ✅ Skeleton Loading
 
 const QuestBoard = lazy(() => import("./pages/QuestBoard"));
@@ -42,6 +44,37 @@ const ProtectedRoute = ({ children }) => {
   if (loading || gameLoading) return null;
   // ✅ Check for existence AND verification
   if (!user || !user.emailVerified) return <Navigate to="/" />;
+
+  // ✅ Block ONLY permanent bans from accessing routes
+  const banStatus = isBanned(user);
+  if (banStatus.banned && banStatus.type === "permanent") {
+    // Permanent bans fully blocked (BanScreen shows via App.jsx)
+    return null;
+  }
+
+  // ✅ Temporary bans CAN access pages (but features will be disabled)
+
+  if (!city) return <Navigate to="/city-select" />;
+
+  return children;
+};
+
+// 🚫 NEW: Blocks BOTH temporary AND permanent bans from specific routes
+const BanRestrictedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  const { city, gameLoading } = useGame();
+
+  if (loading || gameLoading) return null;
+  // ✅ Check for existence AND verification
+  if (!user || !user.emailVerified) return <Navigate to="/" />;
+
+  // 🚫 Block ALL banned users (temporary + permanent)
+  const banStatus = isBanned(user);
+  if (banStatus.banned) {
+    // Redirect banned users to QuestBoard (they can view but not access shop/create)
+    return <Navigate to="/board" />;
+  }
+
   if (!city) return <Navigate to="/city-select" />;
 
   return children;
@@ -109,6 +142,20 @@ function App() {
       "/journey",
       "/shop",
     ].includes(location.pathname) && user;
+
+  // ✅ Check if user is banned
+  const banStatus = user ? isBanned(user) : { banned: false };
+
+  // ✅ Handle logout for banned users
+  const handleBannedUserLogout = async () => {
+    try {
+      const { auth } = await loadFirebase();
+      await auth.signOut();
+      window.location.href = "/";
+    } catch (error) {
+      console.error("❌ Logout error:", error);
+    }
+  };
 
   // ... inside your App component ...
 
@@ -199,65 +246,95 @@ function App() {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  // \u2705 Handle Violation Acknowledgment
+  // ✅ Handle Violation Acknowledgment
   const handleAcknowledgeViolation = async (violation, violationIndex) => {
     try {
+      console.log("🔍 [Acknowledge] Starting...", {
+        violation,
+        violationIndex,
+      });
+
       const { acknowledgeViolation } =
         await import("./backend/services/user.service");
 
-      // Find the index in the original violations array
-      const actualIndex = user.violations.findIndex(
-        (v) =>
-          v.timestamp === violation.timestamp && v.strike === violation.strike,
-      );
+      // Helper to normalize timestamps for comparison
+      const getTimestampValue = (ts) => {
+        if (!ts) return null;
+        if (ts.seconds) return ts.seconds; // Firestore Timestamp {seconds, nanoseconds}
+        if (ts.toDate) return Math.floor(ts.toDate().getTime() / 1000); // Timestamp object
+        return Math.floor(new Date(ts).getTime() / 1000); // ISO string or Date
+      };
+
+      // Find violation by comparing normalized timestamp values AND strike number
+      const targetTime = getTimestampValue(violation.timestamp);
+      const actualIndex = user.violations.findIndex((v) => {
+        const vTime = getTimestampValue(v.timestamp);
+        return vTime === targetTime && v.strike === violation.strike;
+      });
+
+      console.log("🔍 [Acknowledge] Search result:", {
+        targetTime,
+        actualIndex,
+      });
 
       if (actualIndex !== -1) {
         await acknowledgeViolation(actualIndex);
         console.log(
-          `\u2705 Violation acknowledged: Strike ${violation.strike}`,
+          `✅ Acknowledged strike ${violation.strike} at index ${actualIndex}`,
         );
 
-        // Show toast feedback
         toast.success("Acknowledgment recorded", {
-          icon: "\u2705",
+          icon: "✅",
           style: {
             background: "#111",
             color: "#fff",
             border: "1px solid #333",
           },
         });
+      } else {
+        console.error("❌ [Acknowledge] Violation not found in array!");
+        toast.error("Could not find violation");
       }
     } catch (error) {
-      console.error("\u274c Failed to acknowledge violation:", error);
-      toast.error("Failed to acknowledge violation", {
-        style: {
-          background: "#111",
-          color: "#fff",
-          border: "1px solid #f00",
-        },
-      });
+      console.error("❌ [Acknowledge] Error:", error);
+      toast.error("Failed to acknowledge");
     }
   };
+
+  // ✅ Filter unacknowledged violations BEFORE rendering modal
+  const unacknowledgedViolations =
+    user?.violations?.filter(
+      (v) => v.acknowledged === false || v.acknowledged === undefined,
+    ) || [];
 
   return (
     <div className="bg-dark-bg min-h-screen text-white font-['Inter'] selection:bg-neon-purple selection:text-white">
       {/* ✅ QUOTA EXHAUSTION WARNING - Shows on ALL pages */}
       <MaintenanceBanner />
 
-      {user && !loading && user.emailVerified && !user.gender && (
-        <GenderSelectionModal />
-      )}
+      {/* ✅ BAN SCREEN - Shows ONLY for PERMANENT bans */}
+      {user &&
+        !loading &&
+        banStatus.banned &&
+        banStatus.type === "permanent" && (
+          <BanScreen banInfo={banStatus} onLogout={handleBannedUserLogout} />
+        )}
 
-      {user && !loading && user.emailVerified && !user.hasSeenOnboarding && (
-        <OnboardingModal />
-      )}
+      {/* Only show modals and app content if user is NOT permanently banned */}
+      {user && !loading && banStatus.type !== "permanent" && (
+        <>
+          {user.emailVerified && !user.gender && <GenderSelectionModal />}
 
-      {/* ✅ VIOLATION WARNING MODAL - Shows unacknowledged gender mismatch reports */}
-      {user && !loading && user.violations && user.violations.length > 0 && (
-        <ViolationWarningModal
-          violations={user.violations}
-          onAcknowledge={handleAcknowledgeViolation}
-        />
+          {user.emailVerified && !user.hasSeenOnboarding && <OnboardingModal />}
+
+          {/* ✅ VIOLATION WARNING MODAL - Only show if there are unacknowledged violations */}
+          {unacknowledgedViolations.length > 0 && (
+            <ViolationWarningModal
+              violations={unacknowledgedViolations}
+              onAcknowledge={handleAcknowledgeViolation}
+            />
+          )}
+        </>
       )}
 
       <SwipeWrapper>
@@ -321,7 +398,7 @@ function App() {
               <Route
                 path="/quest/:id"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0, x: 50 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -329,14 +406,14 @@ function App() {
                     >
                       <QuestDetails />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 
               <Route
                 path="/create-quest"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0, y: 50 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -344,14 +421,14 @@ function App() {
                     >
                       <CreateQuest />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 
               <Route
                 path="/lobby/:id"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0, y: 50 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -359,14 +436,14 @@ function App() {
                     >
                       <Lobby />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 
               <Route
                 path="/verify/:id"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -374,14 +451,14 @@ function App() {
                     >
                       <Verification />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 
               <Route
                 path="/review/:id"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -389,14 +466,14 @@ function App() {
                     >
                       <Review />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 
               <Route
                 path="/my-missions"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0, y: 50 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -404,7 +481,7 @@ function App() {
                     >
                       <MyMissions />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 
@@ -471,7 +548,7 @@ function App() {
               <Route
                 path="/shop"
                 element={
-                  <ProtectedRoute>
+                  <BanRestrictedRoute>
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -479,7 +556,7 @@ function App() {
                     >
                       <ShopPage />
                     </motion.div>
-                  </ProtectedRoute>
+                  </BanRestrictedRoute>
                 }
               />
 

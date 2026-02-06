@@ -1,6 +1,6 @@
 /**
  * 💤 FIREBASE LAZY LOADER (The Bridge)
- * * This file prevents the heavy Firebase SDK from being bundled into your 
+ * * This file prevents the heavy Firebase SDK from being bundled into your
  * main 'index.js' file. It only loads Firebase when a component asks for it.
  */
 
@@ -10,12 +10,11 @@ export function loadFirebase() {
   if (!firebasePromise) {
     // 1. Start the download immediately
     firebasePromise = Promise.all([
-      import("./firebaseConfig"), 
+      import("./firebaseConfig"),
       import("firebase/firestore"),
       import("firebase/auth"),
-      import("firebase/functions")
+      import("firebase/functions"),
     ]).then(([config, firestoreSDK, authSDK, functionsSDK]) => {
-      
       // 2. Merge everything into one easy-to-use object
       return {
         // --- INSTANCES (From your config) ---
@@ -32,6 +31,7 @@ export function loadFirebase() {
         deleteDoc: firestoreSDK.deleteDoc,
         addDoc: firestoreSDK.addDoc,
         collection: firestoreSDK.collection,
+        collectionGroup: firestoreSDK.collectionGroup, // 🚨 NEW: For verified badge checking
         query: firestoreSDK.query,
         where: firestoreSDK.where,
         orderBy: firestoreSDK.orderBy,
@@ -57,10 +57,10 @@ export function loadFirebase() {
 
         // --- FUNCTIONS (Backend) ---
         getFunctions: functionsSDK.getFunctions,
-        httpsCallable: functionsSDK.httpsCallable
+        httpsCallable: functionsSDK.httpsCallable,
       };
     });
   }
-  
+
   return firebasePromise;
 }

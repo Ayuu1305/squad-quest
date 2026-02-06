@@ -8,7 +8,7 @@ const PersonalDetailsModal = ({ user, onClose }) => {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     age: user?.age || "",
-    gender: user?.gender || "",
+    // gender removed - now immutable for safety
   });
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +25,7 @@ const PersonalDetailsModal = ({ user, onClose }) => {
       await updateHeroProfile(user.uid, {
         name: formData.name,
         age: formData.age,
-        gender: formData.gender,
+        // gender is immutable, not included in updates
       });
       toast.success("Profile Updated!");
       onClose();
@@ -36,8 +36,6 @@ const PersonalDetailsModal = ({ user, onClose }) => {
       setLoading(false);
     }
   };
-
-  const isGenderChanged = user?.gender && formData.gender !== user.gender;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -94,43 +92,24 @@ const PersonalDetailsModal = ({ user, onClose }) => {
               </div>
             </div>
 
-            {/* Gender */}
+            {/* Gender - LOCKED FOR SAFETY */}
             <div>
               <label className="block text-xs font-mono text-gray-400 uppercase mb-1">
                 Gender
               </label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-neon-purple focus:outline-none transition-colors appearance-none"
-              >
-                <option value="" disabled>
-                  Select Gender
-                </option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Non-Binary">Non-Binary</option>
-                <option value="Other">Other</option>
-              </select>
+              <div className="w-full bg-black/30 border border-white/5 rounded-lg p-3 flex items-center justify-between">
+                <span className="text-white font-semibold">
+                  {user?.gender || "Not set"}
+                </span>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>🔒 Locked for safety</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Gender cannot be changed after signup to prevent abuse in
+                women-only quests.
+              </p>
             </div>
-
-            {/* Safety Warning */}
-            {isGenderChanged && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex gap-3 items-start"
-              >
-                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-red-200 leading-relaxed">
-                  <span className="font-bold block text-red-400 mb-1">
-                    Action Required
-                  </span>
-                  Note: Changing gender may require re-verification for safety.
-                </p>
-              </motion.div>
-            )}
 
             <button
               onClick={handleSave}

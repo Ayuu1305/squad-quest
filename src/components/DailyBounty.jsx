@@ -8,7 +8,7 @@ import { claimDailyBounty } from "../backend/services/quest.service";
 import { checkStreak } from "../backend/services/user.service";
 import toast from "react-hot-toast";
 
-const DailyBounty = () => {
+const DailyBounty = ({ isBanned = false }) => {
   const { user } = useAuth();
   const [canClaim, setCanClaim] = useState(false);
   const [countdown, setCountdown] = useState("");

@@ -6,12 +6,10 @@ const ViolationWarningModal = ({ violations, onAcknowledge }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
 
-  // Filter unacknowledged violations
-  const unacknowledged = violations.filter((v) => !v.acknowledged);
+  // Violations are already filtered to unacknowledged in App.jsx
+  if (!violations || violations.length === 0) return null;
 
-  if (unacknowledged.length === 0) return null;
-
-  const currentViolation = unacknowledged[currentIndex];
+  const currentViolation = violations[currentIndex];
   const strike = currentViolation.strike;
 
   // Get strike-specific styling and messaging
@@ -86,7 +84,7 @@ const ViolationWarningModal = ({ violations, onAcknowledge }) => {
       await onAcknowledge(currentViolation, currentIndex);
 
       // Move to next violation or close
-      if (currentIndex < unacknowledged.length - 1) {
+      if (currentIndex < violations.length - 1) {
         setCurrentIndex(currentIndex + 1);
       }
     } catch (error) {
@@ -164,9 +162,9 @@ const ViolationWarningModal = ({ violations, onAcknowledge }) => {
           </button>
 
           {/* Progress Indicator */}
-          {unacknowledged.length > 1 && (
+          {violations.length > 1 && (
             <p className="text-center text-xs text-gray-500 mt-4">
-              {currentIndex + 1} of {unacknowledged.length} warnings
+              {currentIndex + 1} of {violations.length} warnings
             </p>
           )}
         </motion.div>

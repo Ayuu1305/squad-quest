@@ -9,7 +9,7 @@ export default defineConfig({
 
     // Optional – enable only when you need it
     visualizer({
-      open: false, // ✅ Good call: Don't pop up browser on every build
+      open: true, // ✅ Auto-open stats.html after build
       filename: "stats.html",
       gzipSize: true,
       brotliSize: true,
@@ -23,11 +23,7 @@ export default defineConfig({
         enabled: true,
       },
 
-      includeAssets: [
-        "favicon.ico",
-        "apple-touch-icon.png",
-        "mask-icon.svg",
-      ],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
 
       manifest: {
         name: "Squad Quest",
@@ -70,6 +66,13 @@ export default defineConfig({
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-ui": ["framer-motion", "lucide-react"],
+          "vendor-firebase": [
+            "firebase/app",
+            "firebase/auth",
+            "firebase/firestore",
+            "firebase/functions",
+          ],
+          "vendor-gsap": ["gsap", "lenis"],
         },
       },
     },

@@ -5,6 +5,8 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger"; // ✅ Import ScrollTrigger for cleanup
 import TacticalErrorModal from "../components/TacticalErrorModal";
 import SecretCodeModal from "../components/SecretCodeModal";
+import TemporaryBanBanner from "../components/TemporaryBanBanner"; // ✅ Ban banner
+import { isBanned } from "../utils/banCheck"; // ✅ Ban check utility
 import { Link, useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
@@ -45,6 +47,11 @@ const QuestBoard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isActive: activeShowdown, nextReset } = useShowdown();
+
+  // ✅ Check if user is temporarily banned
+  const banStatus = user ? isBanned(user) : { banned: false };
+  const isTemporarilyBanned =
+    banStatus.banned && banStatus.type === "temporary";
 
   // ✅ Hybrid Pagination State
   const [realtimeQuests, setRealtimeQuests] = useState([]);
@@ -90,7 +97,7 @@ const QuestBoard = () => {
   useEffect(() => {
     const id = setTimeout(() => {
       setEnableRealtime(true);
-    }, 1500);
+    }, 300);
 
     return () => clearTimeout(id);
   }, []);
@@ -393,6 +400,9 @@ const QuestBoard = () => {
         </AnimatePresence>
       </div>
 
+      {/* ✅ TEMPORARY BAN BANNER - Shows for 7-day banned users */}
+      {isTemporarilyBanned && <TemporaryBanBanner banInfo={banStatus} />}
+
       <div className="relative z-10 p-4 pt-8 container mx-auto max-w-7xl">
         <div className="grid grid-cols-1 gap-8">
           {/* Main Content Column - FULL WIDTH */}
@@ -574,11 +584,23 @@ const QuestBoard = () => {
                         transition: { duration: 0.2 },
                       }}
                     >
-                      <Link to={`/quest/${quest.id}`} className="block">
-                        <Suspense fallback={<QuestCardSkeleton />}>
-                          <QuestCard quest={quest} hub={null} />
-                        </Suspense>
-                      </Link>
+                      {isTemporarilyBanned ? (
+                        <div className="block cursor-not-allowed">
+                          <Suspense fallback={<QuestCardSkeleton />}>
+                            <QuestCard
+                              quest={quest}
+                              hub={null}
+                              isBanned={true}
+                            />
+                          </Suspense>
+                        </div>
+                      ) : (
+                        <Link to={`/quest/${quest.id}`} className="block">
+                          <Suspense fallback={<QuestCardSkeleton />}>
+                            <QuestCard quest={quest} hub={null} />
+                          </Suspense>
+                        </Link>
+                      )}
                     </motion.div>
                   ))
                 ) : (
@@ -632,27 +654,45 @@ const QuestBoard = () => {
           </Suspense>
         )}
 
-        {/* Floating Action Button - Optimized for Mobile Touch */}
         {/* Floating Action Button - Nuclear Launch Style */}
         <div className="fixed bottom-28 right-6 z-50 sm:bottom-10 sm:right-10 flex flex-col items-center gap-2">
           <div className="absolute inset-0 bg-black/50 blur-xl rounded-full scale-110 pointer-events-none" />{" "}
           {/* Shadow Backdrop */}
-          <Link
-            to="/create-quest"
-            className="relative flex items-center gap-3 bg-gradient-to-br from-fuchsia-600 to-purple-800 rounded-full px-6 py-3 shadow-[0_0_30px_rgba(192,38,211,0.5)] transform transition-transform hover:scale-105 active:scale-95 border-2 border-white/20 group"
-          >
-            {/* Ripple Effect */}
-            <div className="absolute inset-0 rounded-full border border-fuchsia-500/50 animate-ping opacity-75" />
-            <div className="absolute -inset-3 rounded-full bg-fuchsia-500/20 blur-xl animate-pulse" />
+          {isTemporarilyBanned ? (
+            /* Banned: Show disabled button with tooltip */
+            <div className="relative group">
+              <div className="relative flex items-center gap-3 bg-gradient-to-br from-gray-600 to-gray-800 rounded-full px-6 py-3 shadow-[0_0_30px_rgba(100,100,100,0.3)] border-2 border-white/10 cursor-not-allowed opacity-50">
+                <Plus
+                  className="w-6 h-6 text-gray-400 relative z-10"
+                  strokeWidth={3}
+                />
+                <span className="text-xs font-black uppercase tracking-widest text-gray-400 relative z-10 whitespace-nowrap">
+                  Post Mission
+                </span>
+              </div>
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                🚫 Banned users cannot create quests
+              </div>
+            </div>
+          ) : (
+            <Link
+              to="/create-quest"
+              className="relative flex items-center gap-3 bg-gradient-to-br from-fuchsia-600 to-purple-800 rounded-full px-6 py-3 shadow-[0_0_30px_rgba(192,38,211,0.5)] transform transition-transform hover:scale-105 active:scale-95 border-2 border-white/20 group"
+            >
+              {/* Ripple Effect */}
+              <div className="absolute inset-0 rounded-full border border-fuchsia-500/50 animate-ping opacity-75" />
+              <div className="absolute -inset-3 rounded-full bg-fuchsia-500/20 blur-xl animate-pulse" />
 
-            <Plus
-              className="w-6 h-6 text-white relative z-10 drop-shadow-md"
-              strokeWidth={3}
-            />
-            <span className="text-xs font-black uppercase tracking-widest text-white relative z-10 drop-shadow-md whitespace-nowrap">
-              Post Mission
-            </span>
-          </Link>
+              <Plus
+                className="w-6 h-6 text-white relative z-10 drop-shadow-md"
+                strokeWidth={3}
+              />
+              <span className="text-xs font-black uppercase tracking-widest text-white relative z-10 drop-shadow-md whitespace-nowrap">
+                Post Mission
+              </span>
+            </Link>
+          )}
         </div>
 
         <TacticalErrorModal
@@ -667,6 +707,16 @@ const QuestBoard = () => {
           isOpen={secretCodeModal.isOpen}
           onClose={() => setSecretCodeModal({ isOpen: false, quest: null })}
           onSubmit={async (secretCode) => {
+            // 🚫 BLOCK BANNED USERS from joining private quests
+            if (isTemporarilyBanned || banStatus.banned) {
+              setErrorModal({
+                isOpen: true,
+                message: "🚫 Banned users cannot join quests",
+              });
+              setSecretCodeModal({ isOpen: false, quest: null });
+              return;
+            }
+
             if (!secretCodeModal.quest || !user?.uid) return;
 
             setIsJoining(true);

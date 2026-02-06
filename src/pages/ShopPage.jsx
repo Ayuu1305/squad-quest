@@ -11,7 +11,7 @@ import SEO from "../components/SEO"; // Added SEO Import
  * Tabs: Buy Items | My Rewards
  * Data Source: Firestore shop_items collection
  */
-const ShopPage = () => {
+const ShopPage = ({ isBanned = false }) => {
   const { user } = useAuth();
   const [processingItem, setProcessingItem] = useState(null);
   const [activeTab, setActiveTab] = useState("buy"); // 'buy' | 'rewards'
@@ -181,6 +181,19 @@ const ShopPage = () => {
   };
 
   const handleBuy = async (itemId) => {
+    // 🚫 BLOCK BANNED USERS
+    if (isBanned) {
+      toast.error("Banned users cannot purchase items", {
+        icon: "🚫",
+        style: {
+          background: "#1a1a2e",
+          color: "#f97316",
+          border: "1px solid rgba(249, 115, 22, 0.3)",
+        },
+      });
+      return;
+    }
+
     if (!user?.uid) {
       toast.error("You must be logged in to purchase items");
       return;

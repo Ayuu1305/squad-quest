@@ -5,8 +5,9 @@ import { loadFirebase } from "../firebase.lazy.js";
  * Use the UID from Firebase Authentication.
  * SECURITY UPDATE: Writes ONLY to 'users' collection (safe fields).
  * Stats are now server-managed or read-only default.
+ * TRUST UPDATE: Tracks authProvider for trust scoring.
  */
-export const onboardHero = async (user) => {
+export const onboardHero = async (user, provider = "email") => {
   if (!user || !user.uid) {
     console.error("onboardHero aborted: Invalid user object", user);
     return;
@@ -29,6 +30,10 @@ export const onboardHero = async (user) => {
           user.photoURL ||
           `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
         city: "Ahmedabad", // Default
+
+        // 🚨 TRUST SCORING: Track auth method
+        authProvider: provider, // "email" or "google.com"
+        emailVerified: user.emailVerified || false,
 
         // ✅ Stats for Leaderboard & Indexing
         xp: 0,
@@ -112,8 +117,8 @@ export const signUpWithEmail = async (email, password, name) => {
     );
     // Update name in Firebase Auth
     await updateProfile(userCredential.user, { displayName: name });
-    // Pass the actual user object
-    await onboardHero(userCredential.user);
+    // Pass the actual user object with provider
+    await onboardHero(userCredential.user, "email");
 
     // 3. Send Verification Email
     await sendEmailVerification(userCredential.user);
@@ -153,7 +158,7 @@ export const signInWithGoogle = async () => {
   const { auth, googleProvider, signInWithPopup } = await loadFirebase();
 
   const result = await signInWithPopup(auth, googleProvider);
-  await onboardHero(result.user);
+  await onboardHero(result.user, "google.com");
   return result.user;
 };
 

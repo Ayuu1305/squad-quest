@@ -16,12 +16,26 @@ const GenderSelectionModal = () => {
     setError(null);
 
     try {
+      // Capitalize gender to match database format (Male/Female)
+      const capitalizedGender =
+        selectedGender.charAt(0).toUpperCase() + selectedGender.slice(1);
+
       await updateHeroProfile(user.uid, {
-        gender: selectedGender,
+        gender: capitalizedGender,
       });
       // The auth context listener should automatically update the user state, closing this modal
     } catch (err) {
       console.error("Failed to update gender:", err);
+
+      // 🛡️ FAIL-SAFE: If permission denied, it might already be set!
+      if (err.code === 'permission-denied') {
+         // Force a page reload or close the modal because the DB likely has the data locked
+         console.warn("Gender might already be set. Closing modal.");
+         window.location.reload();
+         return;
+         // You can optionally force a window.location.reload() here to sync the user
+      }
+
       setError("Failed to save selection. Please try again.");
     } finally {
       setLoading(false);

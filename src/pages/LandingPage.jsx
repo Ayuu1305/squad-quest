@@ -39,11 +39,7 @@ gsap.registerPlugin(ScrollTrigger);
 // ============================================
 // 3D BACKGROUND COMPONENT
 // ============================================
-const Landing3DScene = lazy(
-  () => import("./Landing3DScene"),
-);
-
-
+const Landing3DScene = lazy(() => import("./Landing3DScene"));
 
 // ============================================
 // UI SUB-COMPONENTS
@@ -417,7 +413,6 @@ function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [show3D, setShow3D] = useState(false);
 
-
   // ✅ ADD THIS EFFECT
   useEffect(() => {
     if (!loading && user) {
@@ -426,12 +421,40 @@ function LandingPage() {
     }
   }, [user, navigate]);
 
+  // ⚡ OPTIMIZED: Load 3D on scroll, interaction, or after idle time
+  useEffect(() => {
+    let loaded = false;
 
-useEffect(() => {
-  const id = setTimeout(() => setShow3D(true), 1200);
-  return () => clearTimeout(id);
-}, []);
+    const load3D = () => {
+      if (!loaded) {
+        setShow3D(true);
+        loaded = true;
+      }
+    };
 
+    // Option 1: Load on any scroll
+    const handleScroll = () => load3D();
+
+    // Option 2: Load on any user interaction
+    const handleInteraction = () => load3D();
+
+    // Option 3: Load after 2 seconds of idle (fallback)
+    const idleTimer = setTimeout(() => load3D(), 2000);
+
+    // Listen for user activity
+    window.addEventListener("scroll", handleScroll, { once: true });
+    window.addEventListener("mousemove", handleInteraction, { once: true });
+    window.addEventListener("touchstart", handleInteraction, { once: true });
+    window.addEventListener("click", handleInteraction, { once: true });
+
+    return () => {
+      clearTimeout(idleTimer);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("mousemove", handleInteraction);
+      window.removeEventListener("touchstart", handleInteraction);
+      window.removeEventListener("click", handleInteraction);
+    };
+  }, []);
 
   useEffect(() => {
     // Initialize Lenis
@@ -514,10 +537,9 @@ useEffect(() => {
                   text="CONQUER "
                   delay={0.3}
                   className="block text-white"
-                /> 
+                />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#a855f7] via-[#d8b4fe] to-[#06b6d4]">
-                   
-                   EARN TOGETHER.
+                  EARN TOGETHER.
                 </span>
               </h1>
 

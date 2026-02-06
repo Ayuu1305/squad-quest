@@ -297,6 +297,18 @@ const HeroCardGenerator = ({
                 <h1 className="text-3xl font-black text-white tracking-widest uppercase font-['Orbitron'] drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] truncate">
                   {user?.name || "OPERATIVE"}
                 </h1>
+
+                {/* 🚨 NEW: Verified Badge on ID Card (Visible) */}
+                {user?.verifiedGender && (
+                  <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-transparent via-purple-900/40 to-transparent px-4 py-1.5 rounded-lg border border-purple-500/20">
+                    <span
+                      className={`text-xs font-bold tracking-wider uppercase ${user.verifiedGender === "Female" ? "text-pink-400" : "text-blue-400"}`}
+                    >
+                      ✓ Verified {user.verifiedGender}
+                    </span>
+                  </div>
+                )}
+
                 <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-900/0 via-purple-900/60 to-purple-900/0 px-8 py-1">
                   <Award
                     className={`w-4 h-4 ${currentTier.name === "Gold" ? "text-yellow-400" : "text-purple-400"}`}
@@ -526,6 +538,18 @@ const HeroCardGenerator = ({
               <h1 className="text-3xl font-black text-white tracking-widest uppercase font-['Orbitron'] drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] truncate">
                 {user?.name || "OPERATIVE"}
               </h1>
+
+              {/* 🚨 NEW: Verified Badge on ID Card (Export) */}
+              {user?.verifiedGender && (
+                <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-transparent via-purple-900/40 to-transparent px-4 py-1.5 rounded-lg border border-purple-500/20">
+                  <span
+                    className={`text-xs font-bold tracking-wider uppercase ${user.verifiedGender === "Female" ? "text-pink-400" : "text-blue-400"}`}
+                  >
+                    ✓ Verified {user.verifiedGender}
+                  </span>
+                </div>
+              )}
+
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-900/0 via-purple-900/60 to-purple-900/0 px-8 py-1">
                 <Award
                   className={`w-4 h-4 ${currentTier.name === "Gold" ? "text-yellow-400" : "text-purple-400"}`}

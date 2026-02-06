@@ -35,14 +35,28 @@ service cloud.firestore {
 
       // 🔄 SELF-HEALING SYNC: Allow users to update their own stats from AuthContext
       // This enables the "xp sync" feature while still blocking critical fields
-      allow update: if isOwner(userId)
+     allow update: if isOwner(userId)
         && notUpdating([
-          // 'badges',          // 🟢 ENABLED: Commented out so users CAN sync badges
-          'daily_streak',    // ❌ Backend-only (managed by bounty logic)
-          'last_claimed_at', // ❌ Backend-only (bounty timestamp)
-          'roles',           // ❌ Security: Prevent privilege escalation
-          'isAdmin'          // ❌ Security: Prevent users from making themselves Admin
-        ]);
+          'daily_streak',
+          'last_claimed_at',
+          'roles',
+          'isAdmin'
+        ])
+        // 🚨 CRITICAL WOMEN SAFETY: Block gender changes after initial set
+        && (
+          // Allow if we are NOT touching the gender field
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['gender'])
+          || 
+          // Allow setting gender IF:
+          (
+            // 1. It does not exist yet OR is null (Safe Check)
+            resource.data.get('gender', null) == null
+            // 2. OR it is currently an empty string
+            || resource.data.get('gender', "") == ""
+            // 3. OR they are sending the exact same value (Idempotency)
+            || resource.data.get('gender', "") == request.resource.data.gender
+          )
+        );
 
       allow delete: if false;
 
@@ -100,11 +114,30 @@ service cloud.firestore {
 
       // --- SUBCOLLECTIONS (Keep these exactly as they were) ---
 
-      // ✅ MEMBERS SUBCOLLECTION
+     // ✅ MEMBERS SUBCOLLECTION
       match /members/{memberId} {
+        // Everyone can see who is in the squad
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated() && request.auth.uid == memberId;
-        allow delete: if isAuthenticated() && request.auth.uid == memberId;
+        
+        // 🛡️ FIX: Update this 'allow create' rule
+        allow create: if isAuthenticated() && (
+          // 1. The user is joining themselves (Standard Open Join)
+          request.auth.uid == memberId || 
+          
+          // 2. OR The QUEST HOST is adding the user (Approval System)
+          // The host needs permission to write to the user's member document!
+          isQuestHost(questId) 
+        );
+
+        // 🛡️ FIX: Update this 'allow delete' rule
+        allow delete: if isAuthenticated() && (
+          // 1. The user is leaving (Standard Leave)
+          request.auth.uid == memberId || 
+          
+          // 2. OR The Host is kicking them/removing them
+          isQuestHost(questId)
+        );
+
         allow update: if false;
       }
 
@@ -188,10 +221,38 @@ match /feedback/{feedbackId} {
   allow update, delete: if false;
 }
 
+    // 🚨 COLLECTION GROUP: Verifications (for verified badge checking)
+    // Allow users to query their OWN verifications across all quests
+    match /{path=**}/verifications/{verificationId} {
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
     
     // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // ✅ JOIN REQUESTS (Host Approval System)
+    match /joinRequests/{requestId} {
+      // Users can create requests for themselves
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid;
+      
+      // Users can read their own requests; hosts can read requests for their quests
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.hostId == request.auth.uid
+      );
+      
+      // Only hosts can update (approve/deny) requests
+      allow update: if isAuthenticated() 
+        && resource.data.hostId == request.auth.uid
+        && resource.data.status == "pending"; // Can only update pending requests
+      
+      // Users can delete their own pending requests
+      allow delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == "pending";
     }
   }
 }

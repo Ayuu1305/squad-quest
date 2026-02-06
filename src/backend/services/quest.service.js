@@ -299,7 +299,74 @@ export const saveQuestVerification = async (questId, uid, payload) => {
     updatedAt: serverTimestamp(),
   });
 
+  // 🚨 NEW: Auto-grant verified badge after 3 photo verifications
+  if (payload?.photoURL) {
+    await checkAndGrantVerifiedBadge(uid);
+  }
+
   return true;
+};
+
+// 🎯 Auto-Grant Verified Badge After 3 Photo Verifications (EXPORTED for retroactive check)
+export const checkAndGrantVerifiedBadge = async (userId) => {
+  try {
+    const {
+      db,
+      collectionGroup, // 🚨 FIX: Added missing import
+      query,
+      where,
+      getDocs,
+      doc,
+      getDoc,
+      updateDoc,
+      serverTimestamp,
+    } = await loadFirebase();
+
+    // Count all verifications with photos for this user across all quests
+    const verificationsQuery = query(
+      collectionGroup(db, "verifications"),
+      where("uid", "==", userId),
+      where("photoURL", "!=", ""),
+    );
+
+    const snapshot = await getDocs(verificationsQuery);
+    const photoVerifCount = snapshot.size;
+
+    console.log(`📸 User ${userId} has ${photoVerifCount} photo verifications`);
+
+    // Grant verified badge after 3+ photo verifications
+    if (photoVerifCount >= 3) {
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+
+        // Only grant once (check if already verified)
+        if (!userData.verifiedGender && userData.gender) {
+          await updateDoc(userRef, {
+            verifiedGender: userData.gender, // "Male" or "Female"
+            verifiedAt: serverTimestamp(),
+          });
+
+          console.log(
+            `✅ User ${userId} auto-verified as ${userData.gender} (${photoVerifCount} photos)`,
+          );
+
+          // Import toast dynamically to avoid circular dependency
+          import("react-hot-toast").then(({ default: toast }) => {
+            toast.success(
+              `🎉 You earned the Verified ${userData.gender} badge!`,
+              { duration: 5000 },
+            );
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Auto-verification check failed:", error);
+    // Don't throw - this is a bonus feature, shouldn't block quest completion
+  }
 };
 
 // ✅ Optimized for Pagination + Performance (SAFE)
@@ -441,23 +508,24 @@ export const submitVibeChecks = async (
   return data;
 };
 
-// ✅ NEW: Delete Quest (Backend API - Host only)
+// ✅ NEW: Delete Quest (Client-Side - Direct & Secure)
+// Uses Firestore Security Rules we just deployed (Host Only)
 export const deleteQuestAPI = async (questId) => {
-  const token = await getAuthToken();
-  const response = await fetch(`${API_URL}/quest/${questId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to delete quest");
+  try {
+    const { db, doc, deleteDoc } = await loadFirebase();
+    
+    // Direct delete from Firestore
+    // This works instantly and matches your new Security Rules
+    await deleteDoc(doc(db, "quests", questId));
+    
+    console.log("✅ Quest deleted successfully");
+    return true;
+  } catch (error) {
+    console.error("❌ Delete failed:", error);
+    throw error;
   }
-  return data;
 };
+
 
 // ✅ NEW: Edit Quest (Backend API - Host only)
 export const editQuestAPI = async (questId, updates) => {

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Lock, // ✅ Added missing import
@@ -25,11 +25,17 @@ import {
   deleteQuestAPI,
   editQuestAPI,
 } from "../backend/services/quest.service";
+import {
+  requestJoinApproval, // 🚨 NEW: Request approval from host
+  getUserRequestStatus, // 🚨 NEW: Check user's request status
+} from "../backend/services/joinRequest.service";
 import { collection, onSnapshot, query, where, doc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
+import { canJoinWomenOnlyQuest } from "../utils/trustScore"; // 🚨 NEW: For safety gates
 import TacticalErrorModal from "../components/TacticalErrorModal";
 import DeleteQuestModal from "../components/DeleteQuestModal";
 import EditQuestModal from "../components/EditQuestModal";
+import PendingRequests from "../components/PendingRequests"; // 🚨 NEW: Host approval UI
 import toast from "react-hot-toast";
 
 const QuestDetails = () => {
@@ -52,6 +58,9 @@ const QuestDetails = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // 🚨 NEW: Join request state
+  const [requestStatus, setRequestStatus] = useState(null); // "pending" | "approved" | "denied" | null
+
   const [isMember, setIsMember] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
@@ -61,28 +70,102 @@ const QuestDetails = () => {
   useEffect(() => {
     if (!user || !id) return;
 
-    // Check membership and verification status source of truth
-    const checkStatus = async () => {
-      const member = await isUserQuestMember(id, user.uid);
+    // Check if user is a member of this quest
+    isUserQuestMember(id, user.uid).then((member) => {
       setIsMember(member);
+    });
+  }, [id, user?.uid]);
 
-      const verified = await getUserVerificationStatus(id, user.uid);
+  // Check if user is verified for this quest
+  useEffect(() => {
+    if (!user?.uid || !id) return;
+    getUserVerificationStatus(id, user.uid).then((verified) => {
       setIsVerified(verified);
-    };
+    });
+  }, [user?.uid, id]);
 
-    checkStatus();
-  }, [id, user]);
 
+  // ✅ NEW: Sync 'isMember' with Real-Time Quest Data
+  useEffect(() => {
+    // Safety check: ensure quest and members array exist
+    if (quest?.members && user?.uid) {
+       // Check if our ID is in the live members array
+       const isActuallyMember = quest.members.includes(user.uid);
+       
+       // If Firestore says we are a member, but State says we aren't... FIX IT.
+       if (isActuallyMember && !isMember) {
+           console.log("🔄 Syncing Membership Status from DB...");
+           setIsMember(true);
+       }
+    }
+  }, [quest, user?.uid, isMember]);
+
+  // 🚨 NEW: Smart Real-time Listener (Fixed)
+  const lastStatusRef = useRef(null); // 👈 1. Track history
+
+  // 🚨 NEW: Check user's join request status on load
+  useEffect(() => {
+    if (!user?.uid || !id || isMember) return;
+    
+
+    // 2. Query ONLY my request for this quest
+    const requestsRef = collection(db, "joinRequests");
+    const q = query(
+      requestsRef, 
+      where("questId", "==", id), 
+      where("userId", "==", user.uid)
+    );
+
+    console.log("👂 Listening for approval...");
+
+    // 3. Open the "Socket"
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      // If request doesn't exist yet, do nothing
+      if (snapshot.empty) return;
+
+      const reqData = snapshot.docs[0].data();
+      const newStatus = reqData.status;
+      setRequestStatus(newStatus);
+      
+      // ✅ THE FIX: Only celebrate if we transitioned from PENDING -> APPROVED
+      // This prevents the "Double Toast" and "Ghost Member" bug on reload.
+      if (newStatus === 'approved' && lastStatusRef.current === 'pending') {
+        console.log("🎉 Just Approved! Auto-joining...");
+        setIsMember(true); 
+        toast.success("Request Accepted! Welcome.");
+        unsubscribe(); 
+      }
+
+      // Update history for next time
+      lastStatusRef.current = newStatus;
+    });
+
+
+     return () => unsubscribe();
+  }, [user?.uid, id, isMember]);
+
+  // Sub to quest data in real-time
   useEffect(() => {
     if (!id) return;
 
     // 1. Subscribe to Quest Document
+   // 1. Subscribe to Quest Document
     let unsubHub = null;
     const unsubscribeQuest = subscribeToQuest(id, (updatedQuest) => {
+      
+      // 🛡️ CRASH GUARD: If the quest was just deleted...
+      if (!updatedQuest) {
+        console.log("⚠️ Quest deleted. Redirecting to board...");
+        setLoading(false);
+        navigate("/board"); // Redirect safely instead of crashing
+        return; 
+      }
+
+      // ✅ Quest exists, proceed as normal
       setQuest(updatedQuest);
       setLoading(false);
 
-      // Fetch corresponding hub
+      // Fetch corresponding hub (Safe now because we checked updatedQuest exists)
       if (updatedQuest.hubId) {
         if (typeof unsubHub === "function") unsubHub();
         unsubHub = onSnapshot(
@@ -97,21 +180,16 @@ const QuestDetails = () => {
           },
         );
       } else if (updatedQuest.hubName) {
-        if (typeof unsubHub === "function") unsubHub();
-        const hubsRef = collection(db, "hubs");
-        const q = query(hubsRef, where("name", "==", updatedQuest.hubName));
-        unsubHub = onSnapshot(
-          q,
-          (snapshot) => {
+        // ... (your existing hubName logic is fine) ...
+         if (typeof unsubHub === "function") unsubHub();
+         const hubsRef = collection(db, "hubs");
+         const q = query(hubsRef, where("name", "==", updatedQuest.hubName));
+         unsubHub = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-              const h = snapshot.docs[0];
-              setHub({ id: h.id, ...h.data() });
+               const h = snapshot.docs[0];
+               setHub({ id: h.id, ...h.data() });
             }
-          },
-          (error) => {
-            console.warn("QuestDetails: Hub query error:", error.code);
-          },
-        );
+         });
       }
     });
 
@@ -138,16 +216,60 @@ const QuestDetails = () => {
     };
   }, [id]);
 
-  const handleJoin = () => {
-    // Gender Validation
-    if (quest.genderPreference && quest.genderPreference !== "everyone") {
-      if (user?.gender !== quest.genderPreference) {
+  const handleJoin = async () => {
+    // 🚨 WOMEN-ONLY QUEST SAFETY GATES (Phase-2)
+    if (quest.genderPreference && quest.genderPreference === "female") {
+      // Check if user is female first
+      if (user?.gender !== "Female") {
         setErrorModal({
           isOpen: true,
           message:
-            quest.genderPreference === "female"
-              ? "This mission is reserved for Female Heroes. Check the board for open missions!"
-              : "This mission is reserved for Male Heroes. Check the board for open missions!",
+            "This mission is reserved for Female Heroes. Check the board for open missions!",
+        });
+        return;
+      }
+
+      // Check behavioral gates (verified badge, 3+ quests, etc.)
+      const gateResult = canJoinWomenOnlyQuest(user);
+
+      if (!gateResult.allowed) {
+        if (gateResult.requireApproval) {
+          // 🚨 NEW: Send join request to host
+          try {
+            await requestJoinApproval(quest.id, quest, user);
+            setRequestStatus("pending");
+            toast.success(
+              "🔔 Request sent to host! You'll be notified when accepted.",
+              {
+                duration: 5000,
+              },
+            );
+          } catch (error) {
+            console.error("Failed to send join request:", error);
+            toast.error("Failed to send request. Try again.");
+          }
+          return;
+        } else {
+          // Blocked entirely (shouldn't happen often)
+          setErrorModal({
+            isOpen: true,
+            message: gateResult.reason,
+          });
+          return;
+        }
+      }
+
+      // Gates passed - can join!
+      toast.success(gateResult.reason, { duration: 2000 });
+    }
+
+    // Gender Validation for male-only quests
+    if (quest.genderPreference && quest.genderPreference === "male") {
+      if (user?.gender !== "Male") {
+        setErrorModal({
+          isOpen: true,
+          message:
+            "This mission is reserved for Male Heroes. Check the board for open missions!",
         });
         return;
       }
@@ -260,6 +382,24 @@ const QuestDetails = () => {
         </div>
 
         <div className="px-6 space-y-8 mt-6">
+          {/* Quest Details */}
+          <section>
+            <div className="flex items-center gap-2 mb-3 text-purple-400">
+              <ShieldCheck className="w-4 h-4" />
+              <h2 className="text-xs font-black uppercase tracking-widest">
+                Quest Details
+              </h2>
+            </div>
+            <div className="p-5 glassmorphism-dark rounded-2xl space-y-3 border border-white/10">
+              <p className="text-gray-200 text-sm leading-relaxed">
+                {quest.description || "No description provided."}
+              </p>
+            </div>
+          </section>
+
+          {/* 🚨 NEW: Pending Join Requests (Host Only) */}
+          {isHost && <PendingRequests questId={quest.id} hostId={user?.uid} />}
+
           {/* Mission Objective */}
           <section>
             <div className="flex items-center gap-2 mb-3 text-neon-purple">
@@ -441,7 +581,10 @@ const QuestDetails = () => {
         {/* Fixed Action Bar */}
         <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-dark-bg via-dark-bg/90 to-transparent z-50">
           <button
-            disabled={!isMember && quest.status !== "open"}
+            disabled={
+              !isMember &&
+              (quest.status !== "open" || requestStatus === "pending")
+            }
             onClick={
               isMember
                 ? isStarted && !isVerified
@@ -450,21 +593,27 @@ const QuestDetails = () => {
                 : handleJoin
             }
             className={`w-full py-5 font-black italic tracking-[0.2em] text-lg uppercase flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(168,85,247,0.4)] group transition-all ${
-              !isMember && quest.status !== "open"
+              !isMember &&
+              (quest.status !== "open" || requestStatus === "pending")
                 ? "bg-gray-800 text-gray-500 border border-white/5 cursor-not-allowed opacity-50 shadow-none"
                 : "btn-primary"
             }`}
           >
             {!isMember
-              ? quest.status === "open"
-                ? "Join Squad"
-                : "Mission Active"
+              ? requestStatus === "pending"
+                ? "⏳ Waiting for Approval"
+                : requestStatus === "denied"
+                  ? "Request Again"
+                  : quest.status === "open"
+                    ? "Join Squad"
+                    : "Mission Active"
               : isStarted && !isVerified
                 ? "Verify Presence"
                 : "Enter Lobby"}
             <ChevronRight
               className={`w-5 h-5 transition-transform ${
-                isMember || quest.status === "open"
+                isMember ||
+                (quest.status === "open" && requestStatus !== "pending")
                   ? "group-hover:translate-x-1"
                   : ""
               }`}

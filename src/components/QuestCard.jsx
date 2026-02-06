@@ -6,19 +6,20 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useAuth } from "../context/AuthContext";
 
-const QuestCard = ({ quest, hub, isMyMission = false }) => {
+const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
   const { user } = useAuth();
-  
-  // ❌ REMOVED: const [members, setMembers] = useState([]); 
+
+  // ❌ REMOVED: const [members, setMembers] = useState([]);
   // ❌ REMOVED: The useEffect that fetched members (The Battery Drainer)
 
   // ✅ NEW: Read directly from the prop (Instant & Free)
   // If the 'members' array exists on the quest object, use it. Otherwise empty array.
   const displayMembers = quest.members || [];
-  
+
   // ✅ NEW: Calculate count safely (uses 'membersCount' number if available, else array length)
- const displayCount = displayMembers.length > 0 ? displayMembers.length : (quest.membersCount || 0);
-  
+  const displayCount =
+    displayMembers.length > 0 ? displayMembers.length : quest.membersCount || 0;
+
   const maxPlayers = quest.maxPlayers || 5;
   const cardRef = useRef(null);
   const titleRef = useRef(null);
@@ -91,48 +92,44 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
   const userLevel = user?.level || 1;
   const isLocked = userLevel < requiredLevel;
 
- useGSAP(() => {
-  const card = cardRef.current;
-  if (!card) return;
+  useGSAP(() => {
+    const card = cardRef.current;
+    if (!card) return;
 
-  const hoverCtx = gsap.context(() => {
-    card.addEventListener("mouseenter", () => {
-      gsap.to(titleRef.current, {
-        skewX: -10,
-        duration: 0.1,
-        yoyo: true,
-        repeat: 3,
-        onComplete: () => gsap.set(titleRef.current, { skewX: 0 }),
+    const hoverCtx = gsap.context(() => {
+      card.addEventListener("mouseenter", () => {
+        gsap.to(titleRef.current, {
+          skewX: -10,
+          duration: 0.1,
+          yoyo: true,
+          repeat: 3,
+          onComplete: () => gsap.set(titleRef.current, { skewX: 0 }),
+        });
+        gsap.to(glowRef.current, { opacity: 0.6, duration: 0.3 });
       });
-      gsap.to(glowRef.current, { opacity: 0.6, duration: 0.3 });
+
+      card.addEventListener("mouseleave", () => {
+        gsap.to(glowRef.current, { opacity: 0, duration: 0.3 });
+      });
     });
 
-    card.addEventListener("mouseleave", () => {
-      gsap.to(glowRef.current, { opacity: 0, duration: 0.3 });
-    });
-  });
-
-  return () => hoverCtx.revert();
-}, []); // ✅ EMPTY dependency array
-
-
-  
+    return () => hoverCtx.revert();
+  }, []); // ✅ EMPTY dependency array
 
   const hotZoneActive = useMemo(() => {
-  const capacityRatio = displayCount / maxPlayers;
-  if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
+    const capacityRatio = displayCount / maxPlayers;
+    if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
 
-  if (quest.startTime) {
-    const startTime = quest.startTime.toDate
-      ? quest.startTime.toDate()
-      : new Date(quest.startTime);
-    const diffMins = (startTime - Date.now()) / 60000;
-    if (diffMins <= 30 && diffMins > -120) return true;
-  }
+    if (quest.startTime) {
+      const startTime = quest.startTime.toDate
+        ? quest.startTime.toDate()
+        : new Date(quest.startTime);
+      const diffMins = (startTime - Date.now()) / 60000;
+      if (diffMins <= 30 && diffMins > -120) return true;
+    }
 
-  return false;
-}, [displayCount, maxPlayers, quest.startTime]);
-
+    return false;
+  }, [displayCount, maxPlayers, quest.startTime]);
 
   return (
     <motion.div
@@ -359,6 +356,20 @@ const QuestCard = ({ quest, hub, isMyMission = false }) => {
           </div>
         </div>
       </div>
+
+      {/* 🚫 Ban Overlay - Blocks interaction */}
+      {isBanned && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-[24px] z-50 flex items-center justify-center">
+          <div className="text-center px-4">
+            <p className="text-orange-400 font-black text-lg mb-1">
+              🚫 QUEST BLOCKED
+            </p>
+            <p className="text-gray-400 text-sm">
+              Banned users cannot join quests
+            </p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

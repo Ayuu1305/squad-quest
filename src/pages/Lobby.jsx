@@ -13,6 +13,7 @@ import {
 import ChatInterface from "../components/ChatInterface";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
+import { isBanned } from "../utils/banCheck"; // Import ban check
 import {
   subscribeToQuest,
   updateQuestStatus,
@@ -28,6 +29,10 @@ const Lobby = () => {
   const navigate = useNavigate();
   const { leaveQuest } = useGame();
   const { user } = useAuth();
+
+  // 🚫 Check if user is banned
+  const banStatus = user ? isBanned(user) : { banned: false };
+  const isUserBanned = banStatus.banned;
 
   const [liveQuest, setLiveQuest] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
@@ -276,7 +281,8 @@ const Lobby = () => {
             user={user}
             isReadOnly={
               liveQuest.status === "completed" ||
-              liveQuest.completedBy?.includes(user?.uid)
+              liveQuest.completedBy?.includes(user?.uid) ||
+              isUserBanned // 🚫 Disable chat for banned users
             }
             onLeave={async () => {
               try {
