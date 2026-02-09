@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, MapPin, Star, Tag } from "lucide-react";
+import { X, Search, MapPin, Star, Tag, User, Phone } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import { useGame } from "../context/GameContext";
+import { getVendorByHubId } from "../backend/services/vendor.service"; // ✅ VENDOR SERVICE
 
 const HubSelectionModal = ({ isOpen, onClose, onSelect }) => {
   const { city } = useGame();
   const [hubs, setHubs] = useState([]);
+  const [vendorData, setVendorData] = useState({}); // ✅ Map: hubId -> vendor details
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHub, setSelectedHub] = useState(null);
@@ -36,6 +38,23 @@ const HubSelectionModal = ({ isOpen, onClose, onSelect }) => {
         }));
 
         setHubs(hubsList);
+
+        // ✅ NEW: Fetch vendor details for each hub
+        console.log("🔍 Fetching vendor details for", hubsList.length, "hubs");
+        const vendorPromises = hubsList.map(async (hub) => {
+          try {
+            const vendor = await getVendorByHubId(hub.id);
+            return [hub.id, vendor]; // Return [key, value] pair
+          } catch (error) {
+            console.warn(`Failed to fetch vendor for hub ${hub.id}:`, error);
+            return [hub.id, null]; // Return null if fetch fails
+          }
+        });
+
+        const vendorEntries = await Promise.all(vendorPromises);
+        const vendorMap = Object.fromEntries(vendorEntries);
+        setVendorData(vendorMap);
+        console.log("✅ Loaded vendor data for hubs:", vendorMap);
       } catch (error) {
         console.error("Failed to fetch hubs:", error);
       } finally {
@@ -229,7 +248,7 @@ const HubSelectionModal = ({ isOpen, onClose, onSelect }) => {
                     </div>
 
                     {/* Hub Info */}
-                    <div className="p-4">
+                    <div className="p-4 space-y-2">
                       <h3 className="font-bold text-white text-sm mb-1 line-clamp-1">
                         {hub.name}
                       </h3>
@@ -237,6 +256,42 @@ const HubSelectionModal = ({ isOpen, onClose, onSelect }) => {
                         <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
                         {hub.address}
                       </p>
+
+                      {/* ✨ NEW: Vendor Details */}
+                      {vendorData[hub.id] && (
+                        <div className="pt-2 mt-2 border-t border-white/10 space-y-1.5">
+                          {/* Owner Name */}
+                          {vendorData[hub.id].ownerName && (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <User className="w-3 h-3 text-neon-purple flex-shrink-0" />
+                              <span className="text-gray-300 font-medium truncate">
+                                {vendorData[hub.id].ownerName}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Phone Number (Clickable) */}
+                          {vendorData[hub.id].phoneNumber && (
+                            <a
+                              href={`tel:${vendorData[hub.id].phoneNumber}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition group"
+                            >
+                              <Phone className="w-3 h-3 flex-shrink-0 group-hover:animate-pulse" />
+                              <span className="truncate">
+                                {vendorData[hub.id].phoneNumber}
+                              </span>
+                            </a>
+                          )}
+
+                          {/* Description (Truncated) */}
+                          {vendorData[hub.id].description && (
+                            <p className="text-[10px] text-gray-500 line-clamp-2 italic leading-relaxed">
+                              "{vendorData[hub.id].description}"
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Selection Indicator */}

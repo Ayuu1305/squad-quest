@@ -40,6 +40,57 @@ export const getVendorByHubId = async (hubId) => {
 };
 
 /**
+ * Get all hubs with vendor details (admin only)
+ * Used for hub management dashboard
+ */
+export const getAllHubs = async () => {
+  const { db, collection, getDocs } = await loadFirebase();
+  const hubsRef = collection(db, "hubs");
+  const snapshot = await getDocs(hubsRef);
+
+  const hubs = [];
+  for (const doc of snapshot.docs) {
+    const hubData = { id: doc.id, ...doc.data() };
+
+    // Fetch vendor details for each hub
+    try {
+      const vendor = await getVendorByHubId(doc.id);
+      hubData.vendor = vendor;
+    } catch (error) {
+      console.warn(`Failed to fetch vendor for hub ${doc.id}:`, error);
+      hubData.vendor = null;
+    }
+
+    hubs.push(hubData);
+  }
+
+  return hubs;
+};
+
+/**
+ * Update hub details (admin only)
+ */
+export const updateHub = async (hubId, updates) => {
+  const { db, doc, updateDoc, serverTimestamp } = await loadFirebase();
+  const hubRef = doc(db, "hubs", hubId);
+
+  await updateDoc(hubRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+/**
+ * Delete hub (admin only)
+ * Note: Vendor document is NOT deleted - vendors can create new hubs
+ */
+export const deleteHub = async (hubId) => {
+  const { db, doc, deleteDoc } = await loadFirebase();
+  const hubRef = doc(db, "hubs", hubId);
+  await deleteDoc(hubRef);
+};
+
+/**
  * Subscribe to missions for a specific vendor's hub
  * Real-time listener for vendor dashboard
  */
@@ -70,9 +121,9 @@ export const subscribeToVendorMissions = (vendorId, hubId, callback) => {
           callback(missions);
         },
         (error) => {
+          // ✅ SILENT: Permission denied is expected during logout cleanup
           if (error?.code === "permission-denied") {
-            console.warn("Vendor mission read blocked:", error);
-            return;
+            return; // Don't log warning - this is normal during logout
           }
           console.error("Error subscribing to vendor missions:", error);
         },

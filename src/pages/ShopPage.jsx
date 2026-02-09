@@ -4,7 +4,6 @@ import { auth, db } from "../backend/firebaseConfig";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { ShoppingBag, Gift, Loader } from "lucide-react";
-import SEO from "../components/SEO"; // Added SEO Import
 
 /**
  * ShopPage Component - Full Page Shop with Voucher Support
@@ -288,8 +287,6 @@ const ShopPage = ({ isBanned = false }) => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <SEO title="Shop" description="Spend your XP on rewards and cosmetics." />
-
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div className="w-full h-full bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_11px)]" />

@@ -32,14 +32,8 @@ import {
   Youtube,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { lazy, Suspense } from "react";
 // Register GSAP Plugin
 gsap.registerPlugin(ScrollTrigger);
-
-// ============================================
-// 3D BACKGROUND COMPONENT
-// ============================================
-const Landing3DScene = lazy(() => import("./Landing3DScene"));
 
 // ============================================
 // UI SUB-COMPONENTS
@@ -411,7 +405,6 @@ function LandingPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [show3D, setShow3D] = useState(false);
 
   // ✅ ADD THIS EFFECT
   useEffect(() => {
@@ -420,41 +413,6 @@ function LandingPage() {
       navigate("/board", { replace: true });
     }
   }, [user, navigate]);
-
-  // ⚡ OPTIMIZED: Load 3D on scroll, interaction, or after idle time
-  useEffect(() => {
-    let loaded = false;
-
-    const load3D = () => {
-      if (!loaded) {
-        setShow3D(true);
-        loaded = true;
-      }
-    };
-
-    // Option 1: Load on any scroll
-    const handleScroll = () => load3D();
-
-    // Option 2: Load on any user interaction
-    const handleInteraction = () => load3D();
-
-    // Option 3: Load after 2 seconds of idle (fallback)
-    const idleTimer = setTimeout(() => load3D(), 2000);
-
-    // Listen for user activity
-    window.addEventListener("scroll", handleScroll, { once: true });
-    window.addEventListener("mousemove", handleInteraction, { once: true });
-    window.addEventListener("touchstart", handleInteraction, { once: true });
-    window.addEventListener("click", handleInteraction, { once: true });
-
-    return () => {
-      clearTimeout(idleTimer);
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("mousemove", handleInteraction);
-      window.removeEventListener("touchstart", handleInteraction);
-      window.removeEventListener("click", handleInteraction);
-    };
-  }, []);
 
   useEffect(() => {
     // Initialize Lenis
@@ -512,9 +470,16 @@ function LandingPage() {
           {/* HERO SECTION */}
           <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden">
             <div className="absolute inset-0 z-0">
-              <Suspense fallback={null}>
-                {show3D && <Landing3DScene />}
-              </Suspense>
+              {/* Cyberpunk Gradient Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900 to-cyan-900/20" />
+              {/* Animated Grid Overlay */}
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
+              {/* Glow Effects */}
+              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[128px] animate-pulse" />
+              <div
+                className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[128px] animate-pulse"
+                style={{ animationDelay: "1s" }}
+              />
             </div>
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0f23]/60 to-[#0f0f23] z-10 pointer-events-none" />
 

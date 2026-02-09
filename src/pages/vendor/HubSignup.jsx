@@ -12,8 +12,10 @@ import {
   Image as ImageIcon,
   ArrowRight,
   Upload,
+  Star, // ✅ For rating display
 } from "lucide-react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth"; // For secondary auth
+import { initializeApp, getApp, deleteApp } from "firebase/app"; // For secondary instance
 import { auth, db } from "../../backend/firebaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { createVendorAccount } from "../../backend/services/vendor.service";
@@ -33,6 +35,7 @@ const HubSignup = () => {
     city: "",
     latitude: "",
     longitude: "",
+    rating: "5.0", // ✅ Default rating
 
     // Vendor/Owner Details
     ownerName: "",
@@ -80,13 +83,23 @@ const HubSignup = () => {
     const toastId = toast.loading("Creating your hub account...");
 
     try {
-      // Step 1: Create Firebase Auth account
+      // Step 1: Create Firebase Auth account using SECONDARY instance
+      // ✅ FIX: Use secondary auth to avoid logging out the current admin
+      const secondaryApp = initializeApp(
+        getApp().options,
+        "Secondary" + Date.now(),
+      );
+      const secondaryAuth = getAuth(secondaryApp);
+
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        secondaryAuth,
         formData.email,
         formData.password,
       );
       const user = userCredential.user;
+
+      // Delete secondary app to clean up
+      await deleteApp(secondaryApp);
 
       // Step 2: Upload hub image to Cloudinary
       const imageUrl = await uploadToCloudinary(imageFile);
@@ -103,7 +116,7 @@ const HubSignup = () => {
           longitude: parseFloat(formData.longitude) || 0,
         },
         image: imageUrl,
-        rating: 0,
+        rating: parseFloat(formData.rating) || 0, // ✅ Use form rating
         tags: [formData.category.toLowerCase()],
         secretCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
         createdAt: serverTimestamp(),
@@ -125,9 +138,9 @@ const HubSignup = () => {
 
       toast.success("Hub registered successfully! 🎉", { id: toastId });
 
-      // Redirect to vendor dashboard
+      // ✅ ADMIN FLOW: Redirect back to hub management dashboard
       setTimeout(() => {
-        navigate("/vendor/dashboard");
+        navigate("/admin/manage-hubs");
       }, 1000);
     } catch (error) {
       console.error("Signup error:", error);
@@ -331,6 +344,31 @@ const HubSignup = () => {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-neon-purple focus:outline-none transition-all"
                   />
                 </div>
+              </div>
+
+              {/* ✨ NEW: Hub Rating */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-400 tracking-wider flex items-center gap-2">
+                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                  Hub Rating *
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="5"
+                  value={formData.rating}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rating: e.target.value })
+                  }
+                  placeholder="5.0"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-neon-purple focus:outline-none transition-all"
+                  required
+                />
+                <p className="text-[10px] text-gray-500">
+                  Set your hub's rating (0-5 stars). This will be displayed to
+                  users.
+                </p>
               </div>
 
               {/* Image Upload */}

@@ -3,9 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../backend/firebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { ShoppingBag, Plus, Lock } from "lucide-react";
-
-const ADMIN_UIDS = ["dh5BwkAg58VIu1zI1qtD3PJW1a62"];
+import { ShoppingBag, Plus } from "lucide-react";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -28,23 +26,6 @@ const AdminDashboard = () => {
     if (type === "cosmetic") return "cosmetic";
     return "other";
   };
-
-  // Security Check
-  if (!user || !ADMIN_UIDS.includes(user.uid)) {
-    return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
-        <div className="glassmorphism-dark p-8 rounded-2xl border border-red-500/30 text-center max-w-md">
-          <Lock className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-black text-red-500 uppercase mb-2">
-            Access Denied
-          </h1>
-          <p className="text-gray-400 text-sm font-mono">
-            You do not have permission to access this dashboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

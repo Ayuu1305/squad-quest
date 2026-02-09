@@ -19,6 +19,10 @@ import ViolationWarningModal from "./components/ViolationWarningModal"; // ✅ G
 import BanScreen from "./components/BanScreen"; // ✅ Ban Enforcement
 import { isBanned } from "./utils/banCheck"; // ✅ Ban status checker
 import QuestBoardSkeleton from "./components/skeletons/QuestBoardSkeleton"; // ✅ Skeleton Loading
+import AdminRoute from "./components/AdminRoute"; // ✅ Admin access control
+import GenderSelectionModal from "./components/GenderSelectionModal";
+import ProtectedVendorRoute from "./components/ProtectedVendorRoute";
+import LandingPage from "./pages/LandingPage"; // Import LandingPage
 
 const QuestBoard = lazy(() => import("./pages/QuestBoard"));
 const QuestDetails = lazy(() => import("./pages/QuestDetails"));
@@ -33,6 +37,8 @@ const WorldGuide = lazy(() => import("./pages/WorldGuide"));
 const HeroJourney = lazy(() => import("./pages/HeroJourney"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminCompetition = lazy(() => import("./pages/admin/AdminCompetition")); // ✅ Admin competition management
+const ManageHubs = lazy(() => import("./pages/admin/ManageHubs")); // ✅ Hub Management
 const Settings = lazy(() => import("./pages/Settings"));
 const CompetitionDetails = lazy(() => import("./pages/CompetitionDetails"));
 
@@ -113,8 +119,6 @@ const CitySelectionRoute = ({ children }) => {
   return children;
 };
 
-import LandingPage from "./pages/LandingPage"; // Import LandingPage
-
 // Updated AuthRoute to handle City Selection flow
 // Updated AuthRoute to handle City Selection flow
 const AuthRoute = ({ children }) => {
@@ -130,10 +134,6 @@ const AuthRoute = ({ children }) => {
 
   return children;
 };
-
-import GenderSelectionModal from "./components/GenderSelectionModal";
-import AdminCompetition from "./pages/admin/AdminCompetition";
-import ProtectedVendorRoute from "./components/ProtectedVendorRoute";
 
 function App() {
   const location = useLocation();
@@ -630,16 +630,19 @@ function App() {
                 }
               />
 
+              {/* Vendor Hub Signup - Admin Only */}
               <Route
                 path="/hub/signup"
                 element={
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                  >
-                    <HubSignup />
-                  </motion.div>
+                  <AdminRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                    >
+                      <HubSignup />
+                    </motion.div>
+                  </AdminRoute>
                 }
               />
 
@@ -647,7 +650,7 @@ function App() {
               <Route
                 path="/secret-admin"
                 element={
-                  <ProtectedRoute>
+                  <AdminRoute>
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -655,14 +658,30 @@ function App() {
                     >
                       <AdminDashboard />
                     </motion.div>
-                  </ProtectedRoute>
+                  </AdminRoute>
+                }
+              />
+
+              {/* ✨ NEW: Hub Management Dashboard */}
+              <Route
+                path="/admin/manage-hubs"
+                element={
+                  <AdminRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                    >
+                      <ManageHubs />
+                    </motion.div>
+                  </AdminRoute>
                 }
               />
 
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute>
+                  <AdminRoute>
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -670,7 +689,7 @@ function App() {
                     >
                       <AdminCompetition />
                     </motion.div>
-                  </ProtectedRoute>
+                  </AdminRoute>
                 }
               />
 

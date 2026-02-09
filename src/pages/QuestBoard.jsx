@@ -31,7 +31,7 @@ import {
   ArrowDown, // ✅ Added
 } from "lucide-react";
 import InstallPWA from "../components/InstallPWA";
-import SEO from "../components/SEO"; // Added SEO Import
+
 const QuestCard = lazy(() => import("../components/QuestCard"));
 const DailyBounty = lazy(() => import("../components/DailyBounty"));
 const FloatingLiveFeed = lazy(() => import("../components/FloatingLiveFeed"));
@@ -337,7 +337,6 @@ const QuestBoard = () => {
       className="min-h-screen relative transition-colors duration-1000 bg-dark-bg"
       ref={containerRef}
     >
-      <SEO title="Quests" description="Find active missions near you." />
       {/* Hall Of Fame Ceremony Overlay */}
       {showNonCritical && showHallOfFame && (
         <Suspense fallback={null}>

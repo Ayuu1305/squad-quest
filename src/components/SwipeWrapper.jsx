@@ -94,7 +94,7 @@ const SwipeWrapper = ({ children }) => {
     if (isScrolling.current === true) return;
 
     // Apply visual feedback with resistance
-    const resistance = 0.3; // Instagram-like resistance
+    const resistance = 0.4; // Instagram-like resistance
     const visualOffset = deltaX * resistance;
     setSwipeOffset(visualOffset);
   };
@@ -116,7 +116,7 @@ const SwipeWrapper = ({ children }) => {
     if (currentIndex === -1) return;
 
     // 🔥 SWIPE THRESHOLD: 50px for smooth, easy navigation
-    const threshold = 50;
+    const threshold = 80;
 
     // SWIPE RIGHT (Go to previous page)
     if (deltaX > threshold) {

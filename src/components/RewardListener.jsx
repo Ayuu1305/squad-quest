@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useVendorAuth } from "../context/VendorAuthContext"; // ✅ VENDOR CHECK
 import { useReward } from "../context/RewardContext";
 import { getTier } from "../utils/xp";
 import { getLevelProgress } from "../utils/leveling";
@@ -13,6 +14,7 @@ const BADGE_LOOKUP = {
 
 const RewardListener = () => {
   const { user } = useAuth();
+  const { isVendor } = useVendorAuth(); // ✅ GET VENDOR STATUS
   const { triggerReward } = useReward();
   const prevUserRef = useRef(null);
 
@@ -25,7 +27,8 @@ const RewardListener = () => {
 
     // ✅ FIX: Skip reward listener for vendor accounts
     // Vendors have different dashboard and don't need XP/level/badge rewards
-    if (user.isVendor || user.accountType === "vendor") {
+    if (isVendor) {
+      console.log("🛑 [RewardListener] Skipping - User is a vendor");
       prevUserRef.current = user;
       return;
     }
@@ -127,7 +130,7 @@ const RewardListener = () => {
 
     // Update reference for next comparison
     prevUserRef.current = curr;
-  }, [user, triggerReward]);
+  }, [user, isVendor, triggerReward]); // ✅ Added isVendor dependency
 
   // This component doesn't render anything
   return null;

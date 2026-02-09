@@ -17,7 +17,6 @@ import AvatarEditor from "../components/Profile/AvatarEditor";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
 import { signOutUser } from "../backend/services/auth.service";
-import SEO from "../components/SEO"; // Added SEO Import
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -42,7 +41,6 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-dark-bg pb-32">
-      <SEO title="My Profile" description="View your rank and badges." />
       {/* Global Scrollbar Theme for Profile Page */}
       <style>{`
         ::-webkit-scrollbar {

@@ -68,6 +68,11 @@ service cloud.firestore {
             // 3. OR they are sending the exact same value (Idempotency)
             || resource.data.get('gender', "") == request.resource.data.gender
           )
+        )
+        // ✅ FIX: Allow users to update claimedRewards separately (for RewardContext)
+        || (
+          isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimedRewards'])
         );
 
       allow delete: if false;
@@ -183,8 +188,9 @@ service cloud.firestore {
     // ✅ HUBS
     match /hubs/{hubId} {
       allow read: if true; // Everyone can see hubs (for mission creation)
-      allow create: if isAuthenticated(); // Vendors can create during signup
-      allow update, delete: if isAdmin(); // Only admins can modify/delete
+      // ✅ ADMIN-ONLY: Only admins can create/update/delete hubs
+      // Hub signup form is protected by AdminRoute
+      allow create, update, delete: if isAdmin();
     }
 
     // ✅ GLOBAL ACTIVITY FEED
@@ -210,7 +216,7 @@ service cloud.firestore {
     // ✅ SHOP ITEMS
     match /shop_items/{itemId} {
       allow read: if true; // Everyone can see shop items
-      allow write: if request.auth != null && request.auth.uid == "dh5BwkAg58VIu1zI1qtD3PJW1a62"; // Admin only
+      allow write: if isAdmin(); // ✅ FIXED: Use isAdmin() instead of hardcoded UID
     }
 
     
