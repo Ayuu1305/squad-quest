@@ -23,6 +23,13 @@ const RewardListener = () => {
       return;
     }
 
+    // ✅ FIX: Skip reward listener for vendor accounts
+    // Vendors have different dashboard and don't need XP/level/badge rewards
+    if (user.isVendor || user.accountType === "vendor") {
+      prevUserRef.current = user;
+      return;
+    }
+
     // Initialize on first user load
     if (!prevUserRef.current) {
       prevUserRef.current = user;

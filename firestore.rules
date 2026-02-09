@@ -20,6 +20,18 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/quests/$(questId)).data.hostId == request.auth.uid;
     }
 
+    // 🛡️ NEW: Check if the user has the "God Mode" flag in their profile
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // 🏆 NEW: Competitions Collection Rules
+    match /competitions/{competitionId} {
+      allow read: if true;        // Everyone can see the wars
+      allow write: if isAdmin();  // Only Admins can create/edit wars
+    }
+
     // 🛡️ NEW: Validate incoming data types (Basic Schema Validation)
     function isValidQuest() {
        let data = request.resource.data;
@@ -170,8 +182,9 @@ service cloud.firestore {
 
     // ✅ HUBS
     match /hubs/{hubId} {
-      allow read: if true;
-      allow write: if false;
+      allow read: if true; // Everyone can see hubs (for mission creation)
+      allow create: if isAuthenticated(); // Vendors can create during signup
+      allow update, delete: if isAdmin(); // Only admins can modify/delete
     }
 
     // ✅ GLOBAL ACTIVITY FEED
@@ -220,6 +233,37 @@ match /feedback/{feedbackId} {
   // No updates or deletes allowed (feedback is permanent for admin review)
   allow update, delete: if false;
 }
+
+    // ✅ VENDORS COLLECTION (Vendor Dashboard)
+    match /vendors/{vendorId} {
+      // ✅ FIX: Allow ANY authenticated user to read vendor profiles
+      // This is needed so quest creators can lookup vendors to send notifications
+      allow read: if request.auth != null;
+      
+      // Allow creation during signup (hub registration)
+      allow create: if isAuthenticated();
+      
+      // Vendors can update their own profile, or admins can update any
+      allow update: if isAuthenticated() && (isOwner(vendorId) || isAdmin());
+      
+      // Only admins can delete vendor profiles
+      allow delete: if isAdmin();
+    }
+
+    // ✅ VENDOR NOTIFICATIONS (Vendor Dashboard)
+    match /vendor_notifications/{notificationId} {
+      // ✅ Anyone authenticated can create notifications (quest creators trigger these)
+      allow create: if request.auth != null;
+      
+      // Vendors can read their own notifications
+      allow read: if request.auth != null && request.auth.uid == resource.data.vendorId;
+      
+      // Vendors can update their own notifications (mark as read)
+      allow update: if request.auth != null && request.auth.uid == resource.data.vendorId;
+      
+      // Vendors can delete their own notifications
+      allow delete: if request.auth != null && request.auth.uid == resource.data.vendorId;
+    }
 
     // 🚨 COLLECTION GROUP: Verifications (for verified badge checking)
     // Allow users to query their OWN verifications across all quests

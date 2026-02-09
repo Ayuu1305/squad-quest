@@ -56,6 +56,19 @@ export const createQuest = async (questData) => {
     console.warn("Failed to log quest creation activity:", err);
   }
 
+  // ✅ NEW: Notify vendor of new mission at their hub
+  try {
+    const { notifyVendorOfNewMission } = await import("./vendor.service.js");
+    await notifyVendorOfNewMission({
+      ...questData,
+      questId: docRef.id,
+      startTime: questData.startTime,
+    });
+  } catch (err) {
+    console.warn("Failed to notify vendor:", err);
+    // Don't throw - quest creation should succeed even if notification fails
+  }
+
   return docRef.id;
 };
 
@@ -513,11 +526,11 @@ export const submitVibeChecks = async (
 export const deleteQuestAPI = async (questId) => {
   try {
     const { db, doc, deleteDoc } = await loadFirebase();
-    
+
     // Direct delete from Firestore
     // This works instantly and matches your new Security Rules
     await deleteDoc(doc(db, "quests", questId));
-    
+
     console.log("✅ Quest deleted successfully");
     return true;
   } catch (error) {
@@ -525,7 +538,6 @@ export const deleteQuestAPI = async (questId) => {
     throw error;
   }
 };
-
 
 // ✅ NEW: Edit Quest (Backend API - Host only)
 export const editQuestAPI = async (questId, updates) => {

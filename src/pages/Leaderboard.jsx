@@ -12,6 +12,7 @@ import LeaderboardItem from "../components/LeaderboardItem";
 import WinnerCircleModal from "../components/WinnerCircleModal";
 import HeroQuickInspect from "../components/HeroQuickInspect";
 import HallOfFameModal from "../components/HallOfFameModal";
+import CompetitionsList from "../components/CompetitionsList";
 import { Clock } from "lucide-react";
 
 const Leaderboard = () => {
@@ -73,7 +74,7 @@ const Leaderboard = () => {
   const categories = [
     { id: "weekly", label: "Weekly", icon: Star },
     { id: "xp", label: "All-Time", icon: Zap },
-    { id: "reliability", label: "Reliability", icon: Shield },
+    { id: "wars", label: "WARS 🔥", icon: Trophy },
   ];
 
   // ✅ Fetch Firestore Stats for current user
@@ -309,94 +310,101 @@ const Leaderboard = () => {
         ))}
       </div>
 
-      {/* Podium */}
-      <LeaderboardPodium
-        topThree={heroes.slice(0, 3)}
-        currentUserId={user?.uid}
-        category={category}
-        loading={loading}
-        isShowdown={activeShowdown}
-        onUserClick={setSelectedHero}
-      />
+      {/* Show Competition List for WARS tab */}
+      {category === "wars" ? (
+        <CompetitionsList />
+      ) : (
+        <>
+          {/* Podium */}
+          <LeaderboardPodium
+            topThree={heroes.slice(0, 3)}
+            currentUserId={user?.uid}
+            category={category}
+            loading={loading}
+            isShowdown={activeShowdown}
+            onUserClick={setSelectedHero}
+          />
 
-      {/* Ranked List */}
-      <div className="px-2 sm:px-6 mb-20">
-        {loading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="h-20 w-full bg-white/5 animate-pulse rounded-2xl border border-white/5"
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-12 px-6 bg-red-500/10 rounded-3xl border border-red-500/20">
-            <Zap className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-red-500 font-black uppercase tracking-widest text-sm mb-2">
-              Sync Error
-            </h3>
-            <p className="text-white/70 text-[10px] uppercase">
-              Failed to fetch hero rankings.
-            </p>
-          </div>
-        ) : (
-          <div className="max-w-2xl mx-auto px-0 sm:px-4 md:px-8 z-10 relative">
-            <div className="bg-dark-bg/50 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white/5 p-1.5 sm:p-2 shadow-2xl space-y-2 sm:space-y-3">
-              <AnimatePresence mode="popLayout">
-                {loading ? (
-                  <motion.div
-                    key="loader"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-center py-20"
-                  >
-                    <div className="w-12 h-12 border-4 border-neon-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Syncing Global Database...
-                    </p>
-                  </motion.div>
-                ) : (
-                  heroes
-                    .slice(3)
-                    .map((hero, index) => (
-                      <LeaderboardItem
-                        key={hero.id}
-                        hero={hero}
-                        rank={index + 4}
-                        isCurrentUser={hero.id === user?.uid}
-                        category={category}
-                        onClick={() => setSelectedHero(hero)}
-                      />
-                    ))
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* ✅ Pinned "Your Position" with Standard Style */}
-            {myStats && !heroes.some((h) => h.id === user?.uid) && (
-              <>
-                {/* Simple Divider */}
-                <div className="my-4 flex items-center justify-center gap-2 opacity-50">
-                  <div className="w-1 h-1 rounded-full bg-gray-500" />
-                  <div className="w-1 h-1 rounded-full bg-gray-500" />
-                  <div className="w-1 h-1 rounded-full bg-gray-500" />
+          {/* Ranked List */}
+          <div className="px-2 sm:px-6 mb-20">
+            {loading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-20 w-full bg-white/5 animate-pulse rounded-2xl border border-white/5"
+                  />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12 px-6 bg-red-500/10 rounded-3xl border border-red-500/20">
+                <Zap className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-red-500 font-black uppercase tracking-widest text-sm mb-2">
+                  Sync Error
+                </h3>
+                <p className="text-white/70 text-[10px] uppercase">
+                  Failed to fetch hero rankings.
+                </p>
+              </div>
+            ) : (
+              <div className="max-w-2xl mx-auto px-0 sm:px-4 md:px-8 z-10 relative">
+                <div className="bg-dark-bg/50 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white/5 p-1.5 sm:p-2 shadow-2xl space-y-2 sm:space-y-3">
+                  <AnimatePresence mode="popLayout">
+                    {loading ? (
+                      <motion.div
+                        key="loader"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="text-center py-20"
+                      >
+                        <div className="w-12 h-12 border-4 border-neon-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
+                          Syncing Global Database...
+                        </p>
+                      </motion.div>
+                    ) : (
+                      heroes
+                        .slice(3)
+                        .map((hero, index) => (
+                          <LeaderboardItem
+                            key={hero.id}
+                            hero={hero}
+                            rank={index + 4}
+                            isCurrentUser={hero.id === user?.uid}
+                            category={category}
+                            onClick={() => setSelectedHero(hero)}
+                          />
+                        ))
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* Standard Card Style */}
-                <LeaderboardItem
-                  hero={myStats}
-                  rank={userRank || "??"}
-                  isCurrentUser={true}
-                  onClick={setSelectedHero}
-                  category={category}
-                />
-              </>
+                {/* ✅ Pinned "Your Position" with Standard Style */}
+                {myStats && !heroes.some((h) => h.id === user?.uid) && (
+                  <>
+                    {/* Simple Divider */}
+                    <div className="my-4 flex items-center justify-center gap-2 opacity-50">
+                      <div className="w-1 h-1 rounded-full bg-gray-500" />
+                      <div className="w-1 h-1 rounded-full bg-gray-500" />
+                      <div className="w-1 h-1 rounded-full bg-gray-500" />
+                    </div>
+
+                    {/* Standard Card Style */}
+                    <LeaderboardItem
+                      hero={myStats}
+                      rank={userRank || "??"}
+                      isCurrentUser={true}
+                      onClick={setSelectedHero}
+                      category={category}
+                    />
+                  </>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Hero Inspect */}
       <AnimatePresence>

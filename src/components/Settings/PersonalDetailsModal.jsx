@@ -8,6 +8,7 @@ const PersonalDetailsModal = ({ user, onClose }) => {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     age: user?.age || "",
+    college: user?.college || ""
     // gender removed - now immutable for safety
   });
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,7 @@ const PersonalDetailsModal = ({ user, onClose }) => {
       await updateHeroProfile(user.uid, {
         name: formData.name,
         age: formData.age,
+        college: formData.college
         // gender is immutable, not included in updates
       });
       toast.success("Profile Updated!");
@@ -90,6 +92,40 @@ const PersonalDetailsModal = ({ user, onClose }) => {
                   placeholder="Enter your age"
                 />
               </div>
+            </div>
+
+            {/* 🎓 COLLEGE SELECTION (NEW) */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                College / Alliance <span className="text-neon-purple">*</span>
+              </label>
+              
+              <div className="relative">
+                <select
+                  value={formData.college}
+                  onChange={(e) => setFormData({ ...formData, college: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-neon-purple appearance-none transition-colors cursor-pointer"
+                >
+                  <option value="" disabled className="bg-gray-900 text-gray-500">
+                    -- Select Your Squad --
+                  </option>
+                  <option value="Nirma University" className="bg-gray-900">Nirma University</option>
+                  <option value="HL College" className="bg-gray-900">HL College</option>
+                  <option value="Ahmedabad University" className="bg-gray-900">Ahmedabad University</option>
+                  <option value="Other" className="bg-gray-900">Other (Spectator)</option>
+                </select>
+
+                {/* Arrow Icon Overlay */}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              
+              <p className="text-[10px] text-gray-500">
+                Required to join the Leaderboard Wars.
+              </p>
             </div>
 
             {/* Gender - LOCKED FOR SAFETY */}

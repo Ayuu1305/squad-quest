@@ -34,6 +34,12 @@ const HeroJourney = lazy(() => import("./pages/HeroJourney"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Settings = lazy(() => import("./pages/Settings"));
+const CompetitionDetails = lazy(() => import("./pages/CompetitionDetails"));
+
+// Vendor Pages
+const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
+const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
+const HubSignup = lazy(() => import("./pages/vendor/HubSignup"));
 
 // Protects routes that require both login AND city selection
 // Protects routes that require both login AND city selection
@@ -126,12 +132,14 @@ const AuthRoute = ({ children }) => {
 };
 
 import GenderSelectionModal from "./components/GenderSelectionModal";
+import AdminCompetition from "./pages/admin/AdminCompetition";
+import ProtectedVendorRoute from "./components/ProtectedVendorRoute";
 
 function App() {
   const location = useLocation();
   const { user, loading } = useAuth();
 
-  // Show navbar only on main hub pages when logged in
+  // Show navbar only on main hub pages when logged in (NOT on vendor pages)
   const showNavbar =
     [
       "/board",
@@ -141,7 +149,10 @@ function App() {
       "/world-guide",
       "/journey",
       "/shop",
-    ].includes(location.pathname) && user;
+    ].includes(location.pathname) &&
+    user &&
+    !location.pathname.startsWith("/vendor") &&
+    !location.pathname.startsWith("/hub");
 
   // ✅ Check if user is banned
   const banStatus = user ? isBanned(user) : { banned: false };
@@ -516,6 +527,21 @@ function App() {
               />
 
               <Route
+                path="/competition/:id"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                    >
+                      <CompetitionDetails />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
                 path="/journey"
                 element={
                   <ProtectedRoute>
@@ -575,6 +601,49 @@ function App() {
                 }
               />
 
+              {/* Vendor Routes */}
+              <Route
+                path="/vendor/login"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                  >
+                    <VendorLogin />
+                  </motion.div>
+                }
+              />
+
+              <Route
+                path="/vendor/dashboard"
+                element={
+                  <ProtectedVendorRoute>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                    >
+                      <VendorDashboard />
+                    </motion.div>
+                  </ProtectedVendorRoute>
+                }
+              />
+
+              <Route
+                path="/hub/signup"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                  >
+                    <HubSignup />
+                  </motion.div>
+                }
+              />
+
+              {/* Admin Routes */}
               <Route
                 path="/secret-admin"
                 element={
@@ -585,6 +654,21 @@ function App() {
                       exit={{ opacity: 0, scale: 1.05 }}
                     >
                       <AdminDashboard />
+                    </motion.div>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                    >
+                      <AdminCompetition />
                     </motion.div>
                   </ProtectedRoute>
                 }

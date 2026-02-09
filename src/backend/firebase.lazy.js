@@ -44,6 +44,7 @@ export function loadFirebase() {
         arrayRemove: firestoreSDK.arrayRemove,
         writeBatch: firestoreSDK.writeBatch,
         runTransaction: firestoreSDK.runTransaction,
+        Timestamp: firestoreSDK.Timestamp, // ✅ FIX: Added for vendor stats queries
 
         // --- AUTH METHODS (Login/User) ---
         onAuthStateChanged: authSDK.onAuthStateChanged,
