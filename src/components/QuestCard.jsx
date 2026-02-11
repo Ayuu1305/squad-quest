@@ -312,9 +312,10 @@ const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
               </span>
             </div>
             <div
-              className={`text-xs font-mono font-bold ${isMyMission ? "text-yellow-400" : "text-white"}`}
+              className={`text-xs font-mono font-bold flex items-center gap-1 ${isMyMission ? "text-yellow-400" : "text-yellow-400"}`}
             >
-              {quest.loot || "Active"}
+              <Lock className="w-2.5 h-2.5" />
+              Mystery Reward
             </div>
           </div>
         </div>

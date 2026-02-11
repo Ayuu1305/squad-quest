@@ -15,9 +15,15 @@ const VendorMissionCard = ({ mission }) => {
     mission.startTime?.seconds * 1000 || mission.startTime,
   );
   const now = new Date();
+
+  // Mission is past if it's marked completed OR if start time has passed and no one joined
+  const isPast =
+    mission.status === "completed" ||
+    (startTime < now && (!mission.membersCount || mission.membersCount === 0));
+  // Upcoming if start time hasn't arrived yet (regardless of status)
   const isUpcoming = startTime > now;
-  const isPast = mission.status === "completed";
-  const isActive = mission.status === "active";
+  // Active if status is active AND time has started
+  const isActive = mission.status === "active" && startTime <= now && !isPast;
 
   // Calculate time until mission
   const getTimeUntil = () => {
@@ -162,7 +168,7 @@ const VendorMissionCard = ({ mission }) => {
                 Expected Guests
               </p>
               <p className="text-sm font-bold text-white">
-                {mission.currentPlayers || 1} / {mission.maxPlayers} people
+                {mission.membersCount || 0} / {mission.maxPlayers} people
               </p>
             </div>
           </div>

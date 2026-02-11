@@ -76,10 +76,10 @@ const Login = () => {
     <div className="min-h-screen bg-dark-bg relative flex items-center justify-center p-6 overflow-y-auto">
       <CyberGridBackground />
 
-      {/* Background Decor */}
+      {/* Background Decor - Optimized for 120Hz iOS */}
       <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-purple rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-radial from-neon-purple/40 to-transparent rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-radial from-blue-600/40 to-transparent rounded-full" />
       </div>
 
       <motion.div

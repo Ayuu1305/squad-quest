@@ -38,7 +38,6 @@ const FloatingLiveFeed = lazy(() => import("../components/FloatingLiveFeed"));
 const CyberGridBackground = lazy(
   () => import("../components/CyberGridBackground"),
 );
-const HallOfFameIntro = lazy(() => import("../components/HallOfFameIntro"));
 import QuestBoardSkeleton from "../components/skeletons/QuestBoardSkeleton";
 import QuestCardSkeleton from "../components/skeletons/QuestCardSkeleton";
 
@@ -63,7 +62,6 @@ const QuestBoard = () => {
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
-  const [showHallOfFame, setShowHallOfFame] = useState(true); // State for Intro
 
   // ✅ NEW: Secret Code Modal state
   const [secretCodeModal, setSecretCodeModal] = useState({
@@ -337,13 +335,6 @@ const QuestBoard = () => {
       className="min-h-screen relative transition-colors duration-1000 bg-dark-bg"
       ref={containerRef}
     >
-      {/* Hall Of Fame Ceremony Overlay */}
-      {showNonCritical && showHallOfFame && (
-        <Suspense fallback={null}>
-          <HallOfFameIntro onComplete={() => setShowHallOfFame(false)} />
-        </Suspense>
-      )}
-
       {activeShowdown && (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,0,0,0.1)_0%,_transparent_70%)] pointer-events-none z-0" />
       )}

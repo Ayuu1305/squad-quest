@@ -37,6 +37,12 @@ const HubSignup = () => {
     longitude: "",
     rating: "5.0", // ✅ Default rating
 
+    // ✅ NEW: Loot Reward Fields
+    lootType: "discount",
+    lootValue: "",
+    lootDescription: "",
+    lootTerms: "",
+
     // Vendor/Owner Details
     ownerName: "",
     email: "",
@@ -79,6 +85,12 @@ const HubSignup = () => {
       return;
     }
 
+    // ✅ NEW: Validate loot fields
+    if (!formData.lootValue || !formData.lootDescription) {
+      toast.error("Please specify the hub loot reward");
+      return;
+    }
+
     setLoading(true);
     const toastId = toast.loading("Creating your hub account...");
 
@@ -117,6 +129,13 @@ const HubSignup = () => {
         },
         image: imageUrl,
         rating: parseFloat(formData.rating) || 0, // ✅ Use form rating
+        // ✅ NEW: Save loot reward data
+        loot: {
+          type: formData.lootType,
+          value: formData.lootValue,
+          description: formData.lootDescription,
+          terms: formData.lootTerms || null,
+        },
         tags: [formData.category.toLowerCase()],
         secretCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
         createdAt: serverTimestamp(),
@@ -369,6 +388,97 @@ const HubSignup = () => {
                   Set your hub's rating (0-5 stars). This will be displayed to
                   users.
                 </p>
+              </div>
+
+              {/* ✅ NEW: Loot Offer Section */}
+              <div className="space-y-4 mt-6 p-4 bg-yellow-500/5 rounded-xl border border-yellow-500/20">
+                <h3 className="text-sm font-bold text-yellow-400 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Hub Loot Reward
+                </h3>
+                <p className="text-[10px] text-gray-500">
+                  Set the exclusive discount/offer that students will receive
+                  after completing quests at your hub.
+                </p>
+
+                {/* Loot Type */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                    Reward Type *
+                  </label>
+                  <select
+                    value={formData.lootType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lootType: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-yellow-500 focus:outline-none transition-all [&>option]:bg-gray-800"
+                    required
+                  >
+                    <option value="discount">💰 Discount</option>
+                    <option value="freebie">🎁 Freebie</option>
+                    <option value="bogo">🔄 Buy 1 Get 1</option>
+                  </select>
+                </div>
+
+                {/* Loot Value */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                    Reward Value *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lootValue}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lootValue: e.target.value })
+                    }
+                    placeholder="e.g., 15% or Free Coffee"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none transition-all"
+                    required
+                  />
+                  <p className="text-[10px] text-gray-500">
+                    Examples: "15%", "20% OFF", "Free Cappuccino", "Buy 1 Get 1
+                    Free"
+                  </p>
+                </div>
+
+                {/* Loot Description */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                    Reward Description *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lootDescription}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        lootDescription: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., 15% off on your entire bill"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none transition-all"
+                    required
+                  />
+                  <p className="text-[10px] text-gray-500">
+                    This will be revealed to students after quest completion
+                  </p>
+                </div>
+
+                {/* Terms & Conditions */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                    Terms & Conditions (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lootTerms}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lootTerms: e.target.value })
+                    }
+                    placeholder="e.g., Valid on bills above ₹200"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none transition-all"
+                  />
+                </div>
               </div>
 
               {/* Image Upload */}

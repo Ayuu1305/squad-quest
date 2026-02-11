@@ -31,14 +31,14 @@ const EditQuestModal = ({
 
   const [formData, setFormData] = useState({
     title: quest?.title || "",
-    category: quest?.category || "Café",
+    category: quest?.category || "Cafe",
     hubId: quest?.hubId || "",
     hubName: quest?.hubName || "",
     objective: quest?.objective || "",
     difficulty: quest?.difficulty || 1,
     maxPlayers: quest?.maxPlayers || 4,
     duration: quest?.duration || "60-90m",
-    loot: quest?.loot || "Bonus XP + Hub Token",
+    // ❌ REMOVED: loot field (now fetched from hub)
     vibeCheck: quest?.vibeCheck || "Neutral",
     isPrivate: quest?.isPrivate || false,
     genderPreference: quest?.genderPreference || "everyone",
@@ -113,7 +113,7 @@ const EditQuestModal = ({
     }));
   };
 
- const handleSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     let startTimeDate;
@@ -128,7 +128,7 @@ const EditQuestModal = ({
         d.getMonth(),
         d.getDate(),
         d.getHours(),
-        d.getMinutes()
+        d.getMinutes(),
       );
     } else {
       // It is a Local string from input (YYYY-MM-DDTHH:mm)
@@ -145,7 +145,9 @@ const EditQuestModal = ({
 
     if (startTimeDate < now) {
       // Use alert since toast might not be imported in this modal
-      toast.error("⚠️ Invalid Time: You cannot reschedule a mission to the past!");
+      toast.error(
+        "⚠️ Invalid Time: You cannot reschedule a mission to the past!",
+      );
       return; // 🛑 Stops save
     }
 
@@ -330,37 +332,22 @@ const EditQuestModal = ({
                 </div>
               </div>
 
-              {/* Loot & Vibe Check */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-wider">
-                    Loot Reward
-                  </label>
-                  <input
-                    type="text"
-                    name="loot"
-                    value={formData.loot}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-wider">
-                    Vibe Check
-                  </label>
-                  <select
-                    name="vibeCheck"
-                    value={formData.vibeCheck}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none [&>option]:text-white [&>option]:bg-gray-800"
-                  >
-                    <option value="Neutral">Neutral</option>
-                    <option value="Chill">Chill</option>
-                    <option value="Competitive">Competitive</option>
-                    <option value="Intellectual">Intellectual</option>
-                  </select>
-                </div>
+              {/* Vibe Check - Full Width */}
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-wider">
+                  Vibe Check
+                </label>
+                <select
+                  name="vibeCheck"
+                  value={formData.vibeCheck}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none [&>option]:text-white [&>option]:bg-gray-800"
+                >
+                  <option value="Neutral">Neutral</option>
+                  <option value="Chill">Chill</option>
+                  <option value="Competitive">Competitive</option>
+                  <option value="Intellectual">Intellectual</option>
+                </select>
               </div>
 
               {/* Gender Preference */}

@@ -42,8 +42,11 @@ const HallOfFameIntro = ({ onComplete }) => {
   useEffect(() => {
     if (step === 1) {
       setTimeout(() => setStep(2), 3000); // Show "A New Legend Rises" for 3s
+    } else if (step === 3) {
+      // Component is closing, call onComplete to update parent
+      onComplete();
     }
-  }, [step]);
+  }, [step, onComplete]);
 
   if (loading) return null;
 
@@ -186,7 +189,19 @@ const HallOfFameIntro = ({ onComplete }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 3 }}
-                onClick={() => setStep(3)} // End
+                onClick={() => {
+                  // ✅ CRITICAL FIX: Save to localStorage IMMEDIATELY before any state changes
+                  localStorage.setItem(
+                    "hallOfFameLastSeen",
+                    Date.now().toString(),
+                  );
+                  console.log(
+                    "✅ Hall of Fame intro completed - saved to localStorage",
+                  );
+
+                  // Now close the intro
+                  setStep(3);
+                }}
                 className="mt-12 px-8 py-4 bg-white text-black font-black uppercase tracking-[0.2em] rounded-full hover:bg-gray-200 transition-colors"
               >
                 Enter The Arena

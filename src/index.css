@@ -131,11 +131,46 @@
     }
   }
 
+  /* iOS 120Hz Optimized Animations */
+  @keyframes flame-glow {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes status-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
   --animate-glitch: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  --animate-flame-glow: flame-glow 2s ease-in-out infinite;
+  --animate-status-pulse: status-pulse 2s ease-in-out infinite;
 }
 
 .animate-gradient {
   animation: gradient 3s ease infinite;
+}
+
+.animate-flame-glow {
+  animation: flame-glow 2s ease-in-out infinite;
+  will-change: transform, opacity; /* GPU acceleration hint */
+}
+
+.animate-status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+  will-change: opacity; /* GPU acceleration hint */
 }
 
 .scanline {

@@ -120,9 +120,10 @@ service cloud.firestore {
         // We allow updates to ANY of these fields to prevent blocking:
         // 'participants', 'currentPlayers' (Your specific frontend fields)
         // 'members', 'membersCount' (Your old fields)
+        // NOTE: 'status' and 'completedBy' removed for security - only backend can update these
         (
             request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['participants', 'currentPlayers', 'members', 'membersCount', 'status', 'updatedAt', 'completedBy'])
+            .hasAny(['participants', 'currentPlayers', 'members', 'membersCount', 'updatedAt'])
         )
       );
 

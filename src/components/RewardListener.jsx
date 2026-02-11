@@ -26,9 +26,17 @@ const RewardListener = () => {
     }
 
     // ✅ FIX: Skip reward listener for vendor accounts
-    // Vendors have different dashboard and don't need XP/level/badge rewards
-    if (isVendor) {
-      console.log("🛑 [RewardListener] Skipping - User is a vendor");
+    // Also skip if vendor status is undefined (still loading) to prevent premature triggers
+    if (isVendor === undefined || isVendor) {
+      console.log(
+        "🛑 [RewardListener] Skipping - User is a vendor or vendor status loading",
+      );
+      prevUserRef.current = user;
+      return;
+    }
+
+    // Skip if user has no inventory (likely vendor or incomplete profile)
+    if (!user.inventory || !user.inventory.badges) {
       prevUserRef.current = user;
       return;
     }

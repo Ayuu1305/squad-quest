@@ -143,11 +143,33 @@ const VendorDashboard = () => {
         break;
 
       case "active":
-        setFilteredMissions(missions.filter((m) => m.status === "active"));
+        setFilteredMissions(
+          missions.filter((m) => {
+            const startTime = new Date(
+              m.startTime?.seconds * 1000 || m.startTime,
+            );
+            // Active if status is active AND time has started AND not past with no players
+            const isPast =
+              m.status === "completed" ||
+              (startTime < now && (!m.membersCount || m.membersCount === 0));
+            return m.status === "active" && startTime <= now && !isPast;
+          }),
+        );
         break;
 
       case "completed":
-        setFilteredMissions(missions.filter((m) => m.status === "completed"));
+        setFilteredMissions(
+          missions.filter((m) => {
+            const startTime = new Date(
+              m.startTime?.seconds * 1000 || m.startTime,
+            );
+            // Completed if status is completed OR if start time has passed with no participants
+            return (
+              m.status === "completed" ||
+              (startTime < now && (!m.membersCount || m.membersCount === 0))
+            );
+          }),
+        );
         break;
 
       default:
@@ -235,7 +257,7 @@ const VendorDashboard = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 top-full mt-3 w-[420px] bg-gradient-to-br from-black via-[#0a0a0f] to-black backdrop-blur-2xl border border-neon-purple/20 rounded-2xl shadow-[0_20px_70px_rgba(168,85,247,0.3)] z-50 overflow-hidden"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-[min(420px,calc(100vw-2rem))] bg-gradient-to-br from-black via-[#0a0a0f] to-black backdrop-blur-2xl border border-neon-purple/20 rounded-2xl shadow-[0_20px_70px_rgba(168,85,247,0.3)] z-50 overflow-hidden"
                   >
                     {/* Header */}
                     <div className="p-5 border-b border-white/10 bg-gradient-to-r from-neon-purple/10 to-blue-600/10">

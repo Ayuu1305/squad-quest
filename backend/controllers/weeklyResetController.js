@@ -125,6 +125,37 @@ export const resetAllWeeklyXP = async () => {
     }
 
     // ---------------------------------------------------------
+    // 1.5️⃣ SAVE WINNERS TO HALL OF FAME
+    // ---------------------------------------------------------
+    if (winnersSnapshot.docs.length > 0) {
+      console.log("💾 Saving winners to Hall of Fame...");
+
+      const winnersData = winnersSnapshot.docs.map((doc, index) => {
+        const data = doc.data();
+        return {
+          uid: doc.id,
+          name: data.name || "Unknown Hero",
+          avatar: data.avatar || "",
+          avatarSeed: data.avatarSeed || doc.id,
+          xp: data.thisWeekXP || 0,
+          thisWeekXP: data.thisWeekXP || 0,
+          rank: index + 1,
+          level: data.level || 1,
+        };
+      });
+
+      const hallOfFameRef = db.collection("hall_of_fame").doc();
+      await hallOfFameRef.set({
+        winners: winnersData,
+        weekStart: getWeekStartDate(),
+        processedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      console.log(`✅ Saved ${winnersData.length} winners to Hall of Fame`);
+    }
+
+    // ---------------------------------------------------------
     // 2️⃣ RESET LOGIC (Existing)
     // ---------------------------------------------------------
     const usersSnapshot = await db.collection("users").get();

@@ -84,19 +84,18 @@ const QuestDetails = () => {
     });
   }, [user?.uid, id]);
 
-
   // ✅ NEW: Sync 'isMember' with Real-Time Quest Data
   useEffect(() => {
     // Safety check: ensure quest and members array exist
     if (quest?.members && user?.uid) {
-       // Check if our ID is in the live members array
-       const isActuallyMember = quest.members.includes(user.uid);
-       
-       // If Firestore says we are a member, but State says we aren't... FIX IT.
-       if (isActuallyMember && !isMember) {
-           console.log("🔄 Syncing Membership Status from DB...");
-           setIsMember(true);
-       }
+      // Check if our ID is in the live members array
+      const isActuallyMember = quest.members.includes(user.uid);
+
+      // If Firestore says we are a member, but State says we aren't... FIX IT.
+      if (isActuallyMember && !isMember) {
+        console.log("🔄 Syncing Membership Status from DB...");
+        setIsMember(true);
+      }
     }
   }, [quest, user?.uid, isMember]);
 
@@ -106,14 +105,13 @@ const QuestDetails = () => {
   // 🚨 NEW: Check user's join request status on load
   useEffect(() => {
     if (!user?.uid || !id || isMember) return;
-    
 
     // 2. Query ONLY my request for this quest
     const requestsRef = collection(db, "joinRequests");
     const q = query(
-      requestsRef, 
-      where("questId", "==", id), 
-      where("userId", "==", user.uid)
+      requestsRef,
+      where("questId", "==", id),
+      where("userId", "==", user.uid),
     );
 
     console.log("👂 Listening for approval...");
@@ -126,22 +124,21 @@ const QuestDetails = () => {
       const reqData = snapshot.docs[0].data();
       const newStatus = reqData.status;
       setRequestStatus(newStatus);
-      
+
       // ✅ THE FIX: Only celebrate if we transitioned from PENDING -> APPROVED
       // This prevents the "Double Toast" and "Ghost Member" bug on reload.
-      if (newStatus === 'approved' && lastStatusRef.current === 'pending') {
+      if (newStatus === "approved" && lastStatusRef.current === "pending") {
         console.log("🎉 Just Approved! Auto-joining...");
-        setIsMember(true); 
+        setIsMember(true);
         toast.success("Request Accepted! Welcome.");
-        unsubscribe(); 
+        unsubscribe();
       }
 
       // Update history for next time
       lastStatusRef.current = newStatus;
     });
 
-
-     return () => unsubscribe();
+    return () => unsubscribe();
   }, [user?.uid, id, isMember]);
 
   // Sub to quest data in real-time
@@ -149,16 +146,15 @@ const QuestDetails = () => {
     if (!id) return;
 
     // 1. Subscribe to Quest Document
-   // 1. Subscribe to Quest Document
+    // 1. Subscribe to Quest Document
     let unsubHub = null;
     const unsubscribeQuest = subscribeToQuest(id, (updatedQuest) => {
-      
       // 🛡️ CRASH GUARD: If the quest was just deleted...
       if (!updatedQuest) {
         console.log("⚠️ Quest deleted. Redirecting to board...");
         setLoading(false);
         navigate("/board"); // Redirect safely instead of crashing
-        return; 
+        return;
       }
 
       // ✅ Quest exists, proceed as normal
@@ -181,15 +177,15 @@ const QuestDetails = () => {
         );
       } else if (updatedQuest.hubName) {
         // ... (your existing hubName logic is fine) ...
-         if (typeof unsubHub === "function") unsubHub();
-         const hubsRef = collection(db, "hubs");
-         const q = query(hubsRef, where("name", "==", updatedQuest.hubName));
-         unsubHub = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-               const h = snapshot.docs[0];
-               setHub({ id: h.id, ...h.data() });
-            }
-         });
+        if (typeof unsubHub === "function") unsubHub();
+        const hubsRef = collection(db, "hubs");
+        const q = query(hubsRef, where("name", "==", updatedQuest.hubName));
+        unsubHub = onSnapshot(q, (snapshot) => {
+          if (!snapshot.empty) {
+            const h = snapshot.docs[0];
+            setHub({ id: h.id, ...h.data() });
+          }
+        });
       }
     });
 
@@ -566,11 +562,12 @@ const QuestDetails = () => {
                   <Award className="w-6 h-6 text-yellow-500" />
                 </div>
                 <div>
-                  <div className="text-sm font-black text-yellow-500 animate-pulse italic">
-                    Verify to get excited reward
+                  <div className="text-sm font-black text-yellow-500 flex items-center gap-2">
+                    <Lock className="w-4 h-4 animate-pulse" />
+                    Mystery Hub Reward
                   </div>
                   <div className="text-[10px] text-gray-400 uppercase font-black">
-                    Unlocks upon successful verification
+                    Complete verification to unlock your surprise!
                   </div>
                 </div>
               </div>

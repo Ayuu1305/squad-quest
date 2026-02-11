@@ -212,6 +212,9 @@ export const finalizeQuest = async (req, res) => {
           userRef,
         );
 
+      const membersSnapshot = await t.get(questRef.collection("members"));
+      const verificationsSnapshot = await t.get(questRef.collection("verifications"));
+
       if (!questDoc.exists) throw new Error("Quest not found");
       if (!memberDoc.exists) throw new Error("User not a member of this quest");
 
@@ -343,6 +346,20 @@ export const finalizeQuest = async (req, res) => {
         { merge: true },
       );
 
+      // ✅ UPDATE QUEST STATUS TO COMPLETED
+      // Check if all members have verified and update quest status
+      
+      const totalMembers = membersSnapshot.size;
+      const verifiedCount = verificationsSnapshot.docs.filter(doc => doc.data().rewarded).length + 1; // +1 for current verification
+      
+      // If all members have verified, mark quest as completed
+      if (verifiedCount >= totalMembers) {
+        t.update(questRef, {
+          status: "completed",
+          completedAt: FieldValue.serverTimestamp(),
+        });
+      }
+
       return {
         success: true,
         earnedXP,
@@ -354,6 +371,8 @@ export const finalizeQuest = async (req, res) => {
         currentStats,
       };
     });
+
+
 
     // ✅ SEND RESPONSE IMMEDIATELY (Critical data saved)
     res.json(result);

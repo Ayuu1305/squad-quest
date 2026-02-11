@@ -13,7 +13,7 @@ import {
   Save,
   User,
   Phone,
-  ImageIcon,
+  Gift, // ✅ For loot section
 } from "lucide-react";
 import {
   getAllHubs,
@@ -130,7 +130,7 @@ const ManageHubs = () => {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-purple focus:outline-none cursor-pointer"
+          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-purple focus:outline-none cursor-pointer [&>option]:bg-gray-900 [&>option]:text-white"
         >
           <option value="All">All Categories</option>
           <option value="Café">Café</option>
@@ -281,11 +281,26 @@ const EditHubModal = ({ hub, onSave, onClose }) => {
     address: hub.address || "",
     city: hub.city || "",
     rating: hub.rating || 0,
+    // ✅ NEW: Loot fields
+    lootType: hub.loot?.type || "discount",
+    lootValue: hub.loot?.value || "",
+    lootDescription: hub.loot?.description || "",
+    lootTerms: hub.loot?.terms || "",
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    // ✅ Include loot in the update
+    const updates = {
+      ...formData,
+      loot: {
+        type: formData.lootType,
+        value: formData.lootValue,
+        description: formData.lootDescription,
+        terms: formData.lootTerms || null,
+      },
+    };
+    onSave(updates);
   };
 
   return (
@@ -305,10 +320,10 @@ const EditHubModal = ({ hub, onSave, onClose }) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="relative w-full max-w-lg bg-gradient-to-br from-[#0f0f23] to-[#1a1a2e] border border-white/10 rounded-3xl p-8 shadow-2xl"
+          className="relative w-full max-w-lg max-h-[90vh] bg-gradient-to-br from-[#0f0f23] to-[#1a1a2e] border border-white/10 rounded-3xl shadow-2xl flex flex-col"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          {/* Header - Fixed */}
+          <div className="flex items-center justify-between p-6 pb-4 border-b border-white/10">
             <h2 className="text-2xl font-['Orbitron'] font-black text-white uppercase">
               Edit Hub
             </h2>
@@ -320,8 +335,12 @@ const EditHubModal = ({ hub, onSave, onClose }) => {
             </button>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form - Scrollable with custom scrollbar */}
+          <form
+            id="edit-hub-form"
+            onSubmit={handleSubmit}
+            className="flex-1 overflow-y-auto px-6 py-4 space-y-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neon-purple/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-neon-purple"
+          >
             {/* Hub Name */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
@@ -348,7 +367,7 @@ const EditHubModal = ({ hub, onSave, onClose }) => {
                 onChange={(e) =>
                   setFormData({ ...formData, category: e.target.value })
                 }
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-purple focus:outline-none cursor-pointer"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-purple focus:outline-none cursor-pointer [&>option]:bg-gray-900 [&>option]:text-white"
                 required
               >
                 <option value="Café">Café</option>
@@ -413,24 +432,105 @@ const EditHubModal = ({ hub, onSave, onClose }) => {
               />
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-6 py-3 bg-neon-purple hover:bg-purple-600 rounded-xl text-white font-bold transition flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save Changes
-              </button>
+            {/* ✅ NEW: Loot Offer Section */}
+            <div className="space-y-4 p-4 bg-yellow-500/5 rounded-xl border border-yellow-500/20">
+              <h3 className="text-sm font-bold text-yellow-400 flex items-center gap-2">
+                <Gift className="w-4 h-4" />
+                Hub Loot Reward
+              </h3>
+
+              {/* Loot Type */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                  Reward Type *
+                </label>
+                <select
+                  value={formData.lootType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lootType: e.target.value })
+                  }
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-yellow-500 focus:outline-none cursor-pointer [&>option]:bg-gray-900 [&>option]:text-white"
+                  required
+                >
+                  <option value="discount">💰 Discount</option>
+                  <option value="freebie">🎁 Freebie</option>
+                  <option value="bogo">🔄 Buy 1 Get 1</option>
+                </select>
+              </div>
+
+              {/* Loot Value */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                  Reward Value *
+                </label>
+                <input
+                  type="text"
+                  value={formData.lootValue}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lootValue: e.target.value })
+                  }
+                  placeholder="e.g., 15% or Free Coffee"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              {/* Loot Description */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                  Reward Description *
+                </label>
+                <input
+                  type="text"
+                  value={formData.lootDescription}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      lootDescription: e.target.value,
+                    })
+                  }
+                  placeholder="e.g., 15% off on your entire bill"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              {/* Terms */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                  Terms & Conditions (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.lootTerms}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lootTerms: e.target.value })
+                  }
+                  placeholder="e.g., Valid on bills above ₹200"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
             </div>
           </form>
+
+          {/* Actions - Fixed at bottom */}
+          <div className="flex gap-3 p-6 pt-4 border-t border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="edit-hub-form"
+              className="flex-1 px-6 py-3 bg-neon-purple hover:bg-purple-600 rounded-xl text-white font-bold transition flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              Save Changes
+            </button>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

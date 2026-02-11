@@ -394,13 +394,7 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Suspense fallback={<QuestBoardSkeleton />}>
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        <QuestBoard />
-                      </motion.div>
+                      <QuestBoard />
                     </Suspense>
                   </ProtectedRoute>
                 }
@@ -410,13 +404,7 @@ function App() {
                 path="/quest/:id"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                    >
-                      <QuestDetails />
-                    </motion.div>
+                    <QuestDetails />
                   </BanRestrictedRoute>
                 }
               />
@@ -425,13 +413,7 @@ function App() {
                 path="/create-quest"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, y: 50 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -50 }}
-                    >
-                      <CreateQuest />
-                    </motion.div>
+                    <CreateQuest />
                   </BanRestrictedRoute>
                 }
               />
@@ -440,13 +422,7 @@ function App() {
                 path="/lobby/:id"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, y: 50 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -50 }}
-                    >
-                      <Lobby />
-                    </motion.div>
+                    <Lobby />
                   </BanRestrictedRoute>
                 }
               />
@@ -455,13 +431,7 @@ function App() {
                 path="/verify/:id"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.1 }}
-                    >
-                      <Verification />
-                    </motion.div>
+                    <Verification />
                   </BanRestrictedRoute>
                 }
               />
@@ -470,13 +440,7 @@ function App() {
                 path="/review/:id"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <Review />
-                    </motion.div>
+                    <Review />
                   </BanRestrictedRoute>
                 }
               />
@@ -485,13 +449,7 @@ function App() {
                 path="/my-missions"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, y: 50 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -50 }}
-                    >
-                      <MyMissions />
-                    </motion.div>
+                    <MyMissions />
                   </BanRestrictedRoute>
                 }
               />
@@ -500,13 +458,7 @@ function App() {
                 path="/profile"
                 element={
                   <UserProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, x: -50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 50 }}
-                    >
-                      <Profile />
-                    </motion.div>
+                    <Profile />
                   </UserProtectedRoute>
                 }
               />
@@ -515,13 +467,7 @@ function App() {
                 path="/leaderboard"
                 element={
                   <ProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <Leaderboard />
-                    </motion.div>
+                    <Leaderboard />
                   </ProtectedRoute>
                 }
               />
@@ -530,13 +476,7 @@ function App() {
                 path="/competition/:id"
                 element={
                   <ProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                    >
-                      <CompetitionDetails />
-                    </motion.div>
+                    <CompetitionDetails />
                   </ProtectedRoute>
                 }
               />
@@ -545,13 +485,7 @@ function App() {
                 path="/journey"
                 element={
                   <ProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                    >
-                      <HeroJourney />
-                    </motion.div>
+                    <HeroJourney />
                   </ProtectedRoute>
                 }
               />
@@ -560,13 +494,7 @@ function App() {
                 path="/world-guide"
                 element={
                   <ProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                    >
-                      <WorldGuide />
-                    </motion.div>
+                    <WorldGuide />
                   </ProtectedRoute>
                 }
               />
@@ -575,13 +503,7 @@ function App() {
                 path="/shop"
                 element={
                   <BanRestrictedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                    >
-                      <ShopPage />
-                    </motion.div>
+                    <ShopPage />
                   </BanRestrictedRoute>
                 }
               />
@@ -590,42 +512,19 @@ function App() {
                 path="/settings"
                 element={
                   <UserProtectedRoute>
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                    >
-                      <Settings />
-                    </motion.div>
+                    <Settings />
                   </UserProtectedRoute>
                 }
               />
 
               {/* Vendor Routes */}
-              <Route
-                path="/vendor/login"
-                element={
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                  >
-                    <VendorLogin />
-                  </motion.div>
-                }
-              />
+              <Route path="/vendor/login" element={<VendorLogin />} />
 
               <Route
                 path="/vendor/dashboard"
                 element={
                   <ProtectedVendorRoute>
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                    >
-                      <VendorDashboard />
-                    </motion.div>
+                    <VendorDashboard />
                   </ProtectedVendorRoute>
                 }
               />
@@ -635,13 +534,7 @@ function App() {
                 path="/hub/signup"
                 element={
                   <AdminRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                    >
-                      <HubSignup />
-                    </motion.div>
+                    <HubSignup />
                   </AdminRoute>
                 }
               />
@@ -651,13 +544,7 @@ function App() {
                 path="/secret-admin"
                 element={
                   <AdminRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                    >
-                      <AdminDashboard />
-                    </motion.div>
+                    <AdminDashboard />
                   </AdminRoute>
                 }
               />
@@ -667,13 +554,7 @@ function App() {
                 path="/admin/manage-hubs"
                 element={
                   <AdminRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                    >
-                      <ManageHubs />
-                    </motion.div>
+                    <ManageHubs />
                   </AdminRoute>
                 }
               />
@@ -682,13 +563,7 @@ function App() {
                 path="/admin"
                 element={
                   <AdminRoute>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                    >
-                      <AdminCompetition />
-                    </motion.div>
+                    <AdminCompetition />
                   </AdminRoute>
                 }
               />

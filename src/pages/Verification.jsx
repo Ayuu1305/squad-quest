@@ -332,6 +332,7 @@ const Verification = () => {
               xpGained={lootData?.xp || 0}
               reliabilityGain={1}
               wasShowdown={lootData?.wasShowdown}
+              hub={hub} // ✅ Pass hub data for loot reveal
               onClose={handleMissionClose}
             />
           )}

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Zap,
+  Gift, // ✅ NEW: For loot display
 } from "lucide-react";
 
 const MissionAccomplished = ({
@@ -21,6 +22,7 @@ const MissionAccomplished = ({
   newLevel = 5,
   onClose,
   wasShowdown = null,
+  hub = null, // ✅ NEW: Hub data for loot reveal
 }) => {
   const overlayRef = useRef(null);
   const canvasRef = useRef(null);
@@ -112,7 +114,7 @@ const MissionAccomplished = ({
               ease: "sine.inOut",
             });
           },
-        }
+        },
       );
 
       // 3. Sunburst Rotation
@@ -138,7 +140,7 @@ const MissionAccomplished = ({
         setTimeout(() => setShowRankAura(true), 3000);
       }
     },
-    { scope: overlayRef }
+    { scope: overlayRef },
   );
 
   const handleContinue = () => {
@@ -172,7 +174,7 @@ const MissionAccomplished = ({
         color: "text-red-500 font-black italic tracking-widest",
         highlight: true,
         delay: 1.6,
-      }
+      },
     );
   } else {
     // Standard Display
@@ -194,12 +196,15 @@ const MissionAccomplished = ({
       delay: activeShowdown ? 2.0 : 1.4,
     },
     {
-      label: "Status",
-      val: "Verified",
-      icon: <CheckCircle2 className="text-blue-400" />,
-      color: "text-blue-400",
+      label: "🎁 REWARD UNLOCKED",
+      val: hub?.loot?.value || "Hub Discount",
+      description: hub?.loot?.description,
+      terms: hub?.loot?.terms,
+      icon: <Gift className="text-yellow-400 fill-current" />,
+      color: "text-yellow-400",
       delay: activeShowdown ? 2.2 : 1.6,
-    }
+      isLoot: true, // ✅ Special flag for different rendering
+    },
   );
 
   return (
@@ -299,33 +304,51 @@ const MissionAccomplished = ({
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: reward.delay }}
-                className={`glassmorphism-dark p-4 rounded-2xl flex items-center justify-between border hover:border-white/10 transition-all ${
+                className={`glassmorphism-dark p-4 rounded-2xl flex flex-col border ${
                   reward.highlight
-                    ? "border-red-500/50 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                    : "border-white/5"
+                    ? "border-red-500/50 bg-red-500/10"
+                    : reward.isLoot
+                      ? "border-yellow-500/30 bg-yellow-500/5"
+                      : "border-white/5"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-xl ${
-                      reward.highlight ? "bg-red-500/20" : "bg-white/5"
-                    }`}
-                  >
-                    {reward.icon}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-2 rounded-xl ${
+                        reward.isLoot ? "bg-yellow-500/20" : "bg-white/5"
+                      }`}
+                    >
+                      {reward.icon}
+                    </div>
+                    <span
+                      className={`text-xs font-bold uppercase ${
+                        reward.highlight ? "text-red-400" : "text-gray-400"
+                      }`}
+                    >
+                      {reward.label}
+                    </span>
                   </div>
                   <span
-                    className={`text-xs font-bold uppercase ${
-                      reward.highlight ? "text-red-400" : "text-gray-400"
-                    }`}
+                    className={`text-lg font-black font-mono ${reward.color}`}
                   >
-                    {reward.label}
+                    {reward.val}
                   </span>
                 </div>
-                <span
-                  className={`text-lg font-black font-mono ${reward.color}`}
-                >
-                  {reward.val}
-                </span>
+
+                {/* ✅ NEW: Show loot description */}
+                {reward.isLoot && reward.description && (
+                  <div className="mt-2 pt-2 border-t border-yellow-500/20">
+                    <p className="text-xs text-gray-300">
+                      {reward.description}
+                    </p>
+                    {reward.terms && (
+                      <p className="text-[9px] text-gray-500 mt-1">
+                        *{reward.terms}
+                      </p>
+                    )}
+                  </div>
+                )}
               </motion.div>
             ))}
 

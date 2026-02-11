@@ -155,6 +155,7 @@ import {
   acknowledgeViolation,
 } from "./controllers/userController.js"; // ✅ Added acknowledgeViolation
 import { verifyToken } from "./middleware/auth.js";
+import { requireAdmin } from "./middleware/isAdmin.js";
 import { initArchiver } from "./jobs/questArchiver.js";
 import { initCronJobs } from "./services/cronService.js"; // ✅ Weekly Reset Scheduler
 import {
@@ -183,9 +184,24 @@ app.get("/api/shop/redemptions", verifyToken, getUserRedemptions);
 
 // 🔧 Migration Routes
 
-app.post("/api/admin/fix-lifetime-xp", verifyToken, fixLifetimeXP); // Admin only
-app.post("/api/admin/sync-inventory-badges", verifyToken, syncInventoryBadges); // Admin only
-app.post("/api/admin/sync-public-avatars", verifyToken, syncPublicAvatars); // Admin only
+app.post(
+  "/api/admin/fix-lifetime-xp",
+  verifyToken,
+  requireAdmin,
+  fixLifetimeXP,
+); // Admin only
+app.post(
+  "/api/admin/sync-inventory-badges",
+  verifyToken,
+  requireAdmin,
+  syncInventoryBadges,
+); // Admin only
+app.post(
+  "/api/admin/sync-public-avatars",
+  verifyToken,
+  requireAdmin,
+  syncPublicAvatars,
+); // Admin only
 app.post("/api/admin/reset-weekly-xp", adminForceReset); // ✅ Manual Reset (Secret protected)
 
 // 🔥 Streak Management
