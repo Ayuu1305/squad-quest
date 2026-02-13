@@ -20,6 +20,7 @@ import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import HeroAvatar from "./HeroAvatar";
 import { getTier } from "../utils/xp";
+import toast from "react-hot-toast";
 
 // 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
 const safeDate = (dateInput) => {
@@ -135,6 +136,15 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
   };
 
   const handleLeaveClick = () => {
+    // Prevent leaving if mission is already completed
+    if (isReadOnly) {
+      toast.error("You already completed this mission! 🎉", {
+        icon: "✅",
+        duration: 3000,
+      });
+      return;
+    }
+
     if (isOneHour) {
       setShowLeaveWarning(true);
     } else {
@@ -260,7 +270,11 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
                     >
                       <Clock className="w-2.5 h-2.5" />
                       {msg.createdAt?.toDate
-                        ? msg.createdAt.toDate().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })
+                        ? msg.createdAt.toDate().toLocaleTimeString("en-IN", {
+                            timeZone: "Asia/Kolkata",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : "Syncing..."}
                     </div>
                   </div>
@@ -299,10 +313,15 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
         </div>
         <button
           onClick={handleLeaveClick}
-          className="w-full text-xs text-red-400 hover:text-red-300 transition-colors flex items-center justify-center gap-1"
+          disabled={isReadOnly}
+          className={`w-full text-xs flex items-center justify-center gap-1 transition-colors ${
+            isReadOnly
+              ? "text-gray-600 cursor-not-allowed opacity-50"
+              : "text-red-400 hover:text-red-300"
+          }`}
         >
           <AlertTriangle className="w-3 h-3" />
-          Leave Quest
+          {isReadOnly ? "Mission Completed" : "Leave Quest"}
         </button>
       </div>
 

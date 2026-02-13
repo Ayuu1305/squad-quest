@@ -24,7 +24,7 @@ export const subscribeToSquadChat = (questId, callback) => {
   loadFirebase().then(({ db, collection, query, orderBy, onSnapshot }) => {
     const q = query(
       collection(db, "quests", questId, "chat"),
-      orderBy("createdAt", "asc")
+      orderBy("createdAt", "asc"),
     );
 
     unsubscribe = onSnapshot(
@@ -40,12 +40,11 @@ export const subscribeToSquadChat = (questId, callback) => {
       (error) => {
         console.error(
           `Error subscribing to squad chat for quest ${questId}:`,
-          error
+          error,
         );
-      }
+      },
     );
   });
 
   return () => unsubscribe && unsubscribe();
 };
-

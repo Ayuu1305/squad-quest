@@ -40,6 +40,7 @@ const CyberGridBackground = lazy(
 );
 import QuestBoardSkeleton from "../components/skeletons/QuestBoardSkeleton";
 import QuestCardSkeleton from "../components/skeletons/QuestCardSkeleton";
+import toast from "react-hot-toast";
 
 // 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
 // Safari rejects formats like "2024-02-12 10:00 PM" → returns Invalid Date
@@ -578,37 +579,78 @@ const QuestBoard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-40">
               <AnimatePresence mode="popLayout">
                 {filteredQuests.length > 0 ? (
-                  filteredQuests.map((quest) => (
-                    <motion.div
-                      key={quest.id}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{
-                        opacity: 0,
-                        scale: 0.95,
-                        transition: { duration: 0.2 },
-                      }}
-                    >
-                      {isTemporarilyBanned ? (
-                        <div className="block cursor-not-allowed">
-                          <Suspense fallback={<QuestCardSkeleton />}>
-                            <QuestCard
-                              quest={quest}
-                              hub={null}
-                              isBanned={true}
-                            />
-                          </Suspense>
-                        </div>
-                      ) : (
-                        <Link to={`/quest/${quest.id}`} className="block">
-                          <Suspense fallback={<QuestCardSkeleton />}>
-                            <QuestCard quest={quest} hub={null} />
-                          </Suspense>
-                        </Link>
-                      )}
-                    </motion.div>
-                  ))
+                  filteredQuests.map((quest) => {
+                    // 🔒 Level Gating - Check if quest is locked for this user
+                    const THREAT_LEVEL_REQUIREMENTS = {
+                      1: 0,
+                      2: 10,
+                      3: 25,
+                      4: 40,
+                      5: 50,
+                    };
+                    const requiredLevel =
+                      THREAT_LEVEL_REQUIREMENTS[quest.difficulty || 1] || 0;
+                    const userLevel = user?.level || 1;
+                    const isHost = quest.hostId === user?.uid; // Host always has access
+                    const isLocked = !isHost && userLevel < requiredLevel; // Only lock if NOT host AND level too low
+
+                    return (
+                      <motion.div
+                        key={quest.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.95,
+                          transition: { duration: 0.2 },
+                        }}
+                      >
+                        {isTemporarilyBanned ? (
+                          <div className="block cursor-not-allowed">
+                            <Suspense fallback={<QuestCardSkeleton />}>
+                              <QuestCard
+                                quest={quest}
+                                hub={null}
+                                isBanned={true}
+                              />
+                            </Suspense>
+                          </div>
+                        ) : isLocked ? (
+                          // 🔒 Locked Quest - Prevent Navigation
+                          <div
+                            onClick={() => {
+                              toast.error(
+                                `🔒 Clearance Denied: You need to be Level ${requiredLevel} to join this mission.`,
+                                {
+                                  icon: "🔒",
+                                  style: {
+                                    borderRadius: "10px",
+                                    background: "#1a1a2e",
+                                    color: "#fff",
+                                    border: "1px solid #ef4444",
+                                  },
+                                  duration: 4000,
+                                },
+                              );
+                            }}
+                            className="block cursor-not-allowed"
+                          >
+                            <Suspense fallback={<QuestCardSkeleton />}>
+                              <QuestCard quest={quest} hub={null} />
+                            </Suspense>
+                          </div>
+                        ) : (
+                          // ✅ Unlocked Quest - Normal Navigation
+                          <Link to={`/quest/${quest.id}`} className="block">
+                            <Suspense fallback={<QuestCardSkeleton />}>
+                              <QuestCard quest={quest} hub={null} />
+                            </Suspense>
+                          </Link>
+                        )}
+                      </motion.div>
+                    );
+                  })
                 ) : (
                   <div className="md:col-span-2 py-16 glassmorphism-dark rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-neon-purple/5 rounded-full flex items-center justify-center mb-4">

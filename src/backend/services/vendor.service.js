@@ -204,7 +204,10 @@ export const getVendorMissionStats = async (hubId, timeRange = "week") => {
         break;
     }
 
-    stats.totalExpectedGuests += data.maxPlayers || 0;
+    // ✅ Use actual member count, not max capacity
+    const actualMembers =
+      data.members?.length || data.membersCount || data.currentPlayers || 0;
+    stats.totalExpectedGuests += actualMembers;
   });
 
   stats.averageGroupSize =
@@ -325,12 +328,37 @@ export const notifyVendorOfNewMission = async (questData) => {
       vendor.id,
     );
 
-    // TODO: Send FCM push notification (only if vendor has FCM enabled)
-    // This is optional and won't block in-app notifications
-    if (vendor.notificationPreferences?.fcm && vendor.fcmToken) {
-      console.log(
-        "📱 [VENDOR NOTIFY] FCM enabled for vendor, push notification would be sent here",
-      );
+    // 📱 Send actual FCM push notification via backend API
+    if (vendor.fcmToken) {
+      try {
+        const response = await fetch("/api/notifications/send-vendor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vendorId: vendor.id,
+            title: "🎯 New Mission Alert!",
+            body: `${questData.hostName} created "${questData.title}" at ${new Date(questData.startTime?.seconds * 1000 || questData.startTime).toLocaleString()}`,
+            data: {
+              type: "new_mission",
+              questId: questData.questId || "unknown",
+              hubId: questData.hubId,
+            },
+          }),
+        });
+
+        if (response.ok) {
+          console.log("✅ [VENDOR NOTIFY] FCM push sent successfully");
+        } else {
+          console.error(
+            "❌ [VENDOR NOTIFY] FCM push failed:",
+            await response.text(),
+          );
+        }
+      } catch (error) {
+        console.error("❌ [VENDOR NOTIFY] FCM push error:", error);
+      }
+    } else {
+      console.log("⚠️ [VENDOR NOTIFY] No FCM token for vendor");
     }
 
     return true;

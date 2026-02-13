@@ -154,6 +154,10 @@ import {
   updateAvatar,
   acknowledgeViolation,
 } from "./controllers/userController.js"; // ✅ Added acknowledgeViolation
+import {
+  sendUserNotification,
+  sendVendorNotification,
+} from "./controllers/notificationController.js"; // ✅ FCM Notifications
 import { verifyToken } from "./middleware/auth.js";
 import { requireAdmin } from "./middleware/isAdmin.js";
 import { initArchiver } from "./jobs/questArchiver.js";
@@ -176,6 +180,10 @@ app.get("/", (req, res) => {
 
 // 💰 Daily Bounty Route (with rate limiting + validation)
 app.post("/api/bounty/claim", verifyToken, bountyLimiter, claimBounty);
+
+// 🔔 Notification Routes
+app.post("/api/notifications/send", sendUserNotification); // User FCM
+app.post("/api/notifications/send-vendor", sendVendorNotification); // Vendor FCM
 
 // 🛒 Shop Routes
 app.post("/api/shop/buy", verifyToken, buyItem);

@@ -22,6 +22,7 @@ import {
   getVendorNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  updateVendorFCMToken,
 } from "../../backend/services/vendor.service";
 import { auth } from "../../backend/firebaseConfig";
 import VendorMissionCard from "../../components/vendor/VendorMissionCard";
@@ -117,6 +118,49 @@ const VendorDashboard = () => {
 
     fetchNotifications();
   }, [vendorProfile]);
+
+  // 🔔 Vendor FCM Token Registration (for push notifications)
+  useEffect(() => {
+    if (!vendorProfile?.id) return;
+
+    const setupVendorNotifications = async () => {
+      try {
+        // Check if notifications are supported
+        if (!("Notification" in window)) {
+          console.log("🔕 [Vendor FCM] Browser does not support notifications");
+          return;
+        }
+
+        // Request permission
+        if (Notification.permission !== "granted") {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") {
+            console.log("🔕 [Vendor FCM] Permission denied");
+            return;
+          }
+        }
+
+        // Get FCM token
+        const { getMessaging, getToken } = await import("firebase/messaging");
+        const messaging = getMessaging();
+        const currentToken = await getToken(messaging, {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        });
+
+        if (currentToken && vendorProfile.fcmToken !== currentToken) {
+          console.log("🔔 [Vendor FCM] Saving new token...");
+          await updateVendorFCMToken(vendorProfile.id, currentToken);
+          console.log("✅ [Vendor FCM] Token saved successfully");
+        } else if (currentToken) {
+          console.log("✅ [Vendor FCM] Token already registered");
+        }
+      } catch (error) {
+        console.error("❌ [Vendor FCM] Setup failed:", error);
+      }
+    };
+
+    setupVendorNotifications();
+  }, [vendorProfile?.id, vendorProfile?.fcmToken]);
 
   // Filter missions based on selected filter
   useEffect(() => {
