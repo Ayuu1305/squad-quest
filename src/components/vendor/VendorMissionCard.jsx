@@ -10,20 +10,42 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const VendorMissionCard = ({ mission }) => {
+const VendorMissionCard = ({
+  mission,
+  onComplete,
+  isManuallyCompleted = false,
+}) => {
   const startTime = new Date(
     mission.startTime?.seconds * 1000 || mission.startTime,
   );
   const now = new Date();
 
-  // Mission is past if it's marked completed OR if start time has passed and no one joined
-  const isPast =
-    mission.status === "completed" ||
-    (startTime < now && (!mission.membersCount || mission.membersCount === 0));
-  // Upcoming if start time hasn't arrived yet (regardless of status)
-  const isUpcoming = startTime > now;
-  // Active if status is active AND time has started
-  const isActive = mission.status === "active" && startTime <= now && !isPast;
+  // 🎯 REAL-TIME STATUS CALCULATION (ignores stale mission.status from Firestore)
+  // Get member count - prioritize members array, fallback to counts
+  const memberCount =
+    mission.members?.length ||
+    mission.currentPlayers ||
+    mission.membersCount ||
+    0;
+
+  // ⏰ AUTO-COMPLETE: Quests auto-complete 1 hour after start time
+  const oneHourAfterStart = new Date(startTime.getTime() + 60 * 60 * 1000);
+  const autoCompleted = now > oneHourAfterStart && memberCount > 0;
+
+  // Calculate actual status based on current time and quest data
+  // 🆕 Include vendor's manual completion
+  const isCompleted =
+    mission.status === "completed" || autoCompleted || isManuallyCompleted;
+  const hasExpired = startTime < now && memberCount === 0 && !isCompleted; // Started but no one joined
+  const isUpcoming = startTime > now && !isCompleted;
+  const isActive =
+    startTime <= now &&
+    memberCount > 0 &&
+    !isCompleted &&
+    now <= oneHourAfterStart;
+
+  // Combined "past" state for visual styling (dimmed appearance)
+  const isPast = isCompleted || hasExpired;
 
   // Calculate time until mission
   const getTimeUntil = () => {
@@ -45,12 +67,23 @@ const VendorMissionCard = ({ mission }) => {
 
   // Status badge component
   const StatusBadge = () => {
-    if (isPast) {
+    if (isCompleted) {
       return (
         <div className="flex items-center gap-1 px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full">
           <CheckCircle2 className="w-3 h-3 text-green-400" />
           <span className="text-xs font-bold text-green-400 uppercase">
             Completed
+          </span>
+        </div>
+      );
+    }
+
+    if (hasExpired) {
+      return (
+        <div className="flex items-center gap-1 px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full">
+          <AlertCircle className="w-3 h-3 text-red-400" />
+          <span className="text-xs font-bold text-red-400 uppercase">
+            Expired
           </span>
         </div>
       );
@@ -168,7 +201,11 @@ const VendorMissionCard = ({ mission }) => {
                 Expected Guests
               </p>
               <p className="text-sm font-bold text-white">
-                {mission.membersCount || 0} / {mission.maxPlayers} people
+                {mission.members?.length ||
+                  mission.currentPlayers ||
+                  mission.membersCount ||
+                  0}{" "}
+                / {mission.maxPlayers} people
               </p>
             </div>
           </div>
@@ -203,6 +240,17 @@ const VendorMissionCard = ({ mission }) => {
             )}
           </div>
         </div>
+
+        {/* Mark Complete Button (Only for active quests) */}
+        {isActive && onComplete && (
+          <button
+            onClick={() => onComplete(mission.id)}
+            className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] active:scale-95"
+          >
+            <CheckCircle2 className="w-4 h-4 inline mr-2" />
+            Mark as Complete
+          </button>
+        )}
       </div>
 
       {/* Active Mission Pulse Effect */}

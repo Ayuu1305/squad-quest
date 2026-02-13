@@ -6,6 +6,7 @@ import HeroAvatar from "./HeroAvatar";
 import Confetti from "react-confetti";
 
 import { useAuth } from "../context/AuthContext";
+import { safeLocalStorage } from "../utils/safeStorage";
 
 const HallOfFameIntro = ({ onComplete }) => {
   const [winners, setWinners] = useState([]);
@@ -47,6 +48,30 @@ const HallOfFameIntro = ({ onComplete }) => {
       onComplete();
     }
   }, [step, onComplete]);
+
+  const handleComplete = async () => {
+    try {
+      const { doc, setDoc } = await import("firebase/firestore");
+      // Save to Firestore
+      await setDoc(
+        doc(db, "users", user.uid),
+        { hasSeenHallOfFameIntro: true },
+        { merge: true },
+      );
+
+      // Save to localStorage
+      safeLocalStorage.setItem(
+        "hof_intro_seen",
+        JSON.stringify({ uid: user.uid, timestamp: Date.now() }),
+      );
+
+      console.log("✅ Hall of Fame intro completed");
+      setStep(3); // Trigger onComplete via useEffect
+    } catch (error) {
+      console.error("Failed to save HoF completion:", error);
+      setStep(3); // Continue anyway
+    }
+  };
 
   if (loading) return null;
 
@@ -189,19 +214,7 @@ const HallOfFameIntro = ({ onComplete }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 3 }}
-                onClick={() => {
-                  // ✅ CRITICAL FIX: Save to localStorage IMMEDIATELY before any state changes
-                  localStorage.setItem(
-                    "hallOfFameLastSeen",
-                    Date.now().toString(),
-                  );
-                  console.log(
-                    "✅ Hall of Fame intro completed - saved to localStorage",
-                  );
-
-                  // Now close the intro
-                  setStep(3);
-                }}
+                onClick={handleComplete}
                 className="mt-12 px-8 py-4 bg-white text-black font-black uppercase tracking-[0.2em] rounded-full hover:bg-gray-200 transition-colors"
               >
                 Enter The Arena

@@ -31,6 +31,9 @@ export const onboardHero = async (user, provider = "email") => {
           `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
         city: "Ahmedabad", // Default
 
+        // 🎯 ROLE-BASED AUTH: Assign role for access control
+        role: "user", // NEW: "user" or "vendor" (vendors set via vendor signup)
+
         // 🚨 TRUST SCORING: Track auth method
         authProvider: provider, // "email" or "google.com"
         emailVerified: user.emailVerified || false,
@@ -134,7 +137,8 @@ export const signUpWithEmail = async (email, password, name) => {
 };
 
 export const signInWithEmail = async (email, password) => {
-  const { auth, signInWithEmailAndPassword } = await loadFirebase();
+  const { auth, signInWithEmailAndPassword, db, doc, getDoc } =
+    await loadFirebase();
 
   const userCredential = await signInWithEmailAndPassword(
     auth,
@@ -149,6 +153,16 @@ export const signInWithEmail = async (email, password) => {
     // If not verified, we sign them out immediately to prevent session creation
     await auth.signOut();
     throw new Error("EMAIL_NOT_VERIFIED");
+  }
+
+  // 🎯 ROLE-BASED AUTH: Check if user has correct role
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  const userData = userDoc.data();
+
+  // Block vendors from user login (unless admin)
+  if (userData?.role === "vendor" && !userData?.isAdmin) {
+    await auth.signOut();
+    throw new Error("VENDOR_ACCOUNT");
   }
 
   return user;

@@ -1,7 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { X, Save } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  Timestamp,
+} from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
 
@@ -155,7 +161,7 @@ const EditQuestModal = ({
     const updates = {
       ...formData,
       roomCode: formData.secretCode,
-      startTime: startTimeDate, // ✅ Correct Local Date
+      startTime: startTimeDate, // ✅ Send Date object, backend converts to Timestamp
     };
 
     onSave(updates);

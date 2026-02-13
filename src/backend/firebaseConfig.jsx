@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
@@ -19,24 +19,9 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 const functions = getFunctions(app);
 
-// 🚀 PERFORMANCE: Enable Firestore persistence during browser idle time
-if (typeof window !== "undefined") {
-  if ("requestIdleCallback" in window) {
-    requestIdleCallback(
-      () => {
-        enableIndexedDbPersistence(db).catch(() => {});
-      },
-      { timeout: 3000 }
-    );
-  } else {
-    // Fallback for older browsers
-    setTimeout(() => {
-      enableIndexedDbPersistence(db).catch(() => {});
-    }, 2000);
-  }
-}
-
+// ⚠️ PERSISTENCE DISABLED FOR iOS COMPATIBILITY
+// enableIndexedDbPersistence() causes Safari/iOS deadlocks, especially in PWA mode.
+// Firestore works perfectly in memory-only mode with real-time listeners.
+// Data will re-sync on page refresh (acceptable tradeoff for stability).
 
 export { auth, db, googleProvider, functions };
-
-

@@ -22,6 +22,16 @@ import { db } from "../backend/firebaseConfig";
 import { isShowdownActive } from "../utils/showdownUtils";
 import VibeReview from "../components/VibeReview";
 
+// 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
+const safeDate = (dateInput) => {
+  if (!dateInput) return new Date();
+  if (dateInput.toDate) return dateInput.toDate();
+  if (typeof dateInput === "string") {
+    return new Date(dateInput.replace(/-/g, "/"));
+  }
+  return new Date(dateInput);
+};
+
 const Verification = () => {
   const { id } = useParams(); // questId
   const navigate = useNavigate();
@@ -196,9 +206,7 @@ const Verification = () => {
     const hasPhoto = !!photoData;
 
     // timing logic
-    const startTime = quest.startTime?.toDate
-      ? quest.startTime.toDate()
-      : new Date(quest.startTime);
+    const startTime = safeDate(quest.startTime);
 
     const now = new Date();
     const timeDiffMins = Math.abs(now - startTime) / (1000 * 60);

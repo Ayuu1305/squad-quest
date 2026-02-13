@@ -91,6 +91,19 @@ export const deleteHub = async (hubId) => {
 };
 
 /**
+ * Mark quest as completed (vendor manual completion)
+ */
+export const markQuestComplete = async (questId) => {
+  const { db, doc, updateDoc, serverTimestamp } = await loadFirebase();
+  const questRef = doc(db, "quests", questId);
+
+  await updateDoc(questRef, {
+    status: "completed",
+    completedAt: serverTimestamp(),
+  });
+};
+
+/**
  * Subscribe to missions for a specific vendor's hub
  * Real-time listener for vendor dashboard
  */
@@ -212,6 +225,8 @@ export const createVendorAccount = async (vendorData) => {
   const vendorRef = doc(db, "vendors", vendorId);
 
   await setDoc(vendorRef, {
+    role: "vendor",
+    uid: vendorId, // Good practice to store UID inside the doc too
     email: vendorData.email,
     hubId: vendorData.hubId,
     hubName: vendorData.hubName,

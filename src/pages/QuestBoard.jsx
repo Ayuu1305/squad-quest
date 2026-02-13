@@ -41,6 +41,24 @@ const CyberGridBackground = lazy(
 import QuestBoardSkeleton from "../components/skeletons/QuestBoardSkeleton";
 import QuestCardSkeleton from "../components/skeletons/QuestCardSkeleton";
 
+// 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
+// Safari rejects formats like "2024-02-12 10:00 PM" → returns Invalid Date
+// This helper ensures all dates work across iOS, Android, and desktop
+const safeDate = (dateInput) => {
+  if (!dateInput) return new Date(); // Fallback to "now" to prevent crash
+
+  // If it's already a Firestore Timestamp (has toDate method)
+  if (dateInput.toDate) return dateInput.toDate();
+
+  // If it's a string, fix the format for Safari (replace dashes with slashes)
+  if (typeof dateInput === "string") {
+    return new Date(dateInput.replace(/-/g, "/"));
+  }
+
+  // Otherwise, try direct conversion
+  return new Date(dateInput);
+};
+
 const QuestBoard = () => {
   const { city } = useGame();
   const { user } = useAuth();
@@ -240,9 +258,7 @@ const QuestBoard = () => {
         // Hide quests that have ended (assuming 2h duration buffer)
         let isExpired = false;
         if (quest.startTime) {
-          const startTimeObj = quest.startTime?.toDate
-            ? quest.startTime.toDate()
-            : new Date(quest.startTime);
+          const startTimeObj = safeDate(quest.startTime);
 
           if (!isNaN(startTimeObj.getTime())) {
             const expiryTime = new Date(startTimeObj.getTime()); // Vanish at Start Time
@@ -418,7 +434,7 @@ const QuestBoard = () => {
                     Operative Status
                   </span>
                   <div className="bg-black/40 backdrop-blur-md border border-neon-purple/50 rounded-xl px-4 py-2 text-sm font-black text-neon-purple italic shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                    {(user?.lifetimeXP || 0).toLocaleString()} XP
+                    {(user?.lifetimeXP || 0).toLocaleString("en-IN")} XP
                   </div>
                 </div>
               </header>

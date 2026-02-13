@@ -544,25 +544,29 @@ const CardPreviewModal = ({
   );
 };
 
-const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
-  const { inventory, equippedFrame, equipFrame } = useGame();
-  // Default to "overview" for new users (Level 1, 0 XP)
-  const isNewUser =
-    (user?.level === 1 || !user?.level) && (user?.xp === 0 || !user?.xp);
-  const [activeTab, setActiveTab] = useState(
-    isNewUser ? "overview" : "dashboard",
-  );
-  const [showGuide, setShowGuide] = useState(false);
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { safeLocalStorage } from "../utils/safeStorage";
+
+const HeroProfile = ({ onEditAvatar }) => {
+  const { user, isLoading } = useAuth();
+  const { city, inventory, equippedFrame, equipFrame } = useGame();
+  const navigate = useNavigate();
+  const cardRef = useRef(null);
+  const stealthCardRef = useRef(null);
+  const [profileQR, setProfileQR] = useState("");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBorderModal, setShowBorderModal] = useState(false);
-
-  useEffect(() => {
-    const hasSeen = localStorage.getItem("squad_quest_guide_seen");
+  const [showBorderSelector, setShowBorderSelector] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => {
+    const hasSeen = safeLocalStorage.getItem("squad_quest_guide_seen");
     if (!hasSeen) {
-      setShowGuide(true);
-      localStorage.setItem("squad_quest_guide_seen", "true");
+      safeLocalStorage.setItem("squad_quest_guide_seen", "true");
+      return true;
     }
-  }, []);
+    return false;
+  });
 
   // Loading State
   if (!user) {
@@ -1180,7 +1184,9 @@ const HeroProfile = ({ user, onEdit, onEditAvatar }) => {
                 <div className="col-span-2 lg:col-span-1">
                   <HeroicStatItem
                     label="Total XP"
-                    value={(user.lifetimeXP || user.xp || 0).toLocaleString()}
+                    value={(user.lifetimeXP || user.xp || 0).toLocaleString(
+                      "en-US",
+                    )}
                     sublabel="Lifetime"
                     icon={Zap}
                     color="yellow"

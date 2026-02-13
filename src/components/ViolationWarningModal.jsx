@@ -62,17 +62,23 @@ const ViolationWarningModal = ({ violations, onAcknowledge }) => {
 
     // Firestore Timestamp object (has toDate method)
     if (timestamp?.toDate) {
-      return timestamp.toDate().toLocaleDateString();
+      return timestamp
+        .toDate()
+        .toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
     }
 
     // Firestore Timestamp with seconds property
     if (timestamp?.seconds) {
-      return new Date(timestamp.seconds * 1000).toLocaleDateString();
+      return new Date(timestamp.seconds * 1000).toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      });
     }
 
     // Regular Date object or ISO string
     try {
-      return new Date(timestamp).toLocaleDateString();
+      return new Date(timestamp).toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      });
     } catch (e) {
       return "Unknown date";
     }

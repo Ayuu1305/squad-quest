@@ -23,7 +23,7 @@ const LeaderboardItem = ({
     switch (category) {
       case "weekly":
         return {
-          value: (hero.thisWeekXP || 0).toLocaleString(),
+          value: (hero.thisWeekXP || 0).toLocaleString("en-IN"),
           label: "Weekly XP",
           color: "text-neon-purple",
         };
@@ -38,7 +38,7 @@ const LeaderboardItem = ({
         const totalXP = hero.lifetimeXP || hero.xp || 0;
 
         return {
-          value: totalXP.toLocaleString(),
+          value: totalXP.toLocaleString("en-IN"),
           label: "Total XP",
           color: tier.color,
         };

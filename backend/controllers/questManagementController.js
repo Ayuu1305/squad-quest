@@ -1,5 +1,5 @@
 import { db } from "../server.js";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 /**
  * DELETE QUEST - Host only
@@ -149,6 +149,24 @@ export const editQuest = async (req, res) => {
 
     // 3. Add updatedAt timestamp
     filteredUpdates.updatedAt = FieldValue.serverTimestamp();
+
+    // 🍎 iOS SAFETY: Convert startTime to Firestore Timestamp if present
+    if (filteredUpdates.startTime) {
+      // Handle different date formats: Date object, ISO string, or Timestamp
+      if (filteredUpdates.startTime.toDate) {
+        // Already a Timestamp, keep it
+      } else if (filteredUpdates.startTime instanceof Date) {
+        // JavaScript Date object
+        filteredUpdates.startTime = Timestamp.fromDate(
+          filteredUpdates.startTime,
+        );
+      } else {
+        // Assume ISO string or milliseconds
+        filteredUpdates.startTime = Timestamp.fromDate(
+          new Date(filteredUpdates.startTime),
+        );
+      }
+    }
 
     // 4. Update quest
     await questRef.update(filteredUpdates);

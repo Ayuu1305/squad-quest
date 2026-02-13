@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { TrendingUp, Users, Calendar, Clock } from "lucide-react";
 
-const VendorStats = ({ stats, loading }) => {
+const VendorStats = ({ stats, loading, manuallyCompletedCount = 0 }) => {
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -29,7 +29,8 @@ const VendorStats = ({ stats, loading }) => {
     },
     {
       label: "Open Missions",
-      value: stats.openMissions || 0,
+      // 🎯 Subtract manually completed quests from database count
+      value: Math.max(0, (stats.openMissions || 0) - manuallyCompletedCount),
       icon: Clock,
       color: "text-blue-400",
       bgColor: "bg-blue-500/10",

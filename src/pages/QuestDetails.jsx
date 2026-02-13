@@ -38,6 +38,16 @@ import EditQuestModal from "../components/EditQuestModal";
 import PendingRequests from "../components/PendingRequests"; // 🚨 NEW: Host approval UI
 import toast from "react-hot-toast";
 
+// 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
+const safeDate = (dateInput) => {
+  if (!dateInput) return new Date();
+  if (dateInput.toDate) return dateInput.toDate();
+  if (typeof dateInput === "string") {
+    return new Date(dateInput.replace(/-/g, "/"));
+  }
+  return new Date(dateInput);
+};
+
 const QuestDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -304,9 +314,7 @@ const QuestDetails = () => {
     );
   }
 
-  const startTimeObj = quest.startTime?.toDate
-    ? quest.startTime.toDate()
-    : new Date(quest.startTime);
+  const startTimeObj = safeDate(quest.startTime);
   const maxPlayers = quest.maxPlayers || 5;
   const isStarted = new Date() >= startTimeObj;
 

@@ -5,6 +5,7 @@ import gsap from "gsap";
 
 const MilestoneNode = ({ level, reward, isUnlocked, isCurrent, index }) => {
   const nodeRef = useRef(null);
+  const pulseRingRef = useRef(null);
 
   useEffect(() => {
     if (isCurrent && nodeRef.current) {
@@ -16,13 +17,16 @@ const MilestoneNode = ({ level, reward, isUnlocked, isCurrent, index }) => {
         ease: "sine.inOut",
       });
 
-      gsap.to(".pulse-ring", {
-        scale: 1.5,
-        opacity: 0,
-        duration: 2,
-        repeat: -1,
-        ease: "power2.out",
-      });
+      // 🍎 iOS SAFETY: Use ref instead of class selector + null check
+      if (pulseRingRef.current) {
+        gsap.to(pulseRingRef.current, {
+          scale: 1.5,
+          opacity: 0,
+          duration: 2,
+          repeat: -1,
+          ease: "power2.out",
+        });
+      }
     }
   }, [isCurrent]);
 
@@ -46,7 +50,10 @@ const MilestoneNode = ({ level, reward, isUnlocked, isCurrent, index }) => {
       {/* The 3D Holographic Chip */}
       <div className="relative group">
         {isCurrent && (
-          <div className="pulse-ring absolute inset-0 rounded-2xl border-2 border-neon-purple opacity-50 z-0" />
+          <div
+            ref={pulseRingRef}
+            className="pulse-ring absolute inset-0 rounded-2xl border-2 border-neon-purple opacity-50 z-0"
+          />
         )}
 
         <div

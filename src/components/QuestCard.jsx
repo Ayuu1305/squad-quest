@@ -6,6 +6,16 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useAuth } from "../context/AuthContext";
 
+// 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
+const safeDate = (dateInput) => {
+  if (!dateInput) return new Date();
+  if (dateInput.toDate) return dateInput.toDate();
+  if (typeof dateInput === "string") {
+    return new Date(dateInput.replace(/-/g, "/"));
+  }
+  return new Date(dateInput);
+};
+
 const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
   const { user } = useAuth();
 
@@ -121,9 +131,7 @@ const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
     if (capacityRatio >= 0.75 && capacityRatio < 1) return true;
 
     if (quest.startTime) {
-      const startTime = quest.startTime.toDate
-        ? quest.startTime.toDate()
-        : new Date(quest.startTime);
+      const startTime = safeDate(quest.startTime);
       const diffMins = (startTime - Date.now()) / 60000;
       if (diffMins <= 30 && diffMins > -120) return true;
     }
@@ -290,11 +298,7 @@ const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
             </div>
             <div className="text-xs font-mono font-bold text-white">
               {quest.startTime
-                ? new Date(
-                    quest.startTime.toDate
-                      ? quest.startTime.toDate()
-                      : quest.startTime,
-                  ).toLocaleTimeString([], {
+                ? safeDate(quest.startTime).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })

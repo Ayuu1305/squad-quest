@@ -35,7 +35,7 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
 
   const { user } = useAuth();
 
-  const handleGPSCheck = () => {
+  const handleGPSCheck = async () => {
     if (!user?.uid) {
       setGpsStatus("error");
       setPermissionError("Login required. Your session expired.");
@@ -45,11 +45,36 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
     setGpsStatus("checking");
     setPermissionError(null);
 
+    // 🍎 iOS SAFETY: Check if geolocation is supported
     if (!navigator.geolocation) {
       setGpsStatus("error");
       setPermissionError("Geolocation not supported by this browser.");
       return;
     }
+
+    // 🍎 iOS SAFETY: Check permission state if available (iOS 15.4+)
+    const checkPermission = async () => {
+      if (navigator.permissions) {
+        try {
+          const result = await navigator.permissions.query({
+            name: "geolocation",
+          });
+          if (result.state === "denied") {
+            setGpsStatus("error");
+            setPermissionError(
+              "Location permission denied. Enable in Settings.",
+            );
+            return false;
+          }
+        } catch (e) {
+          // Permission API not supported, continue with getCurrentPosition
+        }
+      }
+      return true;
+    };
+
+    const canProceed = await checkPermission();
+    if (!canProceed) return;
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {

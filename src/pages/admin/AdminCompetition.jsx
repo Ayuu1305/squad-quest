@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react"; // 👈 FIXED: Added useEffect
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  doc, 
-  Timestamp 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  setDoc,
+  updateDoc,
+  doc,
+  Timestamp,
 } from "firebase/firestore"; // 👈 FIXED: Combined all firestore imports
 import { db } from "../../backend/firebaseConfig";
 import toast from "react-hot-toast";
@@ -22,9 +22,12 @@ const ActiveWarsManager = () => {
   useEffect(() => {
     const fetchWars = async () => {
       try {
-        const q = query(collection(db, "competitions"), where("status", "==", "active"));
+        const q = query(
+          collection(db, "competitions"),
+          where("status", "==", "active"),
+        );
         const snap = await getDocs(q);
-        setActiveWars(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setActiveWars(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (error) {
         console.error("Error fetching active wars:", error);
       }
@@ -33,32 +36,48 @@ const ActiveWarsManager = () => {
   }, []);
 
   const handleEndWar = async (war) => {
-    if (!window.confirm(`Are you sure you want to END "${war.title}"? This will freeze scores.`)) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to END "${war.title}"? This will freeze scores.`,
+      )
+    )
+      return;
 
     const toastId = toast.loading("Snapshotting scores & heroes...");
 
     try {
       // 1. Calculate Final Scores AND Capture Top 3 Heroes for each college
-      const finalResults = await Promise.all(war.colleges.map(async (college) => {
-         const q = query(collection(db, "users"), where("college", "==", college));
-         const snap = await getDocs(q);
-         
-         // A. Calculate Total XP
-         const totalXP = snap.docs.reduce((sum, doc) => sum + (doc.data().thisWeekXP || 0), 0);
-         
-         // B. Get Top 3 Heroes for the Podium (Frozen Data)
-         const allStudents = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-         const topHeroes = allStudents
+      const finalResults = await Promise.all(
+        war.colleges.map(async (college) => {
+          const q = query(
+            collection(db, "users"),
+            where("college", "==", college),
+          );
+          const snap = await getDocs(q);
+
+          // A. Calculate Total XP
+          const totalXP = snap.docs.reduce(
+            (sum, doc) => sum + (doc.data().thisWeekXP || 0),
+            0,
+          );
+
+          // B. Get Top 3 Heroes for the Podium (Frozen Data)
+          const allStudents = snap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          const topHeroes = allStudents
             .sort((a, b) => (b.thisWeekXP || 0) - (a.thisWeekXP || 0))
             .slice(0, 3); // Keep top 3 for the podium
 
-         return { 
-             college, 
-             totalXP, 
-             studentCount: snap.size,
-             topHeroes: topHeroes // Saving the heroes forever!
-         };
-      }));
+          return {
+            college,
+            totalXP,
+            studentCount: snap.size,
+            topHeroes: topHeroes, // Saving the heroes forever!
+          };
+        }),
+      );
 
       // 2. Sort to find the winner (Highest XP first)
       finalResults.sort((a, b) => b.totalXP - a.totalXP);
@@ -68,14 +87,13 @@ const ActiveWarsManager = () => {
         status: "ended",
         finalStandings: finalResults, // Saving scores + heroes
         winner: finalResults[0].college,
-        endedAt: new Date()
+        endedAt: new Date(),
       });
 
       toast.success("War Ended & Scores Frozen! 🧊", { id: toastId });
-      
-      // Remove from list immediately
-      setActiveWars(prev => prev.filter(w => w.id !== war.id));
 
+      // Remove from list immediately
+      setActiveWars((prev) => prev.filter((w) => w.id !== war.id));
     } catch (error) {
       console.error(error);
       toast.error("Failed to end war", { id: toastId });
@@ -90,15 +108,24 @@ const ActiveWarsManager = () => {
         <Swords className="w-5 h-5 text-red-500" /> Active Battlefronts
       </h2>
       <div className="space-y-4">
-        {activeWars.map(war => (
-          <div key={war.id} className="bg-white/5 border border-white/10 p-4 rounded-xl flex justify-between items-center">
+        {activeWars.map((war) => (
+          <div
+            key={war.id}
+            className="bg-white/5 border border-white/10 p-4 rounded-xl flex justify-between items-center"
+          >
             <div>
               <h3 className="font-bold text-white text-sm">{war.title}</h3>
               <p className="text-xs text-gray-500 font-mono">
-                Ends: {war.endDate ? new Date(war.endDate.seconds * 1000).toLocaleDateString() : "N/A"}
+                Ends:{" "}
+                {war.endDate
+                  ? new Date(war.endDate.seconds * 1000).toLocaleDateString(
+                      "en-IN",
+                      { timeZone: "Asia/Kolkata" },
+                    )
+                  : "N/A"}
               </p>
             </div>
-            <button 
+            <button
               onClick={() => handleEndWar(war)}
               className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all border border-red-500/50 flex items-center gap-2"
             >
@@ -124,7 +151,12 @@ const AdminCompetition = () => {
   const handleCreateWar = async (e) => {
     e.preventDefault();
 
-    if (!formData.slug || !formData.title || !formData.colleges || !formData.endDate) {
+    if (
+      !formData.slug ||
+      !formData.title ||
+      !formData.colleges ||
+      !formData.endDate
+    ) {
       toast.error("All fields are required");
       return;
     }
@@ -151,10 +183,9 @@ const AdminCompetition = () => {
         colleges: "",
         endDate: "",
       });
-      
-      // Reload page to refresh the "Active Wars" list (simple fix)
-      window.location.reload(); 
 
+      // Reload page to refresh the "Active Wars" list (simple fix)
+      window.location.reload();
     } catch (error) {
       console.error("Error creating competition:", error);
       toast.error("Failed to create competition");

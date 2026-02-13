@@ -40,6 +40,13 @@ const Login = () => {
           "Verify your email before accessing the Hub.Check Spam Folder Too";
         setError(msg);
         toast.error(msg, { icon: "📧" });
+      } else if (err.message === "VENDOR_ACCOUNT") {
+        const msg = "This is a vendor account. Please use the Vendor Portal.";
+        setError(msg);
+        toast.error(msg, {
+          icon: "🏪",
+          duration: 5000,
+        });
       } else {
         const msg = "Authorization Failed: Invalid Credentials";
         setError(msg);

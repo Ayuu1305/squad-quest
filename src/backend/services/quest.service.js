@@ -25,7 +25,7 @@ export const createQuest = async (questData) => {
     ...questData,
     roomCode: roomCode || null,
     members: [questData.hostId], // Host is already a member
-    currentPlayers: 1, // Start with 1 player (the host)
+     membersCount: 1,
     status: "open",
     createdAt: serverTimestamp(),
   };

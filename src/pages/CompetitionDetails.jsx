@@ -38,13 +38,17 @@ const CompetitionDetails = () => {
   const [topMVPs, setTopMVPs] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
   const [isEnded, setIsEnded] = useState(false);
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
 
   // Update window size for confetti
   useEffect(() => {
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const handleResize = () =>
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -79,7 +83,7 @@ const CompetitionDetails = () => {
     return () => clearInterval(timer);
   }, [competitionData]);
 
-const fetchCompetitionData = async () => {
+  const fetchCompetitionData = async () => {
     try {
       const competitionDoc = await getDoc(doc(db, "competitions", id));
 
@@ -89,33 +93,34 @@ const fetchCompetitionData = async () => {
 
         // 🛑 NEW LOGIC: Check if we should show Frozen Data or Live Data
         if (data.status === "ended" && data.finalStandings) {
-            // 🧊 CASE 1: WAR IS OVER (Use Saved Snapshot)
-            // We do NOT call fetchCollegeScores() here. We use the saved array.
-            console.log("Loading Archived Season Data...");
-            
-            setIsEnded(true);
-            setCollegeScores(data.finalStandings);
+          // 🧊 CASE 1: WAR IS OVER (Use Saved Snapshot)
+          // We do NOT call fetchCollegeScores() here. We use the saved array.
+          console.log("Loading Archived Season Data...");
 
-            // Populate the Podium with the saved Top Heroes from the winner
-            if (data.finalStandings.length > 0 && data.finalStandings[0].topHeroes) {
-                setTopMVPs(data.finalStandings[0].topHeroes);
-            }
-            
-            setLoading(false); // Stop loading immediately
-            
+          setIsEnded(true);
+          setCollegeScores(data.finalStandings);
+
+          // Populate the Podium with the saved Top Heroes from the winner
+          if (
+            data.finalStandings.length > 0 &&
+            data.finalStandings[0].topHeroes
+          ) {
+            setTopMVPs(data.finalStandings[0].topHeroes);
+          }
+
+          setLoading(false); // Stop loading immediately
         } else {
-            // 🔥 CASE 2: WAR IS LIVE (Calculate Fresh Scores)
-            // We calculate scores from scratch using the Users collection
-            console.log("Calculating Live War Data...");
-            
-            fetchCollegeScores(data.colleges); // This function handles setLoading(false) internally
-            
-            // Visual check: Has the time run out?
-            if (data.endDate.toDate() < new Date()) {
-                setIsEnded(true);
-            }
-        }
+          // 🔥 CASE 2: WAR IS LIVE (Calculate Fresh Scores)
+          // We calculate scores from scratch using the Users collection
+          console.log("Calculating Live War Data...");
 
+          fetchCollegeScores(data.colleges); // This function handles setLoading(false) internally
+
+          // Visual check: Has the time run out?
+          if (data.endDate.toDate() < new Date()) {
+            setIsEnded(true);
+          }
+        }
       } else {
         console.error("Competition not found");
         setLoading(false);
@@ -138,7 +143,7 @@ const fetchCompetitionData = async () => {
           );
 
           const snapshot = await getDocs(q);
-          
+
           // ONLY Count thisWeekXP
           const totalXP = snapshot.docs.reduce(
             (sum, doc) => sum + (doc.data().thisWeekXP || 0),
@@ -178,9 +183,7 @@ const fetchCompetitionData = async () => {
           id: doc.id,
           ...doc.data(),
         }))
-        .sort(
-          (a, b) => (b.thisWeekXP || 0) - (a.thisWeekXP || 0),
-        )
+        .sort((a, b) => (b.thisWeekXP || 0) - (a.thisWeekXP || 0))
         .slice(0, 3);
 
       setTopMVPs(users);
@@ -201,9 +204,7 @@ const fetchCompetitionData = async () => {
           id: doc.id,
           ...doc.data(),
         }))
-        .sort(
-          (a, b) => (b.thisWeekXP || 0) - (a.thisWeekXP || 0),
-        )
+        .sort((a, b) => (b.thisWeekXP || 0) - (a.thisWeekXP || 0))
         .slice(0, 10);
 
       setTopHeroes((prev) => ({
@@ -244,7 +245,14 @@ const fetchCompetitionData = async () => {
   return (
     <div className="min-h-screen bg-slate-950 pb-32 pt-safe-top overflow-hidden">
       {/* 🎉 CONFETTI (Only if Ended) */}
-      {isEnded && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} />}
+      {isEnded && (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={500}
+        />
+      )}
 
       {/* 🟢 Live Indicator Header */}
       <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 px-4 py-3">
@@ -346,7 +354,7 @@ const fetchCompetitionData = async () => {
                     {topMVPs[0].name}
                   </div>
                   <div className="text-[9px] font-mono text-yellow-500/70 mb-1">
-                    {(topMVPs[0].thisWeekXP || 0).toLocaleString()} XP
+                    {(topMVPs[0].thisWeekXP || 0).toLocaleString("en-IN")} XP
                   </div>
                   <div className="h-20 w-24 bg-gradient-to-b from-yellow-500/20 to-transparent rounded-t-xl border-t border-yellow-500 backdrop-blur-sm flex justify-center pt-2 shadow-[0_-5px_20px_rgba(234,179,8,0.1)]">
                     <span className="text-lg font-black text-yellow-500">
@@ -433,9 +441,9 @@ const fetchCompetitionData = async () => {
                     </div>
                     {/* Winner Badge (Only if ended) */}
                     {isEnded && index === 0 && (
-                        <span className="text-[9px] bg-yellow-500 text-black font-black px-1.5 py-0.5 rounded w-fit">
-                            WINNER
-                        </span>
+                      <span className="text-[9px] bg-yellow-500 text-black font-black px-1.5 py-0.5 rounded w-fit">
+                        WINNER
+                      </span>
                     )}
                     {/* Student Count */}
                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-medium mt-0.5">
@@ -450,7 +458,7 @@ const fetchCompetitionData = async () => {
                 <div className="flex items-center gap-3 pl-2">
                   <div className="text-right">
                     <div className="text-sm font-black text-white font-mono tracking-tight">
-                      {college.totalXP.toLocaleString()}
+                      {college.totalXP.toLocaleString("en-IN")}
                     </div>
                     <div className="text-[9px] text-gray-600 font-bold uppercase">
                       Total XP
@@ -500,7 +508,7 @@ const fetchCompetitionData = async () => {
                               </div>
                             </div>
                             <div className="text-xs font-mono font-bold text-purple-400">
-                              +{(hero.thisWeekXP || 0).toLocaleString()}
+                              +{(hero.thisWeekXP || 0).toLocaleString("en-IN")}
                             </div>
                           </div>
                         ))

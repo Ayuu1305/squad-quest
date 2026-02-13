@@ -9,6 +9,7 @@ import {
   Zap,
   ShieldAlert,
 } from "lucide-react";
+import { safeLocalStorage, safeParse } from "../utils/safeStorage";
 import {
   subscribeToSquadChat,
   sendSquadMessage,
@@ -20,6 +21,16 @@ import { db } from "../backend/firebaseConfig";
 import HeroAvatar from "./HeroAvatar";
 import { getTier } from "../utils/xp";
 
+// 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
+const safeDate = (dateInput) => {
+  if (!dateInput) return new Date();
+  if (dateInput.toDate) return dateInput.toDate();
+  if (typeof dateInput === "string") {
+    return new Date(dateInput.replace(/-/g, "/"));
+  }
+  return new Date(dateInput);
+};
+
 const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
@@ -27,17 +38,15 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
   const [memberData, setMemberData] = useState({});
   const [members, setMembers] = useState([]); // Use state for members instead of prop
   const [mutedUsers, setMutedUsers] = useState(() => {
-    const saved = localStorage.getItem(`muted_${user.uid}`);
-    return saved ? JSON.parse(saved) : [];
+    const saved = safeLocalStorage.getItem(`muted_${user.uid}`);
+    return safeParse(saved, []);
   });
   const [reportModalData, setReportModalData] = useState(null); // { reportedUserId, reportedUserName }
   const [reportSuccess, setReportSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const chatEndRef = useRef(null);
 
-  const startTimeObj = quest.startTime?.toDate
-    ? quest.startTime.toDate()
-    : new Date(quest.startTime);
+  const startTimeObj = safeDate(quest.startTime);
   const isOneHour = isWithinOneHour(startTimeObj);
 
   useEffect(() => {
@@ -147,7 +156,7 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
       // Local Mute
       const newMuted = [...mutedUsers, reportModalData.reportedUserId];
       setMutedUsers(newMuted);
-      localStorage.setItem(`muted_${user.uid}`, JSON.stringify(newMuted));
+      safeLocalStorage.setItem(`muted_${user.uid}`, JSON.stringify(newMuted));
       setReportModalData(null);
       setReportSuccess(true);
       setTimeout(() => setReportSuccess(false), 3000);
@@ -251,10 +260,7 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
                     >
                       <Clock className="w-2.5 h-2.5" />
                       {msg.createdAt?.toDate
-                        ? msg.createdAt.toDate().toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                        ? msg.createdAt.toDate().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })
                         : "Syncing..."}
                     </div>
                   </div>

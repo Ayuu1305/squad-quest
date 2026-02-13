@@ -12,6 +12,9 @@ import {
   Calendar,
   Clock as ClockIcon,
   CheckCircle2,
+  Users,
+  Target,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   subscribeToVendorMissions,
@@ -38,6 +41,19 @@ const VendorDashboard = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [missionsLoading, setMissionsLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // 🎯 CLIENT-SIDE COMPLETION: Track manually completed quests in localStorage
+  const [manuallyCompleted, setManuallyCompleted] = useState(() => {
+    try {
+      const stored = localStorage.getItem("vendor_completed_quests");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // 🔄 SORTING: Client-side sort order
+  const [sortBy, setSortBy] = useState("date-desc"); // date-desc, date-asc, time-asc, time-desc
 
   // Redirect if not vendor
   useEffect(() => {
@@ -134,10 +150,18 @@ const VendorDashboard = () => {
       case "upcoming":
         setFilteredMissions(
           missions.filter((m) => {
+            if (manuallyCompleted.includes(m.id)) return false; // Hide manually completed
             const startTime = new Date(
               m.startTime?.seconds * 1000 || m.startTime,
             );
-            return startTime > now && m.status === "open";
+            const memberCount =
+              m.members?.length || m.currentPlayers || m.membersCount || 0;
+            const oneHourAfterStart = new Date(
+              startTime.getTime() + 60 * 60 * 1000,
+            );
+            const autoCompleted = now > oneHourAfterStart && memberCount > 0;
+            const isCompleted = m.status === "completed" || autoCompleted;
+            return startTime > now && !isCompleted;
           }),
         );
         break;
@@ -145,28 +169,45 @@ const VendorDashboard = () => {
       case "active":
         setFilteredMissions(
           missions.filter((m) => {
+            if (manuallyCompleted.includes(m.id)) return false; // Hide manually completed
             const startTime = new Date(
               m.startTime?.seconds * 1000 || m.startTime,
             );
-            // Active if status is active AND time has started AND not past with no players
-            const isPast =
-              m.status === "completed" ||
-              (startTime < now && (!m.membersCount || m.membersCount === 0));
-            return m.status === "active" && startTime <= now && !isPast;
+            const memberCount =
+              m.members?.length || m.currentPlayers || m.membersCount || 0;
+            const oneHourAfterStart = new Date(
+              startTime.getTime() + 60 * 60 * 1000,
+            );
+            const autoCompleted = now > oneHourAfterStart && memberCount > 0;
+            const isCompleted = m.status === "completed" || autoCompleted;
+            return (
+              startTime <= now &&
+              memberCount > 0 &&
+              !isCompleted &&
+              now <= oneHourAfterStart
+            );
           }),
         );
         break;
 
+      // AFTER (Completed Filter):
       case "completed":
         setFilteredMissions(
           missions.filter((m) => {
+            if (manuallyCompleted.includes(m.id)) return true; // Show manually completed
             const startTime = new Date(
               m.startTime?.seconds * 1000 || m.startTime,
             );
-            // Completed if status is completed OR if start time has passed with no participants
+            const memberCount =
+              m.members?.length || m.currentPlayers || m.membersCount || 0;
+            const oneHourAfterStart = new Date(
+              startTime.getTime() + 60 * 60 * 1000,
+            );
+            const autoCompleted = now > oneHourAfterStart && memberCount > 0;
             return (
               m.status === "completed" ||
-              (startTime < now && (!m.membersCount || m.membersCount === 0))
+              autoCompleted ||
+              (startTime < now && memberCount === 0)
             );
           }),
         );
@@ -175,7 +216,58 @@ const VendorDashboard = () => {
       default:
         setFilteredMissions(missions);
     }
-  }, [selectedFilter, missions]);
+  }, [selectedFilter, missions, manuallyCompleted]);
+
+  // 🔄 Apply sorting whenever filter or sort changes
+  useEffect(() => {
+    if (filteredMissions.length === 0) return;
+
+    const sortMissions = (missions) => {
+      const sorted = [...missions];
+      switch (sortBy) {
+        case "date-desc": // Newest first
+          return sorted.sort((a, b) => {
+            const timeA = new Date(a.startTime?.seconds * 1000 || a.startTime);
+            const timeB = new Date(b.startTime?.seconds * 1000 || b.startTime);
+            return timeB - timeA;
+          });
+        case "date-asc": // Oldest first
+          return sorted.sort((a, b) => {
+            const timeA = new Date(a.startTime?.seconds * 1000 || a.startTime);
+            const timeB = new Date(b.startTime?.seconds * 1000 || b.startTime);
+            return timeA - timeB;
+          });
+        case "time-asc": // Earliest time first
+          return sorted.sort((a, b) => {
+            const timeA = new Date(a.startTime?.seconds * 1000 || a.startTime);
+            const timeB = new Date(b.startTime?.seconds * 1000 || b.startTime);
+            const hourA = timeA.getHours() * 60 + timeA.getMinutes();
+            const hourB = timeB.getHours() * 60 + timeB.getMinutes();
+            return hourA - hourB;
+          });
+        case "time-desc": // Latest time first
+          return sorted.sort((a, b) => {
+            const timeA = new Date(a.startTime?.seconds * 1000 || a.startTime);
+            const timeB = new Date(b.startTime?.seconds * 1000 || b.startTime);
+            const hourA = timeA.getHours() * 60 + timeA.getMinutes();
+            const hourB = timeB.getHours() * 60 + timeB.getMinutes();
+            return hourB - hourA;
+          });
+        default:
+          return sorted;
+      }
+    };
+
+    setFilteredMissions(sortMissions(filteredMissions));
+  }, [sortBy]);
+
+  const handleCompleteQuest = (questId) => {
+    // Client-side completion - NO database update
+    const updated = [...manuallyCompleted, questId];
+    setManuallyCompleted(updated);
+    localStorage.setItem("vendor_completed_quests", JSON.stringify(updated));
+    toast.success("Quest marked as complete! ✅");
+  };
 
   const handleLogout = async () => {
     try {
@@ -359,11 +451,15 @@ const VendorDashboard = () => {
                                     <span className="text-[10px] text-gray-600 font-mono">
                                       {new Date(
                                         notif.createdAt?.seconds * 1000,
-                                      ).toLocaleTimeString()}{" "}
+                                      ).toLocaleTimeString("en-IN", {
+                                        timeZone: "Asia/Kolkata",
+                                      })}{" "}
                                       •{" "}
                                       {new Date(
                                         notif.createdAt?.seconds * 1000,
-                                      ).toLocaleDateString()}
+                                      ).toLocaleDateString("en-IN", {
+                                        timeZone: "Asia/Kolkata",
+                                      })}
                                     </span>
                                   </div>
                                 </div>
@@ -435,7 +531,11 @@ const VendorDashboard = () => {
               This Week's Overview
             </h2>
           </div>
-          <VendorStats stats={stats} loading={statsLoading} />
+          <VendorStats
+            stats={stats}
+            loading={statsLoading}
+            manuallyCompletedCount={manuallyCompleted.length}
+          />
         </section>
 
         {/* Missions Section */}
@@ -471,6 +571,29 @@ const VendorDashboard = () => {
             ))}
           </div>
 
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 mb-6">
+            <ArrowUpDown className="w-4 h-4 text-gray-500" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 bg-[#1a1a2e] border border-white/10 rounded-xl text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-neon-purple/50"
+            >
+              <option value="date-desc" className="bg-[#1a1a2e] text-white">
+                Newest First
+              </option>
+              <option value="date-asc" className="bg-[#1a1a2e] text-white">
+                Oldest First
+              </option>
+              <option value="time-asc" className="bg-[#1a1a2e] text-white">
+                Earliest Time
+              </option>
+              <option value="time-desc" className="bg-[#1a1a2e] text-white">
+                Latest Time
+              </option>
+            </select>
+          </div>
+
           {/* Missions Grid */}
           {missionsLoading ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -487,7 +610,12 @@ const VendorDashboard = () => {
               className="grid grid-cols-1 lg:grid-cols-2 gap-4"
             >
               {filteredMissions.map((mission) => (
-                <VendorMissionCard key={mission.id} mission={mission} />
+                <VendorMissionCard
+                  key={mission.id}
+                  mission={mission}
+                  onComplete={handleCompleteQuest}
+                  isManuallyCompleted={manuallyCompleted.includes(mission.id)}
+                />
               ))}
             </motion.div>
           ) : (

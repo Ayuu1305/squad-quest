@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, Circle, Flame, Gift } from "lucide-react";
+import { safeLocalStorage, safeParse } from "../utils/safeStorage";
 
-const DailyMissions = () => {
-  const [streak, setStreak] = useState(0);
+const DailyMissions = ({ user, stats }) => {
+  const [streak, setStreak] = useState(() => {
+    const saved = safeLocalStorage.getItem("sq_daily_streak");
+    const parsed = safeParse(saved, { count: 0, lastDate: null });
+    return parsed.count || 0;
+  });
   const [missions, setMissions] = useState([
     {
       id: 1,
@@ -26,17 +31,23 @@ const DailyMissions = () => {
   ]);
 
   useEffect(() => {
-    // Load streak from local storage
-    const savedStreak = localStorage.getItem("sq_daily_streak");
-    if (savedStreak) setStreak(parseInt(savedStreak));
-
-    // Check if missions were completed today (basic mock check)
-    // In a real app, this would reset daily
-  }, []);
+    // Save updated streak when missions are completed
+    if (missions.every((m) => m.completed)) {
+      const newStreak = streak + 1;
+      setStreak(newStreak);
+      safeLocalStorage.setItem(
+        "sq_daily_streak",
+        JSON.stringify({
+          count: newStreak,
+          lastDate: new Date().toISOString(),
+        }),
+      );
+    }
+  }, [missions]);
 
   const toggleMission = (id) => {
     setMissions((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m))
+      prev.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m)),
     );
   };
 

@@ -1,18 +1,20 @@
 import {
   createContext,
-  useContext,
   useState,
   useEffect,
   useMemo,
   useCallback,
+  useContext,
 } from "react";
-import { useAuth } from "./AuthContext"; // ✅ IMPORT AUTH
+import { useAuth } from "./AuthContext"; // ✅ Use the hook
+import { safeLocalStorage } from "../utils/safeStorage";
 import { loadFirebase } from "../backend/firebase.lazy";
 import toast from "react-hot-toast";
 // ❌ REMOVED: import { onSnapshot } ... (This was the double billing source)
 // ❌ REMOVED: import { trackRead } ... (No longer needed since we don't read DB here)
 
-const GameContext = createContext({
+// Create context with default values
+export const GameContext = createContext({
   city: "",
   selectCity: () => console.warn("GameProvider not found"),
   joinedQuests: [],
@@ -20,14 +22,19 @@ const GameContext = createContext({
   leaveQuest: () => {},
   isJoined: () => false,
   gameLoading: true,
+  inventory: null,
+  equippedFrame: null,
+  equipFrame: () => {},
 });
 
 export const GameProvider = ({ children }) => {
-  // ✅ OPTIMIZATION 1: Get 'user' from AuthContext.
+  // ✅ OPTIMIZATION 1: Get 'user' from AuthContext hook
   // AuthContext has already paid for the read, so we get the data for FREE here.
-  const { user } = useAuth();
+  const { user } = useAuth(); // ✅ Use the hook, not useContext
 
-  const [city, setCity] = useState(localStorage.getItem("selectedCity") || "");
+  const [city, setCity] = useState(
+    safeLocalStorage.getItem("selectedCity") || "",
+  );
   const [joinedQuests, setJoinedQuests] = useState([]);
   const [inventory, setInventory] = useState(null);
   const [equippedFrame, setEquippedFrame] = useState(null);
@@ -38,7 +45,7 @@ export const GameProvider = ({ children }) => {
   console.log("🎮 GameProvider Rendering...");
 
   useEffect(() => {
-    localStorage.setItem("selectedCity", city);
+    safeLocalStorage.setItem("selectedCity", city);
   }, [city]);
 
   // ✅ OPTIMIZATION 2: REPLACED THE HUGE 'onSnapshot' BLOCK

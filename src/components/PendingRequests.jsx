@@ -163,7 +163,9 @@ const PendingRequests = ({ questId, hostId }) => {
                   <span>
                     Requested{" "}
                     {request.requestedAt?.toDate
-                      ? new Date(request.requestedAt.toDate()).toLocaleString()
+                      ? new Date(request.requestedAt.toDate()).toLocaleString(
+                          "en-US",
+                        )
                       : "just now"}
                   </span>
                 </div>

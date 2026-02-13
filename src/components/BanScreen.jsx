@@ -90,7 +90,9 @@ const BanScreen = ({ banInfo, onLogout }) => {
               {timeRemaining}
             </p>
             <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-1">
-              {banInfo.expiresAt.toLocaleString()}
+              {banInfo.expiresAt.toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+              })}
             </p>
           </motion.div>
         )}

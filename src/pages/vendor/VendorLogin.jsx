@@ -35,6 +35,24 @@ const VendorLogin = () => {
 
       const user = userCredential.user;
 
+      // 🎯 ROLE-BASED AUTH: Check user role first
+      const { getDoc, doc } = await import("firebase/firestore");
+      const { db } = await import("../../backend/firebaseConfig");
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userData = userDoc.data();
+
+      // Block regular users from vendor login (unless admin)
+      if (userData?.role === "user" && !userData?.isAdmin) {
+        await auth.signOut();
+        toast.error("This is a user account. Please use the main app login.", {
+          icon: "👤",
+          duration: 5000,
+        });
+        setLoading(false);
+        return;
+      }
+
       // Check if user has vendor profile
       const vendorProfile = await getVendorProfile(user.uid);
 

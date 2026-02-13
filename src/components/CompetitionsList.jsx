@@ -378,7 +378,9 @@ const CompetitionsList = () => {
                       {war.endedAt
                         ? new Date(
                             war.endedAt.seconds * 1000,
-                          ).toLocaleDateString()
+                          ).toLocaleDateString("en-IN", {
+                            timeZone: "Asia/Kolkata",
+                          })
                         : "Unknown"}
                     </p>
                   </div>
@@ -386,7 +388,7 @@ const CompetitionsList = () => {
                   {/* Score Badge */}
                   <div className="relative z-10 text-right">
                     <div className="text-lg font-black text-white font-mono">
-                      {war.finalStandings?.[0]?.totalXP.toLocaleString()}
+                      {war.finalStandings?.[0]?.totalXP.toLocaleString("en-IN")}
                     </div>
                     <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
                       Winning Score

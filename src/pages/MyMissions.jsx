@@ -14,6 +14,16 @@ import {
 } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 
+// 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
+const safeDate = (dateInput) => {
+  if (!dateInput) return new Date();
+  if (dateInput.toDate) return dateInput.toDate();
+  if (typeof dateInput === "string") {
+    return new Date(dateInput.replace(/-/g, "/"));
+  }
+  return new Date(dateInput);
+};
+
 const MyMissions = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,12 +54,8 @@ const MyMissions = () => {
           }))
           .sort((a, b) => {
             // Sort by startTime descending (Newest first)
-            const timeA = a.startTime?.toDate
-              ? a.startTime.toDate()
-              : new Date(a.startTime);
-            const timeB = b.startTime?.toDate
-              ? b.startTime.toDate()
-              : new Date(b.startTime);
+            const timeA = safeDate(a.startTime);
+            const timeB = safeDate(b.startTime);
             return timeB - timeA;
           });
         console.log("📋 [MyMissions] Fetched quests:", myQuests.length);
@@ -176,12 +182,8 @@ const MyMissions = () => {
     ...archivedQuests,
   ].sort((a, b) => {
     // Sort by updatedAt descending (most recent first)
-    const timeA = a.updatedAt?.toDate
-      ? a.updatedAt.toDate()
-      : new Date(a.updatedAt || 0);
-    const timeB = b.updatedAt?.toDate
-      ? b.updatedAt.toDate()
-      : new Date(b.updatedAt || 0);
+    const timeA = safeDate(a.updatedAt || 0);
+    const timeB = safeDate(b.updatedAt || 0);
     return timeB - timeA;
   });
 

@@ -182,7 +182,7 @@ const HallOfFameModal = ({ onClose }) => {
                                 winner.xp ||
                                 winner.thisWeekXP ||
                                 0
-                              ).toLocaleString()}{" "}
+                              ).toLocaleString("en-IN")}{" "}
                               XP
                             </p>
                           </div>

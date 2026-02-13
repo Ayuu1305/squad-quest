@@ -74,17 +74,15 @@ async function archiveOldQuests(db) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - ARCHIVE_THRESHOLD_DAYS);
 
+    // AFTER:
     console.log("📋 Query Parameters:");
-    console.log(`   Status: completed`);
-    console.log(`   Updated Before: ${cutoffDate.toISOString()}`);
-    console.log(`   (${ARCHIVE_THRESHOLD_DAYS} days ago)\n`);
-
-    // Query for completed quests older than the threshold
+    console.log(
+      `   Remove quests created more than ${ARCHIVE_THRESHOLD_DAYS} days ago`,
+    );
+    console.log(`   Created Before: ${cutoffDate.toISOString()}`);
+    console.log(`   (Any status: open, active, or completed)\\n`);
     const questsRef = db.collection("quests");
-    const snapshot = await questsRef
-      // .where("status", "==", "completed") //removed
-      .where("updatedAt", "<", cutoffDate)
-      .get();
+    const snapshot = await questsRef.where("createdAt", "<", cutoffDate).get();
 
     if (snapshot.empty) {
       console.log("✨ No quests found to archive. Database is clean!");
@@ -99,14 +97,16 @@ async function archiveOldQuests(db) {
       console.log("📝 Quests that WOULD be archived:");
       console.log("-".repeat(60));
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        console.log(`   Quest ID: ${doc.id}`);
-        console.log(`   Title: ${data.title || "Untitled"}`);
-        console.log(`   Updated: ${data.updatedAt?.toDate?.() || "Unknown"}`);
-        console.log(`   Members: ${data.members?.length || 0}`);
-        console.log("-".repeat(60));
-      });
+      // AFTER:
+snapshot.forEach((doc) => {
+  const data = doc.data();
+  console.log(`   Quest ID: ${doc.id}`);
+  console.log(`   Title: ${data.title || "Untitled"}`);
+  console.log(`   Created: ${data.createdAt?.toDate?.() || "Unknown"}`);
+  console.log(`   Status: ${data.status || "Unknown"}`);
+  console.log(`   Members: ${data.members?.length || 0}`);
+  console.log("-".repeat(60));
+});
 
       console.log(`\n💡 Total: ${totalQuests} quest(s) would be archived`);
       console.log(
