@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
@@ -18,7 +17,7 @@ if (window.innerWidth < 768) {
 }
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
+  <>
     <BrowserRouter>
       <AuthProvider>
         <VendorAuthProvider>
@@ -30,5 +29,5 @@ createRoot(document.getElementById("root")).render(
         </VendorAuthProvider>
       </AuthProvider>
     </BrowserRouter>
-  </StrictMode>,
+  </>,
 );
