@@ -8,6 +8,15 @@ import { AuthProvider } from "./context/AuthContext";
 import { RewardProvider } from "./context/RewardContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
 
+// 👇 1. IMPORT IT
+import VConsole from 'vconsole';
+
+// 👇 2. INITIALIZE IT (This adds the green button)
+// We are adding a check so it doesn't annoy you on laptop, only shows on phones
+if (window.innerWidth < 768) {
+  const vConsole = new VConsole({ theme: 'dark' });
+}
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
