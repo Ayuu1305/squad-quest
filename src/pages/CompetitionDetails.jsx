@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom"; // Don't forget this!
+import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from "react-confetti"; // Install this: npm install react-confetti
 import {
@@ -15,6 +15,7 @@ import {
   Shield,
   Swords,
   Clock,
+  ArrowLeft,
 } from "lucide-react";
 import {
   collection,
@@ -29,7 +30,8 @@ import HeroAvatar from "../components/HeroAvatar";
 import { getTier } from "../utils/xp";
 
 const CompetitionDetails = () => {
-  const { id } = useParams(); // Get ID from URL
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [competitionData, setCompetitionData] = useState(null);
   const [collegeScores, setCollegeScores] = useState([]);
   const [expandedCollege, setExpandedCollege] = useState(null);
@@ -195,6 +197,14 @@ const CompetitionDetails = () => {
   const fetchTopHeroes = async (college) => {
     if (topHeroes[college]) return;
 
+    // 🛑 PREVENT LIVE FETCHING FOR ENDED COMPETITIONS
+    if (isEnded && competitionData?.finalStandings) {
+      console.log(
+        "⚠️ Competition ended - using frozen data, not fetching live",
+      );
+      return;
+    }
+
     try {
       const q = query(collection(db, "users"), where("college", "==", college));
 
@@ -221,7 +231,25 @@ const CompetitionDetails = () => {
       setExpandedCollege(null);
     } else {
       setExpandedCollege(college);
-      fetchTopHeroes(college);
+
+      // 🧊 FIX: For ended competitions, use frozen topHeroes from finalStandings
+      if (isEnded && competitionData?.finalStandings) {
+        // Find the college in finalStandings
+        const collegeData = competitionData.finalStandings.find(
+          (standing) => standing.college === college,
+        );
+
+        if (collegeData && collegeData.topHeroes) {
+          // Use the frozen snapshot (limit to top 10 for display)
+          setTopHeroes((prev) => ({
+            ...prev,
+            [college]: collegeData.topHeroes.slice(0, 10),
+          }));
+        }
+      } else {
+        // For active competitions, fetch live data
+        fetchTopHeroes(college);
+      }
     }
   };
 
@@ -257,6 +285,15 @@ const CompetitionDetails = () => {
       {/* 🟢 Live Indicator Header */}
       <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 px-4 py-3">
         <div className="flex items-center justify-between">
+          {/* ⬅️ BACK BUTTON */}
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-4 h-4 text-gray-400" />
+            <span className="text-xs font-bold text-gray-400">Back</span>
+          </button>
+
           <div className="flex items-center gap-2">
             {!isEnded ? (
               <>

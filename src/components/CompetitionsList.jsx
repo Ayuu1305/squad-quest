@@ -114,11 +114,19 @@ const CompetitionsList = () => {
     }
   };
 
-  const getDuration = (endDate) => {
-    if (!endDate) return "Unknown";
-    const diff = endDate.toDate() - new Date();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return days > 0 ? `${days} Days` : "Ending Soon";
+  // ✅ FIX: Show TOTAL duration (start → end), not remaining time
+  const getDuration = (war) => {
+    if (!war.endDate) return "Unknown";
+
+    const end = war.endDate.toDate();
+    const start = war.createdAt ? war.createdAt.toDate() : new Date();
+
+    // Calculate total duration in days
+    const totalMs = end - start;
+    const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
+
+    if (totalDays === 1) return "1 Day";
+    return `${totalDays} Days`;
   };
 
   if (loading) {
@@ -234,7 +242,7 @@ const CompetitionsList = () => {
                             Duration
                           </div>
                           <div className="text-lg font-black font-['Orbitron'] text-white italic">
-                            {getDuration(war.endDate)}
+                            {getDuration(war)}
                           </div>
                         </div>
                         <div className="bg-black/40 border border-white/10 rounded-xl p-4">

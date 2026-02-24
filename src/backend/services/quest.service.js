@@ -25,7 +25,7 @@ export const createQuest = async (questData) => {
     ...questData,
     roomCode: roomCode || null,
     members: [questData.hostId], // Host is already a member
-     membersCount: 1,
+    membersCount: 1,
     status: "open",
     createdAt: serverTimestamp(),
   };
@@ -73,7 +73,7 @@ export const createQuest = async (questData) => {
 };
 
 // ✅ Join Quest via Backend API
-export const joinQuest = async (questId, secretCode = null) => {
+export const joinQuest = async (questId, secretCode = "") => {
   const token = await getAuthToken();
   const response = await fetch(`${API_URL}/quest/join`, {
     method: "POST",
@@ -127,12 +127,8 @@ export const joinQuestByCode = async (code) => {
   const questId = questDoc.id;
   const questData = questDoc.data();
 
-  // For private quests with secret code, pass the code for validation
-  if (questData.isPrivate && questData.secretCode) {
-    await joinQuest(questId, cleanCode);
-  } else {
-    await joinQuest(questId);
-  }
+  // Always pass cleanCode — backend controller validates if needed
+  await joinQuest(questId, cleanCode);
 
   return questId;
 };

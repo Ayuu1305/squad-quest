@@ -161,6 +161,7 @@ import {
 import { verifyToken } from "./middleware/auth.js";
 import { requireAdmin } from "./middleware/isAdmin.js";
 import { initArchiver } from "./jobs/questArchiver.js";
+import { initCompetitionArchiver } from "./jobs/competitionArchiver.js"; // ✅ Competition Auto-Archiver
 import { initCronJobs } from "./services/cronService.js"; // ✅ Weekly Reset Scheduler
 import {
   fixLifetimeXP,
@@ -262,6 +263,10 @@ app.post(
 app.delete("/api/quest/:questId", verifyToken, deleteQuest);
 app.put("/api/quest/:questId", verifyToken, editQuest);
 
+// 🔔 Notification Routes (FCM Push)
+app.post("/api/notifications/send", verifyToken, sendUserNotification);
+app.post("/api/notifications/send-vendor", verifyToken, sendVendorNotification);
+
 // ----------------------------------------------------
 // 🚀 START SERVER
 // ----------------------------------------------------
@@ -276,5 +281,6 @@ app.listen(PORT, () => {
 
   // Initialize scheduled jobs
   initArchiver(db); // ✅ Quest archiver (daily 3 AM)
+  initCompetitionArchiver(db); // ✅ Competition archiver (every 15 minutes)
   initCronJobs(); // ✅ Weekly XP reset (Monday 00:00 IST)
 });

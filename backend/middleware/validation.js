@@ -14,7 +14,7 @@ const schemas = {
         "any.required": "questId is required",
       }),
     secretCode: Joi.string()
-      .allow("") // ✅ Allow empty string for public quests
+      .allow("", null) // ✅ Allow empty string OR null (for public quests / roomCode joins)
       .length(6)
       .pattern(/^[A-Z0-9]{6}$/)
       .optional()

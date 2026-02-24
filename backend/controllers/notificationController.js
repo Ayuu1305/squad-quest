@@ -37,7 +37,7 @@ export const sendVendorNotification = async (req, res) => {
 
     // Fetch vendor's FCM token
     const vendorDoc = await db.collection("vendors").doc(vendorId).get();
-    if (!vendorDoc.exists()) {
+    if (!vendorDoc.exists) {
       return res.status(404).json({ error: "Vendor not found" });
     }
 

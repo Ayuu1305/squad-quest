@@ -331,9 +331,17 @@ export const notifyVendorOfNewMission = async (questData) => {
     // 📱 Send actual FCM push notification via backend API
     if (vendor.fcmToken) {
       try {
-        const response = await fetch("/api/notifications/send-vendor", {
+        const API_URL =
+          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const { auth } = await loadFirebase();
+        const token = await auth.currentUser?.getIdToken();
+
+        const response = await fetch(`${API_URL}/notifications/send-vendor`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             vendorId: vendor.id,
             title: "🎯 New Mission Alert!",

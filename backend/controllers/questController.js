@@ -213,7 +213,9 @@ export const finalizeQuest = async (req, res) => {
         );
 
       const membersSnapshot = await t.get(questRef.collection("members"));
-      const verificationsSnapshot = await t.get(questRef.collection("verifications"));
+      const verificationsSnapshot = await t.get(
+        questRef.collection("verifications"),
+      );
 
       if (!questDoc.exists) throw new Error("Quest not found");
       if (!memberDoc.exists) throw new Error("User not a member of this quest");
@@ -223,6 +225,36 @@ export const finalizeQuest = async (req, res) => {
       // ✅ Idempotency
       if (verifyDoc.exists && verifyDoc.data().rewarded) {
         return { success: true, alreadyClaimed: true };
+      }
+
+      // 🏆 COMPETITION END DATE VALIDATION
+      // Prevent XP awards after a competition has ended
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const userCollege = userData.college;
+
+        if (userCollege) {
+          // Check if user's college is in an active competition
+          const activeCompetitionsSnapshot = await db
+            .collection("competitions")
+            .where("status", "==", "active")
+            .where("colleges", "array-contains", userCollege)
+            .get();
+
+          if (!activeCompetitionsSnapshot.empty) {
+            // User is in an active competition - check if it has ended
+            const competition = activeCompetitionsSnapshot.docs[0].data();
+            const competitionEndDate = competition.endDate.toDate();
+            const now = new Date();
+
+            if (now > competitionEndDate) {
+              // Competition time is up - reject XP award
+              throw new Error(
+                "⏰ Competition has ended. XP cannot be awarded. The war is over!",
+              );
+            }
+          }
+        }
       }
 
       // ✅ XP Calculation
@@ -348,10 +380,12 @@ export const finalizeQuest = async (req, res) => {
 
       // ✅ UPDATE QUEST STATUS TO COMPLETED
       // Check if all members have verified and update quest status
-      
+
       const totalMembers = membersSnapshot.size;
-      const verifiedCount = verificationsSnapshot.docs.filter(doc => doc.data().rewarded).length + 1; // +1 for current verification
-      
+      const verifiedCount =
+        verificationsSnapshot.docs.filter((doc) => doc.data().rewarded).length +
+        1; // +1 for current verification
+
       // If all members have verified, mark quest as completed
       if (verifiedCount >= totalMembers) {
         t.update(questRef, {
@@ -371,8 +405,6 @@ export const finalizeQuest = async (req, res) => {
         currentStats,
       };
     });
-
-
 
     // ✅ SEND RESPONSE IMMEDIATELY (Critical data saved)
     res.json(result);
