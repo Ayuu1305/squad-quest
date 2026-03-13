@@ -107,18 +107,23 @@ const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
     if (!card) return;
 
     const hoverCtx = gsap.context(() => {
+      
       card.addEventListener("mouseenter", () => {
+        // 🔥 CRITICAL FIX: Ensure elements exist before animating!
+        if (!titleRef.current || !glowRef.current) return;
         gsap.to(titleRef.current, {
           skewX: -10,
           duration: 0.1,
           yoyo: true,
           repeat: 3,
-          onComplete: () => gsap.set(titleRef.current, { skewX: 0 }),
+          onComplete: () =>{if (titleRef.current) gsap.set(titleRef.current, { skewX: 0 })},
         });
         gsap.to(glowRef.current, { opacity: 0.6, duration: 0.3 });
       });
 
       card.addEventListener("mouseleave", () => {
+        // 🔥 CRITICAL FIX: Ensure element exists
+        if (!glowRef.current) return;
         gsap.to(glowRef.current, { opacity: 0, duration: 0.3 });
       });
     });

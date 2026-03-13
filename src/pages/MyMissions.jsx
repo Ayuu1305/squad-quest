@@ -205,30 +205,46 @@ const MyMissions = () => {
   // Touch tracking for internal swipe navigation
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const touchStartY = useRef(0); // NEW: Track vertical movement
+  const touchEndY = useRef(0);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
     // Don't stop propagation here - let it bubble up initially
   };
 
   const handleTouchEnd = (e) => {
+
+    // If there was no movement (just a tap), do nothing
+    if (!touchEndX.current) return;
+
     const deltaX = touchEndX.current - touchStartX.current;
-    const threshold = 50;
+    const deltaY = touchEndY.current - touchStartY.current;
+
+    // Reset for the next tap/swipe
+    touchEndX.current = 0;
+    touchEndY.current = 0;
+
+    // 🔥 CRITICAL FIX: If the user moved vertically more than horizontally, 
+    // it means they are scrolling or tapping, NOT swiping. Ignore it.
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+    const threshold = 80;
     const currIndex = tabs.indexOf(activeTab);
 
     // Only stop propagation if we actually change tabs
     if (deltaX > threshold && currIndex > 0) {
       setActiveTab(tabs[currIndex - 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
     } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
       setActiveTab(tabs[currIndex + 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
     }
     // If at edge (first or last tab), don't stop propagation - allow page navigation
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY
     // Don't stop propagation here either
   };
 
