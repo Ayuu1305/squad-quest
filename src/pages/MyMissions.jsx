@@ -236,8 +236,10 @@ const MyMissions = () => {
     // Only stop propagation if we actually change tabs
     if (deltaX > threshold && currIndex > 0) {
       setActiveTab(tabs[currIndex - 1]);
+      e.stopPropagation(); // Tab changed, prevent page navigation
     } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
       setActiveTab(tabs[currIndex + 1]);
+      e.stopPropagation(); // Tab changed, prevent page navigation
     }
     // If at edge (first or last tab), don't stop propagation - allow page navigation
   };

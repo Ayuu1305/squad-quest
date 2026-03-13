@@ -47,12 +47,13 @@ const Lobby = () => {
     if (!id) return;
 
     let hasLoaded = false; // ✅ Guard against false triggers during initial load
+    let isArchived = false;
 
-    const unsubscribe = subscribeToQuest(id, (updatedQuest) => {
+    const unsubscribe = subscribeToQuest(id, async (updatedQuest) => {
       // ✅ DELETION DETECTION: Check if quest no longer exists
       if (!updatedQuest || updatedQuest === null) {
         // Only trigger auto-eject if we've already loaded the quest once
-        if (hasLoaded) {
+        if (hasLoaded && !isArchived) {
           console.warn(
             "🚫 [Lobby] Quest deleted by host - Auto-ejecting members",
           );
@@ -71,6 +72,26 @@ const Lobby = () => {
           // Redirect to quest board
           navigate("/board");
         }
+        else if (!hasLoaded) {
+          // ✅ FALLBACK: If it wasn't found immediately, check archived_quests!
+          try {
+            const archivedRef = doc(db, "archived_quests", id);
+            const archivedSnap = await getDoc(archivedRef);
+            
+            if (archivedSnap.exists()) {
+              isArchived = true;
+              hasLoaded = true;
+              setLiveQuest({ id: archivedSnap.id, ...archivedSnap.data() });
+            } else {
+              // It truly doesn't exist anywhere
+              toast.error("Quest not found.");
+              navigate("/board");
+            }
+          } catch (error) {
+            console.error("Error fetching archived quest:", error);
+            navigate("/board");
+          }
+        }
         return; // Stop processing if quest doesn't exist
       }
 
@@ -79,7 +100,7 @@ const Lobby = () => {
       setLiveQuest((prev) => ({ ...prev, ...updatedQuest }));
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, [id, navigate]); // ✅ ZERO-LOOP: Primitives only
 
   // Sync server time
