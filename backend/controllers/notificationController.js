@@ -35,42 +35,69 @@ export const sendVendorNotification = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Fetch vendor's FCM token
+    // Fetch vendor doc
     const vendorDoc = await db.collection("vendors").doc(vendorId).get();
     if (!vendorDoc.exists) {
       return res.status(404).json({ error: "Vendor not found" });
     }
 
     const vendorData = vendorDoc.data();
-    const fcmToken = vendorData.fcmToken;
 
-    if (!fcmToken) {
-      return res.status(400).json({ error: "No FCM token for vendor" });
+    // ✅ Support both single token (legacy) and multiple tokens (multi-device)
+    const tokenSet = new Set();
+    if (vendorData.fcmToken) tokenSet.add(vendorData.fcmToken);
+    if (Array.isArray(vendorData.fcmTokens)) {
+      vendorData.fcmTokens.forEach((t) => t && tokenSet.add(t));
+    }
+    const tokens = Array.from(tokenSet);
+
+    if (tokens.length === 0) {
+      return res.status(400).json({ error: "No FCM tokens for vendor" });
     }
 
-    // Build and send FCM message
+    // Build and send FCM message to all devices
     const { messaging } = await import("../server.js");
-    const message = {
+    const multicastMessage = {
       notification: { title, body },
       data: data || {},
-      token: fcmToken,
+      tokens, // Send to all registered devices
     };
 
-    await messaging.send(message);
-    console.log(`🔔 [Vendor Notification] Sent to ${vendorId}: "${title}"`);
+    const batchResponse =
+      await messaging.sendEachForMulticast(multicastMessage);
+    console.log(
+      `🔔 [Vendor Notification] Sent to ${vendorId}: "${title}" — ${batchResponse.successCount}/${tokens.length} delivered`,
+    );
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error("❌ [Vendor Notification API] Error:", error);
+    // 🧹 Clean up invalid/expired tokens
+    const { FieldValue } = await import("../server.js");
+    const invalidTokens = [];
+    batchResponse.responses.forEach((resp, idx) => {
+      if (
+        !resp.success &&
+        resp.error?.code === "messaging/registration-token-not-registered"
+      ) {
+        invalidTokens.push(tokens[idx]);
+      }
+    });
 
-    // Handle invalid token
-    if (error.code === "messaging/registration-token-not-registered") {
-      const { FieldValue } = await import("../server.js");
-      await db.collection("vendors").doc(req.body.vendorId).update({
-        fcmToken: FieldValue.delete(),
-      });
+    if (invalidTokens.length > 0) {
+      const updatedTokens = tokens.filter((t) => !invalidTokens.includes(t));
+      await db
+        .collection("vendors")
+        .doc(vendorId)
+        .update({
+          fcmTokens: updatedTokens,
+          fcmToken: updatedTokens[0] || FieldValue.delete(),
+        });
+      console.log(
+        `🧹 [Vendor Notification] Pruned ${invalidTokens.length} invalid token(s)`,
+      );
     }
 
+    res.json({ success: true, delivered: batchResponse.successCount });
+  } catch (error) {
+    console.error("❌ [Vendor Notification API] Error:", error);
     res.status(500).json({ error: error.message });
   }
 };

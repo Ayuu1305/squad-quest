@@ -256,11 +256,12 @@ export const createVendorAccount = async (vendorData) => {
  * Update vendor FCM token for push notifications
  */
 export const updateVendorFCMToken = async (vendorId, fcmToken) => {
-  const { db, doc, updateDoc } = await loadFirebase();
+  const { db, doc, updateDoc, arrayUnion } = await loadFirebase();
 
   const vendorRef = doc(db, "vendors", vendorId);
   await updateDoc(vendorRef, {
-    fcmToken,
+    fcmToken, // keep legacy field for compatibility
+    fcmTokens: arrayUnion(fcmToken), // ✅ accumulate all device tokens
     fcmTokenUpdatedAt: new Date(),
   });
 };
@@ -345,7 +346,23 @@ export const notifyVendorOfNewMission = async (questData) => {
           body: JSON.stringify({
             vendorId: vendor.id,
             title: "🎯 New Mission Alert!",
-            body: `${questData.hostName} created "${questData.title}" at ${new Date(questData.startTime?.seconds * 1000 || questData.startTime).toLocaleString()}`,
+            body: (() => {
+              const d = new Date(
+                questData.startTime?.seconds * 1000 || questData.startTime,
+              );
+              const time = d.toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+                timeZone: "Asia/Kolkata",
+              });
+              const date = d.toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                timeZone: "Asia/Kolkata",
+              });
+              return `${questData.hostName} created '${questData.title}' on ${date} at ${time}`;
+            })(),
             data: {
               type: "new_mission",
               questId: questData.questId || "unknown",

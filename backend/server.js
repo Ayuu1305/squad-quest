@@ -67,6 +67,9 @@ console.log("✅ Firebase Admin SDK Initialized Successfully!");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Tell Express to trust the proxy (Render's load balancer)
+app.set('trust proxy', 1);
+
 // ----------------------------------------------------
 // 🌐 CORS CONFIGURATION (Hybrid-Proof)
 // ----------------------------------------------------
