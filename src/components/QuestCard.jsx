@@ -301,13 +301,23 @@ const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
                 Timing
               </span>
             </div>
-            <div className="text-xs font-mono font-bold text-white">
-              {quest.startTime
-                ? safeDate(quest.startTime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "TBD"}
+            <div className="flex flex-col">
+              <span className="text-xs font-mono font-bold text-white leading-tight">
+                {quest.startTime
+                  ? safeDate(quest.startTime).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "TBD"}
+              </span>
+              {quest.startTime && (
+                <span className="text-[9px] font-mono font-semibold text-gray-400 mt-0.5 leading-none">
+                  {safeDate(quest.startTime).toLocaleDateString([], {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              )}
             </div>
           </div>
 

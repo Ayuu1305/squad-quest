@@ -276,7 +276,7 @@ const Lobby = () => {
                   className={`w-full py-4 rounded-xl font-black italic tracking-[0.2em] text-sm uppercase flex items-center justify-center gap-3 transition-all duration-500 ${
                     isLocked || isCompleted
                       ? "bg-gray-800 text-gray-600 border border-white/5 cursor-not-allowed opacity-50"
-                      : "btn-primary shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-100 hover:scale-105 active:scale-95"
+                      : "btn-primary shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-100 hover:scale-100 active:scale-95"
                   }`}
                 >
                   {isCompleted ? (

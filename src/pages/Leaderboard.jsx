@@ -3,9 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Zap, Shield, Star, Gift, Trophy } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useGame } from "../context/GameContext";
-import { getTopHeroes, getUserRank } from "../backend/leaderboardService";
-import { db } from "../backend/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { useDataCache } from "../context/DataCacheContext";
 import useShowdown from "../hooks/useShowdown";
 import LeaderboardPodium from "../components/LeaderboardPodium";
 import LeaderboardItem from "../components/LeaderboardItem";
@@ -16,60 +14,55 @@ import CompetitionsList from "../components/CompetitionsList";
 import { Clock } from "lucide-react";
 
 const Leaderboard = () => {
-  const { user } = useAuth(); // Firebase Auth user
+  const { user } = useAuth();
   const { city: currentCity } = useGame();
   const { isActive: activeShowdown, timeLeft, nextReset } = useShowdown();
+  const { leaderboardCache, fetchLeaderboardSlice, invalidateLeaderboard } = useDataCache();
 
-  const [heroes, setHeroes] = useState([]);
-  const [userRank, setUserRank] = useState(null);
-  const [nextRankHero, setNextRankHero] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [city, setCity] = useState(currentCity || "Ahmedabad");
   const [category, setCategory] = useState("weekly");
   const [selectedHero, setSelectedHero] = useState(null);
   const [showWinnerCircle, setShowWinnerCircle] = useState(false);
   const [showHallOfFame, setShowHallOfFame] = useState(false);
-  const [error, setError] = useState(null);
-  const [refreshTick, setRefreshTick] = useState(0);
 
-  const [myStats, setMyStats] = useState(null);
-
-  // Touch tracking for internal swipe navigation
+  // Touch tracking for internal tab swipe navigation
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const touchMoved = useRef(false);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-    // Don't stop propagation here - let it bubble up initially
-  };
-
-  const handleTouchEnd = (e) => {
-    const deltaX = touchEndX.current - touchStartX.current;
-    const threshold = 50;
-    const currentIndex = categories.findIndex((c) => c.id === category);
-
-    // Only stop propagation if we actually change tabs
-    if (deltaX > threshold && currentIndex > 0) {
-      setCategory(categories[currentIndex - 1].id);
-      e.stopPropagation(); // Tab changed, prevent page navigation
-    } else if (deltaX < -threshold && currentIndex < categories.length - 1) {
-      setCategory(categories[currentIndex + 1].id);
-      e.stopPropagation(); // Tab changed, prevent page navigation
-    }
-    // If at edge (first or last tab), don't stop propagation - allow page navigation
+    touchEndX.current = e.touches[0].clientX;
+    touchMoved.current = false;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-    // Don't stop propagation here either
+    touchMoved.current = true;
   };
 
-  // ✅ Auto-refresh every 60s during showdown
+  const handleTouchEnd = (e) => {
+    if (!touchMoved.current) return;
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+    const currentIndex = categories.findIndex((c) => c.id === category);
+    if (deltaX > threshold && currentIndex > 0) {
+      setCategory(categories[currentIndex - 1].id);
+      e.stopPropagation();
+    } else if (deltaX < -threshold && currentIndex < categories.length - 1) {
+      setCategory(categories[currentIndex + 1].id);
+      e.stopPropagation();
+    }
+  };
+
+  // Auto-refresh every 5 min during showdowns — forces re-fetch of current slice
   useEffect(() => {
     if (!activeShowdown) return;
-    const interval = setInterval(() => setRefreshTick((p) => p + 1), 300000);
+    const interval = setInterval(() => {
+      fetchLeaderboardSlice(city, category, true);
+    }, 300000);
     return () => clearInterval(interval);
-  }, [activeShowdown]);
+  }, [activeShowdown, city, category, fetchLeaderboardSlice]);
 
   const categories = [
     { id: "weekly", label: "Weekly", icon: Star },
@@ -77,76 +70,30 @@ const Leaderboard = () => {
     { id: "wars", label: "WARS 🔥", icon: Trophy },
   ];
 
-  // ✅ Fetch Firestore Stats for current user
+  // ── Fetch / use cache for the current city+category slice ──────────────────
+  // This is a no-op if the data is fresh; otherwise it fetches in the background.
   useEffect(() => {
-    const fetchMyStats = async () => {
-      if (!user?.uid) return;
+    fetchLeaderboardSlice(city, category);
+  }, [city, category, fetchLeaderboardSlice]);
 
-      try {
-        const userRef = doc(db, "users", user.uid);
-        const snap = await getDoc(userRef);
+  // Pull the current slice out of the cache
+  const cacheKey = `${city}_${category}`;
+  const slice = leaderboardCache[cacheKey] ?? {};
+  const heroes = slice.heroes ?? [];
+  const userRank = slice.userRank ?? null;
+  const nextRankHero = slice.nextRankHero ?? null;
+  const myStats = slice.myStats ?? null;
+  const loading = slice.loading ?? true;
+  const error = slice.error ?? null;
 
-        if (snap.exists()) {
-          setMyStats({ id: snap.id, ...snap.data() });
-        } else {
-          setMyStats(null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch myStats:", err);
-        setMyStats(null);
-      }
-    };
+  // Local override for drag-to-reorder (client-side only, resets on re-fetch)
+  const [reorderedHeroes, setReorderedHeroes] = useState(null);
+  const displayHeroes = reorderedHeroes ?? heroes;
 
-    fetchMyStats();
-  }, [user?.uid, refreshTick]);
+  // Reset local reorder when the cache slice refreshes with new data
+  useEffect(() => { setReorderedHeroes(null); }, [heroes]);
 
-  // ✅ Fetch leaderboard correctly using Firestore stats
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      if (!user?.uid) return;
-
-      if (refreshTick === 0) setLoading(true);
-      setError(null);
-
-      try {
-        const topHeroes = await getTopHeroes(city, category);
-        setHeroes(topHeroes);
-
-        // ✅ Field mapping (must match your DB schema)
-        const fieldMap = {
-          weekly: "thisWeekXP",
-          xp: "lifetimeXP", // 🎖️ UPDATED: Use lifetimeXP for All-Time ranking
-          reliability: "reliabilityScore",
-        };
-
-        const field = fieldMap[category] || "lifetimeXP"; // Default to lifetimeXP
-
-        // ✅ get user value from Firestore stats NOT auth user
-        const myValue = myStats?.[field] ?? 0;
-
-        const rank = await getUserRank(user.uid, city, category, myValue);
-        setUserRank(rank);
-
-        if (rank > 1) {
-          const aboveHero = topHeroes.find((h) => h.id !== user.uid);
-          setNextRankHero(aboveHero || null);
-        } else {
-          setNextRankHero(null);
-        }
-      } catch (err) {
-        console.error("Leaderboard component error:", err);
-        setError(
-          err.message?.includes("index") ? "INDEX_REQUIRED" : "FETCH_ERROR",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
-  }, [city, category, user?.uid, refreshTick, myStats]);
-
-  const handleReorder = (newOrder) => setHeroes(newOrder);
+  const handleReorder = (newOrder) => setReorderedHeroes(newOrder);
 
   // Animations
   const listContainerVariants = {
@@ -171,7 +118,7 @@ const Leaderboard = () => {
       onTouchEnd={handleTouchEnd}
     >
       {/* Header */}
-      <div className="relative pt-0 pb-8 px-4 md:px-6 text-center">
+      <div className="relative pt-4 pb-8 px-4 md:px-6 text-center">
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -317,7 +264,7 @@ const Leaderboard = () => {
         <>
           {/* Podium */}
           <LeaderboardPodium
-            topThree={heroes.slice(0, 3)}
+            topThree={displayHeroes.slice(0, 3)}
             currentUserId={user?.uid}
             category={category}
             loading={loading}
@@ -364,7 +311,7 @@ const Leaderboard = () => {
                         </p>
                       </motion.div>
                     ) : (
-                      heroes
+                      displayHeroes
                         .slice(3)
                         .map((hero, index) => (
                           <LeaderboardItem
@@ -381,7 +328,7 @@ const Leaderboard = () => {
                 </div>
 
                 {/* ✅ Pinned "Your Position" with Standard Style */}
-                {myStats && !heroes.some((h) => h.id === user?.uid) && (
+                {myStats && !displayHeroes.some((h) => h.id === user?.uid) && (
                   <>
                     {/* Simple Divider */}
                     <div className="my-4 flex items-center justify-center gap-2 opacity-50">

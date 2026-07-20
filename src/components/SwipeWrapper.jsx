@@ -1,23 +1,47 @@
 import React, { useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { isSwipeBlocked } from "../utils/swipeBlocker";
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MIN_SWIPE_DISTANCE = 120;   // px — minimum horizontal travel required
+const MAX_ANGLE_DEG = 30;         // °  — how horizontal the gesture must be
+const MIN_VELOCITY = 0.3;         // px/ms — must swipe with some speed/intention
+const DIRECTION_LOCK_PX = 12;     // px — movement before we decide H or V axis
+const RESISTANCE = 0.35;          // visual drag resistance factor
+
+// ─── Helper: is touch origin inside a horizontally scrollable container? ─────
+const isInsideHScroll = (element) => {
+  let el = element;
+  while (el && el !== document.body) {
+    if (
+      el.hasAttribute("data-no-swipe") ||
+      el.hasAttribute("data-swipeable") ||
+      el.hasAttribute("data-swipe-ignore")
+    ) {
+      return true;
+    }
+    const style = window.getComputedStyle(el);
+    const ox = style.overflowX;
+    if ((ox === "scroll" || ox === "auto") && el.scrollWidth > el.clientWidth) {
+      return true;
+    }
+    if (
+      el.classList.contains("overflow-x-auto") ||
+      el.classList.contains("overflow-x-scroll")
+    ) {
+      return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const SwipeWrapper = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Touch tracking refs
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchEndX = useRef(0);
-  const touchEndY = useRef(0);
-  const isScrolling = useRef(null);
-
-  // For visual feedback during swipe
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-
-  // 1. Define your Tab Order
   const tabs = [
     "/board",
     "/journey",
@@ -27,108 +51,114 @@ const SwipeWrapper = ({ children }) => {
     "/profile",
   ];
 
-  // Check if element or ancestors have horizontal scroll OR are tab containers
-  const hasHorizontalScroll = (element) => {
-    while (element && element !== document.body) {
-      const style = window.getComputedStyle(element);
-      const overflowX = style.overflowX;
+  // Gesture state (refs = no re-renders during gesture tracking)
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const lastX = useRef(0);
+  const startTime = useRef(0);
+  const directionLocked = useRef(null); // null | "horizontal" | "vertical" | "blocked"
+  const gestureValid = useRef(false);   // true only after genuine horizontal swipe confirmed
 
-      // Check for scrollable containers
-      if (overflowX === "scroll" || overflowX === "auto") {
-        if (element.scrollWidth > element.clientWidth) {
-          return true;
-        }
-      }
+  // Visual feedback
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
 
-      // Check for Tailwind horizontal scroll classes (used in tabs)
-      if (
-        element.classList.contains("overflow-x-auto") ||
-        element.classList.contains("overflow-x-scroll") ||
-        element.hasAttribute("data-swipeable")
-      ) {
-        return true;
-      }
-
-      element = element.parentElement;
-    }
-    return false;
-  };
-
+  // ── touchstart ──────────────────────────────────────────────────────────────
   const handleTouchStart = (e) => {
-    // Check if starting inside a horizontally scrollable container
-    if (hasHorizontalScroll(e.target)) {
-      isScrolling.current = "blocked";
+    // ① Global blocker (modals call blockSwipe() on mount)
+    if (isSwipeBlocked()) {
+      directionLocked.current = "blocked";
       return;
     }
 
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    touchEndX.current = e.touches[0].clientX;
-    touchEndY.current = e.touches[0].clientY;
-    isScrolling.current = null;
-    setIsSwiping(true);
+    // ② DOM-level check (data-swipe-ignore attribute, horizontal-scroll containers)
+    if (isInsideHScroll(e.target)) {
+      directionLocked.current = "blocked";
+      return;
+    }
+
+    const touch = e.touches[0];
+    startX.current = touch.clientX;
+    startY.current = touch.clientY;
+    lastX.current = touch.clientX;
+    startTime.current = Date.now();
+    directionLocked.current = null;
+    gestureValid.current = false;
   };
 
+  // ── touchmove ───────────────────────────────────────────────────────────────
   const handleTouchMove = (e) => {
-    if (isScrolling.current === "blocked") return;
+    if (
+      directionLocked.current === "blocked" ||
+      directionLocked.current === "vertical"
+    ) {
+      return;
+    }
 
-    touchEndX.current = e.touches[0].clientX;
-    touchEndY.current = e.touches[0].clientY;
+    const touch = e.touches[0];
+    lastX.current = touch.clientX;
 
-    const deltaX = touchEndX.current - touchStartX.current;
-    const deltaY = touchEndY.current - touchStartY.current;
+    const dx = touch.clientX - startX.current;
+    const dy = touch.clientY - startY.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
 
-    // Determine if this is a horizontal or vertical scroll (first movement decides)
-    if (isScrolling.current === null) {
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-        isScrolling.current = false; // Horizontal swipe
-      } else if (Math.abs(deltaY) > 10) {
-        isScrolling.current = true; // Vertical scroll
+    // Wait until there's enough movement to determine direction
+    if (directionLocked.current === null) {
+      if (absDx < DIRECTION_LOCK_PX && absDy < DIRECTION_LOCK_PX) return;
+
+      // Compute angle from horizontal: 0° = pure horizontal, 90° = pure vertical
+      const angle = Math.atan2(absDy, absDx) * (180 / Math.PI);
+
+      if (angle > MAX_ANGLE_DEG) {
+        // Gesture is too vertical — let normal scroll happen, ignore for navigation
+        directionLocked.current = "vertical";
         setIsSwiping(false);
         setSwipeOffset(0);
         return;
       }
+      directionLocked.current = "horizontal";
     }
 
-    // If vertical scrolling, don't interfere
-    if (isScrolling.current === true) return;
-
-    // Apply visual feedback with resistance
-    const resistance = 0.4; // Instagram-like resistance
-    const visualOffset = deltaX * resistance;
-    setSwipeOffset(visualOffset);
+    // Confirmed horizontal swipe — show visual drag feedback
+    gestureValid.current = true;
+    setIsSwiping(true);
+    setSwipeOffset(dx * RESISTANCE);
   };
 
+  // ── touchend ────────────────────────────────────────────────────────────────
   const handleTouchEnd = () => {
-    if (isScrolling.current === "blocked" || isScrolling.current === true) {
-      setIsSwiping(false);
-      setSwipeOffset(0);
-      return;
-    }
-
-    const deltaX = touchEndX.current - touchStartX.current;
-    const currentIndex = tabs.indexOf(location.pathname);
-
-    // Reset visual feedback
+    // Always reset visual state first
     setIsSwiping(false);
     setSwipeOffset(0);
 
+    // Only proceed if we locked onto a genuine horizontal gesture
+    if (directionLocked.current !== "horizontal" || !gestureValid.current) {
+      directionLocked.current = null;
+      gestureValid.current = false;
+      return;
+    }
+
+    directionLocked.current = null;
+    gestureValid.current = false;
+
+    const dx = lastX.current - startX.current;
+    const absDx = Math.abs(dx);
+    const elapsed = Math.max(1, Date.now() - startTime.current); // avoid /0
+    const velocity = absDx / elapsed; // px/ms
+
+    // Both distance AND velocity must be met — prevents slow accidental drags
+    if (absDx < MIN_SWIPE_DISTANCE || velocity < MIN_VELOCITY) return;
+
+    const currentIndex = tabs.indexOf(location.pathname);
     if (currentIndex === -1) return;
 
-    // 🔥 SWIPE THRESHOLD: 50px for smooth, easy navigation
-    const threshold = 80;
-
-    // SWIPE RIGHT (Go to previous page)
-    if (deltaX > threshold) {
-      if (currentIndex > 0) {
-        navigate(tabs[currentIndex - 1]);
-      }
-    }
-    // SWIPE LEFT (Go to next page)
-    else if (deltaX < -threshold) {
-      if (currentIndex < tabs.length - 1) {
-        navigate(tabs[currentIndex + 1]);
-      }
+    if (dx > 0 && currentIndex > 0) {
+      // Swipe RIGHT → previous tab
+      navigate(tabs[currentIndex - 1]);
+    } else if (dx < 0 && currentIndex < tabs.length - 1) {
+      // Swipe LEFT → next tab
+      navigate(tabs[currentIndex + 1]);
     }
   };
 
@@ -138,14 +168,8 @@ const SwipeWrapper = ({ children }) => {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      animate={{
-        x: isSwiping ? swipeOffset : 0,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 400,
-        damping: 30,
-      }}
+      animate={{ x: isSwiping ? swipeOffset : 0 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
       style={{ touchAction: "pan-y pinch-zoom" }}
     >
       {children}

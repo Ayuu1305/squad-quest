@@ -4,10 +4,17 @@ import { X, Trophy, Crown } from "lucide-react";
 import { db } from "../backend/firebaseConfig";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import HeroAvatar from "./HeroAvatar";
+import { blockSwipe, unblockSwipe } from "../utils/swipeBlocker";
 
 const HallOfFameModal = ({ onClose }) => {
   const [weeklyWinners, setWeeklyWinners] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Block page-level swipe gestures while modal is open
+  useEffect(() => {
+    blockSwipe();
+    return () => unblockSwipe();
+  }, []);
 
   useEffect(() => {
     const fetchHallOfFame = async () => {
@@ -40,6 +47,7 @@ const HallOfFameModal = ({ onClose }) => {
 
   return (
     <div
+      data-swipe-ignore="true"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
       onClick={onClose}
     >

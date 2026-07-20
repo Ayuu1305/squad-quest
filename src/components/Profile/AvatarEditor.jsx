@@ -388,7 +388,7 @@ const AvatarEditor = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl md:flex md:items-center md:justify-center md:p-4">
+    <div data-swipe-ignore="true" className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl md:flex md:items-center md:justify-center md:p-4">
       <motion.div
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}

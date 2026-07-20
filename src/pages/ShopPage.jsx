@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { auth, db } from "../backend/firebaseConfig";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { auth } from "../backend/firebaseConfig";
+import { useDataCache } from "../context/DataCacheContext";
 import toast from "react-hot-toast";
-import { ShoppingBag, Gift, Loader } from "lucide-react";
+import { ShoppingBag, Gift, Loader, Info, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 
 /**
  * ShopPage Component - Full Page Shop with Voucher Support
@@ -12,75 +14,64 @@ import { ShoppingBag, Gift, Loader } from "lucide-react";
  */
 const ShopPage = ({ isBanned = false }) => {
   const { user } = useAuth();
+  const {
+    shopItems,
+    loadingItems,
+
+    startShopListener,
+    stopShopListener,
+  } = useDataCache();
+
+  // Mount/unmount listener lifecycle
+  useEffect(() => {
+    startShopListener();
+    return () => stopShopListener();
+  }, [startShopListener, stopShopListener]);
+
   const [processingItem, setProcessingItem] = useState(null);
   const [activeTab, setActiveTab] = useState("buy"); // 'buy' | 'rewards'
   const [activeCategory, setActiveCategory] = useState("all"); // 'all' | 'real-world' | 'powerup' | 'cosmetic' | 'badge'
   const [redemptions, setRedemptions] = useState([]);
   const [loadingRedemptions, setLoadingRedemptions] = useState(false);
 
-  // Firestore data
-  const [shopItems, setShopItems] = useState([]);
-  const [loadingItems, setLoadingItems] = useState(true);
-
-  // Extract user stats safely
+  // userXP from AuthContext (live, no local fetch needed)
   const userXP = user?.xp || 0;
 
-  // Touch tracking for internal swipe navigation
+  // Touch tracking for internal tab swipe navigation
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const touchMoved = useRef(false);
   const tabs = ["buy", "rewards"];
   const categoryList = ["all", "real-world", "powerup", "cosmetic", "badge"];
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-    // Don't stop propagation here - let it bubble up initially
-  };
-
-  const handleTouchEnd = (e) => {
-    const deltaX = touchEndX.current - touchStartX.current;
-    const threshold = 50;
-
-    // Swipe between main tabs
-    const tabIndex = tabs.indexOf(activeTab);
-
-    // Only stop propagation if we actually change tabs
-    if (deltaX > threshold && tabIndex > 0) {
-      setActiveTab(tabs[tabIndex - 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
-    } else if (deltaX < -threshold && tabIndex < tabs.length - 1) {
-      setActiveTab(tabs[tabIndex + 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
-    }
-    // If at edge (first or last tab), don't stop propagation - allow page navigation
+    touchEndX.current = e.touches[0].clientX; // ← reset so stale values never cause false deltas
+    touchMoved.current = false;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-    // Don't stop propagation here either
+    touchMoved.current = true;
   };
 
-  // Fetch shop items from Firestore
-  useEffect(() => {
-    const q = query(collection(db, "shop_items"), orderBy("cost", "asc"));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const items = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setShopItems(items);
-        setLoadingItems(false);
-      },
-      (error) => {
-        console.error("Error fetching shop items:", error);
-        setLoadingItems(false);
-        toast.error("Failed to load shop items");
-      },
-    );
+  const handleTouchEnd = (e) => {
+    // Ignore pure taps (no real movement)
+    if (!touchMoved.current) return;
 
-    return () => unsubscribe();
-  }, []);
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+    const tabIndex = tabs.indexOf(activeTab);
+
+    if (deltaX > threshold && tabIndex > 0) {
+      setActiveTab(tabs[tabIndex - 1]);
+      e.stopPropagation(); // Tab changed — stop SwipeWrapper from also navigating
+    } else if (deltaX < -threshold && tabIndex < tabs.length - 1) {
+      setActiveTab(tabs[tabIndex + 1]);
+      e.stopPropagation();
+    }
+    // At first/last tab: let bubble up → SwipeWrapper handles page nav
+  };
 
   // Filter items by category
   const filteredItems = shopItems.filter((item) =>
@@ -237,17 +228,7 @@ const ShopPage = ({ isBanned = false }) => {
 
       // ✅ SUCCESS FEEDBACK
       console.log("✅ [Shop] Purchase successful", data);
-      console.log("🛒 [Shop] Server Response Item Count:", data.itemCount);
-      console.log(
-        "👤 [Shop] Current User Inventory BEFORE update:",
-        user?.inventory,
-      );
 
-      if (data.newBalance !== undefined) {
-        // Optimistically update XP provided by AuthContext or local state if available
-        // Note: AuthContext usually handles this via listener, but this provides immediate feedback if connected
-        console.log(`💰 [Shop] Updating XP locally to ${data.newBalance}`);
-      }
 
       toast.success(
         data.code
@@ -667,6 +648,69 @@ const ShopPage = ({ isBanned = false }) => {
   );
 };
 
+const getItemDetails = (name, type, category) => {
+  const title = (name || "").toLowerCase();
+  
+  if (title.includes("streak freeze") || title.includes("streak_freeze") || title.includes("streak")) {
+    return {
+      title: "Streak Freeze",
+      tagline: "Streak Protection Matrix",
+      explanation: "Protects your daily bounty login streak if you miss a day of check-in.",
+      howItWorks: "If you fail to check in for a daily bounty reset, one Streak Freeze is automatically consumed to preserve your current multiplier.",
+      usage: "Passive item. Holds automatically in your neural inventory space."
+    };
+  }
+  
+  if (title.includes("neuro-boost") || title.includes("neuro boost") || title.includes("xp_boost") || type === "boost" || category === "powerup") {
+    return {
+      title: name || "Neuro-Boost",
+      tagline: "Neural Accelerator Synthesizer",
+      explanation: "A high-performance neural patch that accelerates XP synthesis during mission feedback loops.",
+      howItWorks: "Temporarily grants a 2x boost on your next completed mission, doubling the base rewards.",
+      usage: "Consumes automatically on your next mission success."
+    };
+  }
+
+  if (type === "voucher" || category === "real-world" || type === "real-world") {
+    return {
+      title: name || "Partnership Voucher",
+      tagline: "Real-world Supply Drop",
+      explanation: "A digital requisition voucher redeemable for physical items (beverages, snacks, or discounts) at partner zones.",
+      howItWorks: "Generates a secure redemption coupon code that is saved in your 'My Rewards' tab.",
+      usage: "Present the code to the operator/cashier at the designated hub sector to redeem."
+    };
+  }
+
+  if (type === "cosmetic" || category === "cosmetic" || category === "style") {
+    return {
+      title: name || "Cosmetic Frame",
+      tagline: "Identity Holo-Shield",
+      explanation: "A visual modification overlay to personalize your profile frame.",
+      howItWorks: "Drapes your avatar and identity card with themed cyberpunk designs visible to other operatives.",
+      usage: "Equips automatically to your active profile upon purchase."
+    };
+  }
+
+  if (type === "badge" || category === "badge") {
+    return {
+      title: name || "Prestige Badge",
+      tagline: "Elite Operative Mark",
+      explanation: "A permanent badge of honor showcasing your achievements or faction loyalty.",
+      howItWorks: "Adds a glowing badge on your inspectable character card.",
+      usage: "Displayed automatically to other heroes checking you out on the leaderboard."
+    };
+  }
+
+  // Fallback
+  return {
+    title: name || "Shop Item",
+    tagline: "Operative Utility Slot",
+    explanation: "A unique digital or physical upgrade for your matrix.",
+    howItWorks: "Grants specific boosts, status overrides, or voucher codes upon decryption.",
+    usage: "View details under corresponding active tabs."
+  };
+};
+
 const ShopItemCard = ({
   id,
   name,
@@ -686,6 +730,9 @@ const ShopItemCard = ({
 }) => {
   const canAfford = userXP >= cost;
   const showOwned = (type === "cosmetic" || type === "badge") && isOwned;
+  const [showInfo, setShowInfo] = useState(false);
+
+  const details = getItemDetails(name, type, category);
 
   return (
     <div className="glassmorphism rounded-2xl p-4 md:p-6 relative overflow-hidden border-2 border-purple-500/30 bg-gradient-to-br from-purple-900/20 via-fuchsia-900/10 to-transparent">
@@ -695,7 +742,7 @@ const ShopItemCard = ({
       <div className="relative z-10">
         <div className="flex items-center gap-4 mb-4">
           {/* Glowing Icon or Image */}
-          <div className="relative">
+          <div className="relative col-span-3 shrink-0">
             <div className="absolute inset-0 bg-blue-500/30 blur-xl rounded-full animate-pulse" />
             <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20">
               {imageUrl ? (
@@ -711,14 +758,23 @@ const ShopItemCard = ({
               )}
             </div>
           </div>
-          <div>
-            <h3 className="text-lg sm:text-xl font-black font-['Orbitron'] text-white uppercase tracking-tighter italic">
-              {name}
-              {value && (
-                <span className="ml-2 text-green-400 font-mono">{value}</span>
-              )}
-            </h3>
-            <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-lg sm:text-xl font-black font-['Orbitron'] text-white uppercase tracking-tighter italic truncate">
+                {name}
+                {value && (
+                  <span className="ml-2 text-green-400 font-mono">{value}</span>
+                )}
+              </h3>
+              <button
+                onClick={() => setShowInfo(true)}
+                className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 hover:border-purple-500/50 flex items-center justify-center transition-all cursor-pointer inline-flex shrink-0"
+                title="View Item Info"
+              >
+                <Info className="w-3 h-3 text-purple-300" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-purple-300 font-mono uppercase tracking-wide">
                 {type}
               </span>
@@ -771,6 +827,78 @@ const ShopItemCard = ({
           </button>
         </div>
       </div>
+
+      {/* Info Popup Overlay - Escaping Stacking Context */}
+      {createPortal(
+        <AnimatePresence>
+          {showInfo && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+              data-swipe-ignore="true"
+              onClick={() => setShowInfo(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="relative bg-dark-bg border-2 border-purple-500/50 rounded-2xl p-6 w-full max-w-sm shadow-[0_0_50px_rgba(168,85,247,0.25)] flex flex-col font-mono"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between border-b border-white/10 pb-3 mb-4">
+                  <div>
+                    <h4 className="text-lg font-black font-['Orbitron'] text-white uppercase italic tracking-tighter">
+                      {details.title}
+                    </h4>
+                    <span className="text-[10px] text-purple-400 uppercase tracking-widest">
+                      {details.tagline}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowInfo(false)}
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/40 transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4 text-purple-400" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="space-y-4 text-xs text-left leading-relaxed">
+                  <div>
+                    <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                      System Summary:
+                    </span>
+                    <p className="text-gray-300">{details.explanation}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                      How it works:
+                    </span>
+                    <p className="text-gray-300">{details.howItWorks}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                      Operational Usage:
+                    </span>
+                    <p className="text-gray-300">{details.usage}</p>
+                  </div>
+                </div>
+
+                {/* Close Action Button */}
+                <button
+                  onClick={() => setShowInfo(false)}
+                  className="mt-6 w-full py-2.5 rounded-xl border border-purple-500/30 hover:bg-purple-500/10 text-purple-300 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+                >
+                  Acknowledge Info
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

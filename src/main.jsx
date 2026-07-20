@@ -6,6 +6,7 @@ import { GameProvider } from "./context/GameContext";
 import { AuthProvider } from "./context/AuthContext";
 import { RewardProvider } from "./context/RewardContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
+import { DataCacheProvider } from "./context/DataCacheContext";
 
 
 
@@ -42,7 +43,9 @@ createRoot(document.getElementById("root")).render(
         <VendorAuthProvider>
           <RewardProvider>
             <GameProvider>
-              <App />
+              <DataCacheProvider>
+                <App />
+              </DataCacheProvider>
             </GameProvider>
           </RewardProvider>
         </VendorAuthProvider>

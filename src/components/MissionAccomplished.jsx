@@ -233,7 +233,7 @@ const MissionAccomplished = ({
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-10 w-full max-w-lg px-4 sm:px-6">
         {/* Trophy Section - Compact */}
         <div className="relative mb-6 flex justify-center scale-90">
           {/* Sunburst background */}

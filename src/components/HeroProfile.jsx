@@ -693,7 +693,7 @@ const HeroProfile = ({ onEditAvatar }) => {
 
     return (
       <div
-        className={`relative ${containerSize} flex items-center justify-center`}
+        className={`relative ${containerSize} flex items-start justify-start`}
       >
         {/* Glow Backend - Reduced for small variant */}
         <div
@@ -756,34 +756,38 @@ const HeroProfile = ({ onEditAvatar }) => {
   // ✅ Internal Profile Swipe Handler
   const tabs = ["dashboard", "card", "overview"];
 
-  // Touch tracking for internal swipe navigation
+  // Touch tracking for internal tab swipe navigation
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const touchMoved = useRef(false);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
-    // Don't stop propagation here - let it bubble up initially
-  };
-
-  const handleTouchEnd = (e) => {
-    const deltaX = touchEndX.current - touchStartX.current;
-    const threshold = 50;
-    const currIndex = tabs.indexOf(activeTab);
-
-    // Only stop propagation if we actually change tabs
-    if (deltaX > threshold && currIndex > 0) {
-      setActiveTab(tabs[currIndex - 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
-    } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
-      setActiveTab(tabs[currIndex + 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
-    }
-    // If at edge (first or last tab), don't stop propagation - allow page navigation
+    touchEndX.current = e.touches[0].clientX; // ← reset so stale values never cause false deltas
+    touchMoved.current = false;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
-    // Don't stop propagation here either
+    touchMoved.current = true;
+  };
+
+  const handleTouchEnd = (e) => {
+    // Ignore pure taps (no real movement)
+    if (!touchMoved.current) return;
+
+    const deltaX = touchEndX.current - touchStartX.current;
+    const threshold = 50;
+    const currIndex = tabs.indexOf(activeTab);
+
+    if (deltaX > threshold && currIndex > 0) {
+      setActiveTab(tabs[currIndex - 1]);
+      e.stopPropagation(); // Tab changed — stop SwipeWrapper from also navigating
+    } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
+      setActiveTab(tabs[currIndex + 1]);
+      e.stopPropagation();
+    }
+    // At first/last tab: let bubble up → SwipeWrapper handles page nav
   };
 
   // Social Share Handler (Whatsapp/Instagram)

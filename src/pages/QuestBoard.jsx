@@ -1,21 +1,17 @@
-import { useState, useEffect, useRef, Suspense, lazy, useMemo } from "react"; // ✅ Added useMemo
+import { useState, useEffect, useRef, Suspense, lazy, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { ScrollTrigger } from "gsap/ScrollTrigger"; // ✅ Import ScrollTrigger for cleanup
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import TacticalErrorModal from "../components/TacticalErrorModal";
 import SecretCodeModal from "../components/SecretCodeModal";
-import TemporaryBanBanner from "../components/TemporaryBanBanner"; // ✅ Ban banner
-import { isBanned } from "../utils/banCheck"; // ✅ Ban check utility
+import TemporaryBanBanner from "../components/TemporaryBanBanner";
+import { isBanned } from "../utils/banCheck";
 import { Link, useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
-import {
-  subscribeToAllQuests,
-  joinQuestByCode,
-  fetchMoreQuests, // ✅ Imported
-  joinQuest, // ✅ Added for SecretCodeModalw
-} from "../backend/services/quest.service";
+import { useDataCache } from "../context/DataCacheContext";
+import { joinQuestByCode, joinQuest } from "../backend/services/quest.service";
 import useShowdown from "../hooks/useShowdown";
 import {
   Lock,
@@ -66,141 +62,64 @@ const QuestBoard = () => {
   const navigate = useNavigate();
   const { isActive: activeShowdown, nextReset } = useShowdown();
 
+  // ── Data from cache (no refetch on swipe) ──────────────────────────────
+  const {
+    realtimeQuests,
+    olderQuests,
+    questsLoading,
+    questsLoadingMore,
+    questsHasMore,
+    hasInitialQuestData,
+    loadMoreQuests,
+    startQuestListener,
+    stopQuestListener,
+  } = useDataCache();
+
+  // Mount/unmount listener lifecycle
+  useEffect(() => {
+    startQuestListener();
+    return () => stopQuestListener();
+  }, [city, startQuestListener, stopQuestListener]);
+
+  const hasInitialData = hasInitialQuestData;
+  const enableRealtime = !questsLoading;
+  const isReady = hasInitialData;
+  const hasMore = questsHasMore;
+  const handleLoadMore = loadMoreQuests;
+  const loadingMore = questsLoadingMore;
+
+  // Derived combined list (same as before)
+  const quests = [...realtimeQuests, ...olderQuests];
+
   // ✅ Check if user is temporarily banned
   const banStatus = user ? isBanned(user) : { banned: false };
-  const isTemporarilyBanned =
-    banStatus.banned && banStatus.type === "temporary";
-
-  // ✅ Hybrid Pagination State
-  const [realtimeQuests, setRealtimeQuests] = useState([]);
-  const [olderQuests, setOlderQuests] = useState([]);
-  // Derived state for rendering
-  const quests = [...realtimeQuests, ...olderQuests];
+  const isTemporarilyBanned = banStatus.banned && banStatus.type === "temporary";
 
   const [hubs, setHubs] = useState([]);
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
-
-  // ✅ NEW: Secret Code Modal state
-  const [secretCodeModal, setSecretCodeModal] = useState({
-    isOpen: false,
-    quest: null,
-  });
+  const [secretCodeModal, setSecretCodeModal] = useState({ isOpen: false, quest: null });
   const [isJoining, setIsJoining] = useState(false);
-
-  // ✅ Private Room Code State
   const [privateCode, setPrivateCode] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
-
-  // ✅ Pagination State
-  const [lastDoc, setLastDoc] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [enableRealtime, setEnableRealtime] = useState(false);
-  const [hasInitialData, setHasInitialData] = useState(false);
-  const isReady = enableRealtime && hasInitialData;
   const [showNonCritical, setShowNonCritical] = useState(false);
 
-  // 🚀 PERFORMANCE: LCP Optimization - Delay video rendering
-
   const containerRef = useRef(null);
-  // 🚀 PERFORMANCE: ensure first paint completes before Firebase
-  const startedRef = useRef(false);
-
   const [pagePainted, setPagePainted] = useState(false);
-
-  // ⏱️ Delay realtime Firestore until UI paints
-  useEffect(() => {
-    const id = setTimeout(() => {
-      setEnableRealtime(true);
-    }, 300);
-
-    return () => clearTimeout(id);
-  }, []);
 
   // 🚀 PERFORMANCE: mark page as painted (after first visual frame)
   useEffect(() => {
-    requestAnimationFrame(() => {
-      setPagePainted(true);
-    });
+    requestAnimationFrame(() => setPagePainted(true));
   }, []);
 
   useEffect(() => {
-    if (!hasInitialData) return;
-
-    const id = setTimeout(() => {
-      setShowNonCritical(true);
-    }, 2000); // wait 2s AFTER quests render
-
+    if (!hasInitialQuestData) return;
+    const id = setTimeout(() => setShowNonCritical(true), 2000);
     return () => clearTimeout(id);
-  }, [hasInitialData]);
+  }, [hasInitialQuestData]);
 
-  // ✅ OPTIMIZED: Realtime Listener for Top Quests (Deferred to Idle)
-  useEffect(() => {
-    if (!user?.uid || !enableRealtime || !pagePainted) return;
 
-    let isSubscribed = true; // ✅ Prevent state updates after unmount
-    let unsubQuests = null;
-
-    // 🚀 CRITICAL PERFORMANCE FIX: Use requestIdleCallback to defer Firebase listener
-    const idleCallbackId = requestIdleCallback(
-      () => {
-        if (!isSubscribed || startedRef.current) return; // Guard against race condition
-        startedRef.current = true;
-        console.log(
-          "⚡ [Performance] Starting quest listener (deferred to idle)",
-        );
-
-        unsubQuests = subscribeToAllQuests((newTopQuests, newLastDoc) => {
-          if (!isSubscribed) return; // ✅ Guard against stale updates
-
-          setRealtimeQuests(newTopQuests);
-          setHasInitialData(true);
-
-          // ✅ CRITICAL FIX: Use callback form to avoid dependency on olderQuests
-          setLastDoc((prevLastDoc) => prevLastDoc || newLastDoc);
-        }, city);
-      },
-      { timeout: 4000 }, // Wait up to 3 seconds for idle time
-    );
-
-    return () => {
-      isSubscribed = false; // ✅ Mark as unsubscribed
-      if (idleCallbackId) cancelIdleCallback(idleCallbackId);
-      if (typeof unsubQuests === "function") {
-        unsubQuests();
-      }
-    };
-  }, [user?.uid, city, enableRealtime]); // ✅ REMOVED olderQuests.length - prevents re-subscription!
-
-  // ✅ Load More Function
-  const handleLoadMore = async () => {
-    if (loadingMore || !hasMore || !lastDoc) return;
-
-    setLoadingMore(true);
-    try {
-      // Fetch next batch using lastDoc
-      const { quests: newQuests, lastVisible } = await fetchMoreQuests(
-        lastDoc,
-        city,
-      );
-
-      if (newQuests.length < 10) {
-        setHasMore(false); // No more to load
-      }
-
-      if (newQuests.length > 0) {
-        setOlderQuests((prev) => [...prev, ...newQuests]);
-        setLastDoc(lastVisible);
-      }
-    } catch (err) {
-      console.error("Pagination error:", err);
-      // toast.error("Could not load more quests");
-    } finally {
-      setLoadingMore(false);
-    }
-  };
 
   const handlePrivateJoin = async () => {
     if (privateCode.length !== 6 || !user?.uid || joinLoading) return;
@@ -538,7 +457,7 @@ const QuestBoard = () => {
             {/* Search & Filter Component - Neon Glass Pill */}
             <div className="mb-8 sticky top-20 z-40">
               {/* Make sticky for better UX on scroll */}
-              <div className="bg-dark-bg/90 backdrop-blur-xl p-3 sm:p-4 rounded-full border border-white/5 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+              <div className="bg-dark-bg/90 backdrop-blur-xl p-4 sm:p-2 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                 {/* Search Pill */}
                 <div className="relative group w-full sm:w-auto sm:flex-1">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-neon-purple group-focus-within:drop-shadow-[0_0_5px_#a855f7] transition-all duration-300" />
@@ -560,7 +479,7 @@ const QuestBoard = () => {
                         onClick={() => setFilter(cat.name)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 font-black text-[9px] uppercase tracking-widest border backdrop-blur-md ${
                           filter === cat.name
-                            ? "bg-neon-purple text-white border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105"
+                            ? "bg-neon-purple text-white border-neon-purple scale-105"
                             : "bg-black/40 text-gray-500 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20"
                         }`}
                       >
@@ -703,7 +622,7 @@ const QuestBoard = () => {
         )}
 
         {/* Floating Action Button - Nuclear Launch Style */}
-        <div className="fixed bottom-28 right-6 z-50 sm:bottom-10 sm:right-10 flex flex-col items-center gap-2">
+        <div className="fixed bottom-28 right-6 z-50 lg:bottom-10 lg:right-10 flex flex-col items-center gap-2">
           <div className="absolute inset-0 bg-black/50 blur-xl rounded-full scale-110 pointer-events-none" />{" "}
           {/* Shadow Backdrop */}
           {isTemporarilyBanned ? (

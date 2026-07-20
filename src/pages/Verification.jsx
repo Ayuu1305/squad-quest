@@ -221,8 +221,6 @@ const Verification = () => {
     if (hasPhoto) {
       earnedXP += 20;
       if (isLeader) earnedXP += Math.max(0, memberCount - 1) * 10;
-    } else {
-      earnedXP = 0;
     }
 
     const showdown = isShowdownActive();
@@ -238,19 +236,25 @@ const Verification = () => {
       });
 
       // ✅ 2) call backend finalize (optional but recommended)
+      let serverXP = null;
       try {
-        await finalizeQuest(id, {
+        const data = await finalizeQuest(id, {
           locationVerified: true,
           codeVerified: true,
           photoURL: hasPhoto ? photoData : "",
         });
+        if (data && data.earnedXP !== undefined) {
+          serverXP = data.earnedXP;
+        }
       } catch (e) {
         console.warn("finalizeQuest API failed (can ignore in dev):", e);
       }
 
+      const finalXP = serverXP !== null ? serverXP : finalUIXP;
+
       // ✅ 3) UI celebration
       setLootData({
-        xp: finalUIXP,
+        xp: finalXP,
         vibe: quest.vibeCheck || "Neutral",
         hasPhoto,
         wasShowdown: showdown,

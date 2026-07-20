@@ -281,7 +281,7 @@ const LeaderboardPodium = ({
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-neon-purple/20 blur-[50px] rounded-full pointer-events-none opacity-40" />
 
         {/* Podium Layout: Tight & Intimate */}
-        <div className="flex items-end justify-center gap-2 md:gap-5 w-full relative z-10 pb-2">
+        <div className="flex items-end justify-center gap-4 md:gap-5 w-full relative z-10 pb-2">
           <PodiumSpot
             hero={topThree[1]}
             rank={2}

@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 
+.cursorrules
+
 .env
 .env.*
 serviceAccountKey.json
@@ -31,3 +33,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase cache and temp files
+.firebase/
+firebase-debug.log
+
+# Vite & Bundle Visualizer outputs
+dev-dist/
+stats.html
+vite.config.js.timestamp-*
+
+# ESLint cache
+.eslintcache
+

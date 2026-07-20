@@ -3,15 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, ChevronRight, Trophy } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useDataCache } from "../context/DataCacheContext";
 import QuestCard from "../components/QuestCard";
-import {
-  collection,
-  onSnapshot,
-  doc,
-  getDoc,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 
 // 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
@@ -27,109 +21,22 @@ const safeDate = (dateInput) => {
 const MyMissions = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const {
+    myQuests: quests,
+    archivedQuests,
+    missionsLoading: loading,
+    startMissionsListener,
+    stopMissionsListener,
+  } = useDataCache();
+
+  // Mount/unmount listener lifecycle
+  useEffect(() => {
+    startMissionsListener();
+    return () => stopMissionsListener();
+  }, [startMissionsListener, stopMissionsListener]);
 
   const [activeTab, setActiveTab] = useState("upcoming");
-  const [quests, setQuests] = useState([]);
-  const [archivedQuests, setArchivedQuests] = useState([]); // ✅ Archived completed quests
-  const [hubs, setHubs] = useState({}); // ✅ Map: { [hubId]: hubData }
-  const [loading, setLoading] = useState(true);
-
-  // ✅ Direct Query: Fetch quests where user is in members array
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    // Query main collection directly - most robust method
-    const q = query(
-      collection(db, "quests"),
-      where("members", "array-contains", user.uid),
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const myQuests = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .sort((a, b) => {
-            // Sort by startTime descending (Newest first)
-            const timeA = safeDate(a.startTime);
-            const timeB = safeDate(b.startTime);
-            return timeB - timeA;
-          });
-        console.log("📋 [MyMissions] Fetched quests:", myQuests.length);
-        setQuests(myQuests);
-        setLoading(false);
-      },
-      (error) => {
-        if (error?.code === "permission-denied") return;
-        console.warn("MyMissions: Query error:", error?.code);
-        setLoading(false);
-      },
-    );
-
-    return () => unsubscribe();
-  }, [user?.uid]);
-
-  // ✅ Fetch archived completed quests from archived_quests collection
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    // Query archived_quests collection for completed missions only
-    const archivedQuery = query(
-      collection(db, "archived_quests"),
-      where("members", "array-contains", user.uid),
-      where("status", "==", "completed"), // ✅ Filter out archived 'open' quests
-    );
-
-    const unsubscribe = onSnapshot(
-      archivedQuery,
-      (snapshot) => {
-        // ✅ VERIFICATION: Log raw document count
-        const allDocs = snapshot.docs;
-        console.log("\n📊 [MyMissions] ARCHIVED QUESTS VERIFICATION:");
-        console.log(`   Total documents in archived_quests: ${allDocs.length}`);
-
-        // Count by status
-        const statusCounts = {};
-        allDocs.forEach((doc) => {
-          const status = doc.data().status || "undefined";
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-        });
-        console.log("   Status breakdown:", statusCounts);
-
-        const archived = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        console.log(
-          `   Documents matching query (completed only): ${archived.length}`,
-        );
-        console.log("   ✅ This is what will be shown in Past Missions\n");
-
-        setArchivedQuests(archived);
-      },
-      (error) => {
-        // ✅ Graceful error handling - don't crash if index missing or permission denied
-        if (
-          error?.code === "permission-denied" ||
-          error?.code === "failed-precondition"
-        ) {
-          console.warn(
-            "MyMissions: Archived quests query error (non-critical):",
-            error?.code,
-          );
-          setArchivedQuests([]); // Return empty array, show only recent history
-          return;
-        }
-        console.warn("MyMissions: Archived query error:", error?.code);
-        setArchivedQuests([]);
-      },
-    );
-
-    return () => unsubscribe();
-  }, [user?.uid]);
+  const [hubs, setHubs] = useState({}); // map: { [hubId]: hubData }
 
   // ✅ Fetch hubs per-quest (avoids collection-wide subscription and permission issues)
   useEffect(() => {
@@ -199,55 +106,49 @@ const MyMissions = () => {
   const displayQuests =
     activeTab === "upcoming" ? upcomingMissions : pastMissions;
 
-  // ✅ Internal Swipe Handler
+  // Touch tracking for internal tab swipe navigation
   const tabs = ["upcoming", "past"];
-
-  // Touch tracking for internal swipe navigation
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const touchStartY = useRef(0); // NEW: Track vertical movement
+  const touchStartY = useRef(0);
   const touchEndY = useRef(0);
+  const touchMoved = useRef(false);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
-    // Don't stop propagation here - let it bubble up initially
+    touchEndX.current = e.touches[0].clientX;  // ← reset to start, not 0
+    touchEndY.current = e.touches[0].clientY;
+    touchMoved.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
+    touchMoved.current = true;
   };
 
   const handleTouchEnd = (e) => {
-
-    // If there was no movement (just a tap), do nothing
-    if (!touchEndX.current) return;
+    // Ignore taps — no real movement happened
+    if (!touchMoved.current) return;
 
     const deltaX = touchEndX.current - touchStartX.current;
     const deltaY = touchEndY.current - touchStartY.current;
 
-    // Reset for the next tap/swipe
-    touchEndX.current = 0;
-    touchEndY.current = 0;
-
-    // 🔥 CRITICAL FIX: If the user moved vertically more than horizontally, 
-    // it means they are scrolling or tapping, NOT swiping. Ignore it.
+    // Vertical scroll wins — don't hijack it
     if (Math.abs(deltaY) > Math.abs(deltaX)) return;
 
     const threshold = 80;
     const currIndex = tabs.indexOf(activeTab);
 
-    // Only stop propagation if we actually change tabs
     if (deltaX > threshold && currIndex > 0) {
       setActiveTab(tabs[currIndex - 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
+      e.stopPropagation(); // Tab changed — stop SwipeWrapper from also navigating
     } else if (deltaX < -threshold && currIndex < tabs.length - 1) {
       setActiveTab(tabs[currIndex + 1]);
-      e.stopPropagation(); // Tab changed, prevent page navigation
+      e.stopPropagation();
     }
-    // If at edge (first or last tab), don't stop propagation - allow page navigation
-  };
-
-  const handleTouchMove = (e) => {
-    touchEndX.current = e.touches[0].clientX;
-    touchEndY.current = e.touches[0].clientY
-    // Don't stop propagation here either
+    // At first/last tab: let bubble up → SwipeWrapper handles page nav
   };
 
   return (
@@ -332,23 +233,13 @@ const MyMissions = () => {
                     <QuestCard quest={quest} hub={hub} isMyMission={true} />
 
                     {/* Status Badge */}
-                    <div className="absolute top-4 right-12 z-20">
-                      <span
-                        className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${
-                          quest.completedBy?.includes(user?.uid)
-                            ? "bg-green-500/20 border-green-500/50 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]"
-                            : quest.status === "active"
-                              ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
-                              : "bg-neon-purple/20 border-neon-purple/50 text-neon-purple"
-                        }`}
-                      >
-                        {quest.completedBy?.includes(user?.uid)
-                          ? "Cleared"
-                          : quest.status === "active"
-                            ? "Tactical"
-                            : "Recruiting"}
-                      </span>
-                    </div>
+                    {quest.completedBy?.includes(user?.uid) && (
+                      <div className="absolute top-4 right-12 z-20">
+                        <span className="px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border bg-green-500/20 border-green-500/50 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]">
+                          Cleared
+                        </span>
+                      </div>
+                    )}
 
                     {/* Indicator */}
                     <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-8 h-8 rounded-full bg-neon-purple flex items-center justify-center shadow-lg group-hover:translate-x-1 transition-transform border border-white/20">
