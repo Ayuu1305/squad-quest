@@ -98,6 +98,10 @@ export const AuthProvider = ({ children }) => {
               setProfile({
                 ...authUser,
                 ...profileData,
+                // 🔥 CRITICAL: Always trust Firebase Auth for emailVerified.
+                // Firestore stores the value at signup (false), and must NEVER override the real Auth state.
+                emailVerified: authUser.emailVerified,
+                uid: authUser.uid,
               });
               setLoading(false);
             },

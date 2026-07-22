@@ -165,6 +165,15 @@ export const signInWithEmail = async (email, password) => {
     throw new Error("VENDOR_ACCOUNT");
   }
 
+  // ✅ SYNC: Update Firestore emailVerified to true so it stays consistent
+  // (It was stored as false at signup, before the email was verified)
+  if (!userData?.emailVerified) {
+    const { updateDoc } = await loadFirebase();
+    await updateDoc(doc(db, "users", user.uid), { emailVerified: true }).catch(
+      (err) => console.warn("Could not sync emailVerified:", err),
+    );
+  }
+
   return user;
 };
 
