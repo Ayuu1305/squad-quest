@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { Shield, Star, Crown, Zap, Gift, CheckCircle } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const OnboardingGuide = ({ onClose }) => {
+  useLockBodyScroll();
   const steps = [
     {
       level: 5,

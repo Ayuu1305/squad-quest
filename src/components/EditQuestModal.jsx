@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import toast from "react-hot-toast";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const EditQuestModal = ({
   isOpen,
@@ -19,6 +20,7 @@ const EditQuestModal = ({
   isSaving,
   userCity,
 }) => {
+  useLockBodyScroll(isOpen);
   const [hubs, setHubs] = useState([]);
 
   // Helper to format Firestore timestamp to datetime-local input value

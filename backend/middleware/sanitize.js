@@ -11,9 +11,6 @@ const sanitizeString = (str) => {
   return str
     .replace(/</g, "&lt;") // < to &lt;
     .replace(/>/g, "&gt;") // > to &gt;
-    .replace(/"/g, "&quot;") // " to &quot;
-    .replace(/'/g, "&#x27;") // ' to &#x27;
-    .replace(/\//g, "&#x2F;") // / to &#x2F;
     .trim(); // Remove leading/trailing whitespace
 };
 

@@ -22,6 +22,7 @@ import {
   Flame,
   Frame,
 } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 import {
   levelProgress,
   xpToNextLevel,
@@ -455,6 +456,7 @@ const CardPreviewModal = ({
   xpNeeded,
   onClose,
 }) => {
+  useLockBodyScroll();
   const handleDownload = async () => {
     try {
       const element = document.getElementById("clean-export-target");

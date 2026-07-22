@@ -5,8 +5,10 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import { useGame } from "../context/GameContext";
 import { getVendorByHubId } from "../backend/services/vendor.service"; // ✅ VENDOR SERVICE
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const HubSelectionModal = ({ isOpen, onClose, onSelect }) => {
+  useLockBodyScroll(isOpen);
   const { city } = useGame();
   const [hubs, setHubs] = useState([]);
   const [vendorData, setVendorData] = useState({}); // ✅ Map: hubId -> vendor details

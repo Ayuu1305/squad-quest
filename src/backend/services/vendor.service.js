@@ -307,12 +307,30 @@ export const notifyVendorOfNewMission = async (questData) => {
       email: currentUser?.email,
     });
 
+    const rawDate = new Date(
+      questData.startTime?.seconds * 1000 || questData.startTime,
+    );
+    const time = rawDate.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
+    const date = rawDate.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      timeZone: "Asia/Kolkata",
+    });
+
+    const formattedTitle = "🎯 New Mission at Your Hub!";
+    const formattedBody = `Host ${questData.hostName || "A Hero"} created mission "${questData.title}" scheduled for ${date} at ${time}.`;
+
     const notificationData = {
       vendorId: vendor.id,
       questId: questData.questId || "unknown",
       hubId: questData.hubId,
-      title: "🎯 New Mission Alert!",
-      body: `${questData.hostName} created "${questData.title}" at ${new Date(questData.startTime?.seconds * 1000 || questData.startTime).toLocaleString()}`,
+      title: formattedTitle,
+      body: formattedBody,
       read: false,
       createdAt: serverTimestamp(),
     };
@@ -345,24 +363,8 @@ export const notifyVendorOfNewMission = async (questData) => {
           },
           body: JSON.stringify({
             vendorId: vendor.id,
-            title: "🎯 New Mission Alert!",
-            body: (() => {
-              const d = new Date(
-                questData.startTime?.seconds * 1000 || questData.startTime,
-              );
-              const time = d.toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-                timeZone: "Asia/Kolkata",
-              });
-              const date = d.toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                timeZone: "Asia/Kolkata",
-              });
-              return `${questData.hostName} created '${questData.title}' on ${date} at ${time}`;
-            })(),
+            title: formattedTitle,
+            body: formattedBody,
             data: {
               type: "new_mission",
               questId: questData.questId || "unknown",

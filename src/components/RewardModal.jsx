@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Crown, Shield, Medal, Zap, Award } from "lucide-react";
 import { useReward } from "../context/RewardContext";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const RewardModal = () => {
   const { currentReward, dismissReward, isShowing, setIsShowing } = useReward();
+  useLockBodyScroll(isShowing);
 
   useEffect(() => {
     if (currentReward && !isShowing) {

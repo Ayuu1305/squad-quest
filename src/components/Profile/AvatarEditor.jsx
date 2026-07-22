@@ -5,6 +5,7 @@ import HeroAvatar from "../HeroAvatar";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { getAuth } from "firebase/auth";
+import { useLockBodyScroll } from "../../hooks/useLockBodyScroll";
 
 // --- 🎨 MULTI-STYLE CONFIG (Official DiceBear Schemas) ---
 const STYLES = {
@@ -286,6 +287,7 @@ const STYLES = {
 };
 
 const AvatarEditor = ({ isOpen, onClose }) => {
+  useLockBodyScroll(isOpen);
   const { user, userStats } = useAuth();
 
   // Determine initial style from saved config or default to 'adventurer'

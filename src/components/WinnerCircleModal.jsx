@@ -9,8 +9,10 @@ import {
   Sparkles,
   Flame,
 } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const WinnerCircleModal = ({ isOpen, onClose }) => {
+  useLockBodyScroll(isOpen);
   if (!isOpen) return null;
 
   const rewards = [

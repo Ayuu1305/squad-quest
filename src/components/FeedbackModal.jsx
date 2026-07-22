@@ -11,8 +11,10 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { submitFeedback } from "../backend/services/feedback.service";
 import toast from "react-hot-toast";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const FeedbackModal = ({ onClose }) => {
+  useLockBodyScroll();
   const { user } = useAuth();
   const [type, setType] = useState("bug_report");
   const [message, setMessage] = useState("");
@@ -71,19 +73,23 @@ const FeedbackModal = ({ onClose }) => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <div
+        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
           className="bg-dark-bg border-2 border-neon-purple/50 rounded-3xl p-6 max-w-lg w-full relative overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.3)]"
         >
           {/* Background Effects */}
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-neon-purple to-transparent" />
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-neon-purple blur-[80px] opacity-20" />
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-neon-purple blur-[80px] opacity-20 pointer-events-none" />
 
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 relative z-10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-neon-purple/20 rounded-xl flex items-center justify-center border border-neon-purple/50">
                 <MessageSquare className="w-5 h-5 text-neon-purple" />
@@ -98,10 +104,15 @@ const FeedbackModal = ({ onClose }) => {
               </div>
             </div>
             <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onClose) onClose();
+              }}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white cursor-pointer relative z-50"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 

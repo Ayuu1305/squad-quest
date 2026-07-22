@@ -9,7 +9,7 @@ export default defineConfig({
 
     // Optional – enable only when you need it
     visualizer({
-      open: true, // ✅ Auto-open stats.html after build
+      open: false, // ✅ Auto-open stats.html after build
       filename: "stats.html",
       gzipSize: true,
       brotliSize: true,

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, XCircle, Ban } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const ViolationWarningModal = ({ violations, onAcknowledge }) => {
+  useLockBodyScroll();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
 

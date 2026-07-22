@@ -20,10 +20,22 @@ let _count = 0;
 
 export const blockSwipe = () => {
   _count++;
+  if (_count === 1) {
+    document.body.classList.add("modal-open");
+    document.documentElement.classList.add("modal-open");
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+  }
 };
 
 export const unblockSwipe = () => {
   _count = Math.max(0, _count - 1);
+  if (_count === 0) {
+    document.body.classList.remove("modal-open");
+    document.documentElement.classList.remove("modal-open");
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+  }
 };
 
 export const isSwipeBlocked = () => _count > 0;

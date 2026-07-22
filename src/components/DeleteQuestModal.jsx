@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Trash2 } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const DeleteQuestModal = ({
   isOpen,
@@ -8,6 +9,7 @@ const DeleteQuestModal = ({
   questTitle,
   isDeleting,
 }) => {
+  useLockBodyScroll(isOpen);
   return (
     <AnimatePresence>
       {isOpen && (

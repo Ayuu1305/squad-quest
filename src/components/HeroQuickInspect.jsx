@@ -6,8 +6,10 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import HeroCardGenerator from "./HeroCardGenerator";
 import { useAuth } from "../context/AuthContext"; // ✅ Need to check if viewing self
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const HeroQuickInspect = ({ hero, onClose }) => {
+  useLockBodyScroll(); // Lock background scrolling while inspect modal is open
   const { user: currentUser } = useAuth(); // ✅ Get current logged-in user
   const [enrichedHero, setEnrichedHero] = useState(hero);
   const [loading, setLoading] = useState(true);

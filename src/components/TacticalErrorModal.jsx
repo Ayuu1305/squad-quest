@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const TacticalErrorModal = ({
   isOpen,
@@ -7,6 +8,7 @@ const TacticalErrorModal = ({
   message,
   title = "Tactical Error",
 }) => {
+  useLockBodyScroll(isOpen);
   return (
     <AnimatePresence>
       {isOpen && (

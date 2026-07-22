@@ -252,7 +252,7 @@ const HeroCardGenerator = ({
               </div>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-8 space-y-2">
               {/* Avatar Ring */}
               <div className="relative flex justify-center py-4">
                 <motion.div
@@ -388,27 +388,6 @@ const HeroCardGenerator = ({
                   </span>
                 </div>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-purple-500/20 flex items-center justify-between relative z-10 bg-[#0f0720]/50">
-              <div className="flex items-center gap-3">
-                <div className="bg-white p-1 rounded shadow-[0_0_10px_rgba(168,85,247,0.5)]">
-                  <QrCode className="w-8 h-8 text-indigo-900" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-[9px] text-purple-300 font-bold uppercase tracking-wider">
-                      Biometric Sync
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-white/90 font-mono">
-                    ID: {user?.uid?.substring(0, 8) || "UNKNOWN"}
-                  </p>
-                </div>
-              </div>
-              <Fingerprint className="w-10 h-10 text-purple-500/20" />
             </div>
           </div>
 
@@ -629,27 +608,6 @@ const HeroCardGenerator = ({
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-purple-500/20 flex items-center justify-between relative z-10 bg-[#0f0720]/50">
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-1 rounded shadow-[0_0_10px_rgba(168,85,247,0.5)]">
-                <QrCode className="w-8 h-8 text-indigo-900" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-[9px] text-purple-300 font-bold uppercase tracking-wider">
-                    Biometric Sync
-                  </span>
-                </div>
-                <p className="text-[10px] text-white/90 font-mono">
-                  ID: {user?.uid?.substring(0, 8) || "UNKNOWN"}
-                </p>
-              </div>
-            </div>
-            <Fingerprint className="w-10 h-10 text-purple-500/20" />
           </div>
         </div>
       </div>

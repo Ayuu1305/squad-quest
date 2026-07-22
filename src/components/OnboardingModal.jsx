@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Coffee, Camera, Trophy, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { completeOnboarding } from "../backend/services/user.service";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const OnboardingModal = () => {
+  useLockBodyScroll();
   const { user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(false);

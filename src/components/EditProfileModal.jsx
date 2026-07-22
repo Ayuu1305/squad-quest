@@ -14,8 +14,10 @@ import {
 import { updateHeroProfile } from "../backend/services/auth.service";
 import HeroAvatar from "./HeroAvatar";
 import { getTier } from "../utils/xp";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const EditProfileModal = ({ user, onClose }) => {
+  useLockBodyScroll();
   const [formData, setFormData] = useState({
     name: user.name || "",
     heroClass: user.heroClass || "Novice",

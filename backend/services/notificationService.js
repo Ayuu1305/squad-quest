@@ -1,5 +1,16 @@
 import { db, messaging, FieldValue } from "../server.js";
 
+const cleanNotificationText = (str) => {
+  if (!str || typeof str !== "string") return str;
+  return str
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x2F;/g, "/")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+};
+
 /**
  * Sends an FCM notification to a specific user.
  *
@@ -11,6 +22,10 @@ import { db, messaging, FieldValue } from "../server.js";
 export const sendNotification = async (userId, title, body, data = {}) => {
   try {
     if (!userId) return;
+
+    // Clean title and body for native notification display
+    const cleanTitle = cleanNotificationText(title);
+    const cleanBody = cleanNotificationText(body);
 
     // Fetch user's FCM token
     const userDoc = await db.collection("users").doc(userId).get();
@@ -26,8 +41,8 @@ export const sendNotification = async (userId, title, body, data = {}) => {
 
     const message = {
       notification: {
-        title,
-        body,
+        title: cleanTitle,
+        body: cleanBody,
       },
       data: {
         ...data,

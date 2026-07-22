@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User, Users, ShieldAlert } from "lucide-react";
 import { updateHeroProfile } from "../backend/services/auth.service";
 import { useAuth } from "../context/AuthContext";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const GenderSelectionModal = () => {
+  useLockBodyScroll();
   const { user } = useAuth();
   const [selectedGender, setSelectedGender] = useState("");
   const [loading, setLoading] = useState(false);

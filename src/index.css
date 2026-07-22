@@ -297,7 +297,7 @@
 
 .btn-primary:hover {
   background-color: #9333ea;
-  transform: scale(1.02);
+  transform: scale(1.00);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
@@ -610,3 +610,15 @@
   color: white !important;
   font-weight: bold !important;
 }
+
+/* ✅ MODAL OPEN SCROLL LOCK */
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+body.modal-open .app-container {
+  overflow: hidden !important;
+}
+

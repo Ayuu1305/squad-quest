@@ -15,6 +15,7 @@ import {
   Phone,
   Gift, // ✅ For loot section
 } from "lucide-react";
+import { useLockBodyScroll } from "../../hooks/useLockBodyScroll";
 import {
   getAllHubs,
   updateHub,
@@ -275,6 +276,7 @@ const HubCard = ({ hub, onEdit, onDelete }) => (
 );
 
 const EditHubModal = ({ hub, onSave, onClose }) => {
+  useLockBodyScroll();
   const [formData, setFormData] = useState({
     name: hub.name || "",
     category: hub.category || "Café",
@@ -537,7 +539,9 @@ const EditHubModal = ({ hub, onSave, onClose }) => {
   );
 };
 
-const DeleteConfirmModal = ({ hub, onConfirm, onCancel }) => (
+const DeleteConfirmModal = ({ hub, onConfirm, onCancel }) => {
+  useLockBodyScroll();
+  return (
   <AnimatePresence>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -592,5 +596,6 @@ const DeleteConfirmModal = ({ hub, onConfirm, onCancel }) => (
     </div>
   </AnimatePresence>
 );
+};
 
 export default ManageHubs;

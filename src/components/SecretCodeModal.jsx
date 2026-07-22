@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { X, Lock } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const SecretCodeModal = ({
   isOpen,
@@ -9,6 +10,7 @@ const SecretCodeModal = ({
   questTitle,
   isJoining,
 }) => {
+  useLockBodyScroll(isOpen);
   const [code, setCode] = useState("");
 
   const handleSubmit = (e) => {

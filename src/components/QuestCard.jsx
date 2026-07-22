@@ -1,10 +1,16 @@
 import { Users, MapPin, Clock, Gift, Flame, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import HeroAvatar from "./HeroAvatar";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useAuth } from "../context/AuthContext";
+import {
+  getUserProfile,
+  fetchUserProfile,
+  setUserProfileCache,
+  subscribeUserCache,
+} from "../utils/userCache";
 
 // 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
 const safeDate = (dateInput) => {
@@ -19,12 +25,56 @@ const safeDate = (dateInput) => {
 const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
   const { user } = useAuth();
 
-  // ❌ REMOVED: const [members, setMembers] = useState([]);
-  // ❌ REMOVED: The useEffect that fetched members (The Battery Drainer)
-
-  // ✅ NEW: Read directly from the prop (Instant & Free)
-  // If the 'members' array exists on the quest object, use it. Otherwise empty array.
+  // ✅ Read members list from quest prop
   const displayMembers = quest.members || [];
+
+  const [memberProfiles, setMemberProfiles] = useState({});
+
+  // Populate current user into cache
+  useEffect(() => {
+    if (user?.uid) {
+      setUserProfileCache(user.uid, user);
+    }
+  }, [user]);
+
+  // Fetch and subscribe to profiles for displayed member UIDs
+  const memberUidsKey = useMemo(
+    () => displayMembers.slice(0, 3).join(","),
+    [displayMembers],
+  );
+
+  useEffect(() => {
+    const uidsToFetch = displayMembers.slice(0, 3);
+    if (uidsToFetch.length === 0) return;
+
+    let isMounted = true;
+
+    const syncProfiles = () => {
+      const updated = {};
+      uidsToFetch.forEach((uid) => {
+        const cached = getUserProfile(uid);
+        if (cached) {
+          updated[uid] = cached;
+        } else {
+          fetchUserProfile(uid);
+        }
+      });
+      if (isMounted && Object.keys(updated).length > 0) {
+        setMemberProfiles((prev) => ({ ...prev, ...updated }));
+      }
+    };
+
+    syncProfiles();
+
+    const unsubscribe = subscribeUserCache(() => {
+      if (isMounted) syncProfiles();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [memberUidsKey]);
 
   // ✅ NEW: Calculate count safely (uses 'membersCount' number if available, else array length)
   const displayCount =
@@ -343,14 +393,19 @@ const QuestCard = ({ quest, hub, isMyMission = false, isBanned = false }) => {
         <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
           <div className="flex -space-x-2">
             {/* Safely map over displayMembers */}
-            {displayMembers.slice(0, 3).map((uid) => (
-              <div
-                key={uid}
-                className="w-8 h-8 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center overflow-hidden"
-              >
-                <HeroAvatar seed={uid} size={32} />
-              </div>
-            ))}
+            {displayMembers.slice(0, 3).map((memberUid) => {
+              const memberUser =
+                memberProfiles[memberUid] ||
+                (memberUid === user?.uid ? user : { uid: memberUid });
+              return (
+                <div
+                  key={memberUid}
+                  className="w-8 h-8 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center overflow-hidden shrink-0"
+                >
+                  <HeroAvatar user={memberUser} seed={memberUid} size={32} />
+                </div>
+              );
+            })}
             {displayMembers.length > 3 && (
               <div className="w-8 h-8 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center z-0">
                 <span className="text-[9px] font-bold text-gray-400">

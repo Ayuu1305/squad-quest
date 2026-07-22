@@ -13,6 +13,7 @@ import {
 import { calculateDistance } from "../utils/geoUtils";
 import { compressImage } from "../utils/imageUtils";
 import { useAuth } from "../context/AuthContext";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
   const [activeLayer, setActiveLayer] = useState(1);
@@ -24,6 +25,7 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showPhotoWarning, setShowPhotoWarning] = useState(false);
+  useLockBodyScroll(showPhotoWarning);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [compressionStatus, setCompressionStatus] = useState("idle"); // 'idle' | 'compressing' | 'ready'
 

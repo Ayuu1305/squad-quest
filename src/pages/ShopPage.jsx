@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { ShoppingBag, Gift, Loader, Info, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 /**
  * ShopPage Component - Full Page Shop with Voucher Support
@@ -660,6 +661,7 @@ const ShopItemCard = ({
   const canAfford = userXP >= cost;
   const showOwned = (type === "cosmetic" || type === "badge") && isOwned;
   const [showInfo, setShowInfo] = useState(false);
+  useLockBodyScroll(showInfo);
 
   // Derive a short tagline from item type — no hardcoded name matching needed
   const typeTaglines = {

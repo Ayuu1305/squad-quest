@@ -19,6 +19,7 @@ import {
 } from "../backend/services/auth.service";
 import PersonalDetailsModal from "../components/Settings/PersonalDetailsModal";
 import FeedbackModal from "../components/FeedbackModal";
+import HeroAvatar from "../components/HeroAvatar";
 import toast from "react-hot-toast";
 
 const Settings = () => {
@@ -76,15 +77,8 @@ const Settings = () => {
           <div className="glassmorphism-dark rounded-2xl overflow-hidden border border-white/10">
             {/* Preview Card */}
             <div className="p-6 border-b border-white/5 flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-neon-purple/20 border-2 border-neon-purple/50 p-1">
-                <img
-                  src={
-                    user?.avatar ||
-                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`
-                  }
-                  alt="Avatar"
-                  className="w-full h-full rounded-full object-cover"
-                />
+              <div className="shrink-0 flex items-center justify-center">
+                <HeroAvatar user={user} size={60} />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-white">

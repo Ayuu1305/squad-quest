@@ -11,6 +11,7 @@ import HeroAvatar from "./HeroAvatar";
 import AvatarFrame from "./AvatarFrame";
 import { getLevelProgress } from "../utils/leveling";
 import { COSMETIC_METADATA } from "../utils/cosmetics";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const BorderSelectorModal = ({
   isOpen,
@@ -20,6 +21,7 @@ const BorderSelectorModal = ({
   equippedFrame,
   inventory,
 }) => {
+  useLockBodyScroll(isOpen);
   const [selectedBorder, setSelectedBorder] = useState(null);
   const [allBorders, setAllBorders] = useState([]);
   const [isSaving, setIsSaving] = useState(false);

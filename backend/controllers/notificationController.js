@@ -55,10 +55,24 @@ export const sendVendorNotification = async (req, res) => {
       return res.status(400).json({ error: "No FCM tokens for vendor" });
     }
 
+    const cleanNotificationText = (str) => {
+      if (!str || typeof str !== "string") return str;
+      return str
+        .replace(/&#x27;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&#x2F;/g, "/")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&");
+    };
+
     // Build and send FCM message to all devices
     const { messaging } = await import("../server.js");
     const multicastMessage = {
-      notification: { title, body },
+      notification: {
+        title: cleanNotificationText(title),
+        body: cleanNotificationText(body),
+      },
       data: data || {},
       tokens, // Send to all registered devices
     };

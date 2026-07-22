@@ -23,6 +23,7 @@ import {
 import { db } from "../backend/firebaseConfig";
 import { isShowdownActive } from "../utils/showdownUtils";
 import VibeReview from "../components/VibeReview";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 // 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
 const safeDate = (dateInput) => {
@@ -47,6 +48,7 @@ const Verification = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [showSoloMessage, setShowSoloMessage] = useState(false);
+  useLockBodyScroll(showReview || showSoloMessage);
   const [squadMembers, setSquadMembers] = useState([]);
   const [reviewSquad, setReviewSquad] = useState([]);
   const [lootData, setLootData] = useState(null);
