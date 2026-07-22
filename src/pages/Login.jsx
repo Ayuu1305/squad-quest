@@ -33,11 +33,11 @@ const Login = () => {
     try {
       await signInWithEmail(email, password);
       toast.success("Access Granted. Welcome back, Hero.");
-      // navigate(from, { replace: true });
+      navigate(from, { replace: true });
     } catch (err) {
       if (err.message === "EMAIL_NOT_VERIFIED") {
         const msg =
-          "Verify your email before accessing the Hub.Check Spam Folder Too";
+          "Verify your email before accessing the Hub. Check Spam Folder Too";
         setError(msg);
         toast.error(msg, { icon: "📧" });
       } else if (err.message === "VENDOR_ACCOUNT") {
@@ -73,7 +73,7 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
-      // navigate(from, { replace: true });
+      navigate(from, { replace: true });
     } catch (err) {
       setError("External Sync Failed");
     }
