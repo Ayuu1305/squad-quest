@@ -160,7 +160,8 @@ const EditQuestModal = ({
     // --- 3. Save ---
     const updates = {
       ...formData,
-      roomCode: formData.secretCode,
+      roomCode: formData.secretCode || "",
+      secretCode: formData.secretCode || "",
       startTime: startTimeDate, // ✅ Send Date object, backend converts to Timestamp
     };
 

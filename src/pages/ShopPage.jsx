@@ -293,22 +293,20 @@ const ShopPage = ({ isBanned = false }) => {
         >
           <button
             onClick={() => setActiveTab("buy")}
-            className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${
-              activeTab === "buy"
+            className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === "buy"
                 ? "bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-lg"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
-            }`}
+              }`}
           >
             <ShoppingBag className="w-4 h-4" />
             Buy Items
           </button>
           <button
             onClick={() => setActiveTab("rewards")}
-            className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${
-              activeTab === "rewards"
+            className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === "rewards"
                 ? "bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-lg"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
-            }`}
+              }`}
           >
             <Gift className="w-4 h-4" />
             My Rewards
@@ -367,11 +365,10 @@ const ShopPage = ({ isBanned = false }) => {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all border ${
-                  activeCategory === cat.id
+                className={`px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all border ${activeCategory === cat.id
                     ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg border-transparent translate-y-[-1px]"
                     : "bg-white/5 text-gray-400 hover:bg-white/10 border-transparent hover:border-white/10"
-                }`}
+                  }`}
               >
                 {cat.icon} {cat.label}
               </button>
@@ -405,6 +402,7 @@ const ShopPage = ({ isBanned = false }) => {
                   imageUrl={item.imageUrl}
                   icon={item.icon || "🎁"}
                   description={item.description || ""}
+                  summary={item.summary || ""}
                   cost={item.cost}
                   value={item.value}
                   userXP={userXP}
@@ -419,35 +417,35 @@ const ShopPage = ({ isBanned = false }) => {
                   }
                   inventoryCount={
                     item.type === "consumable" ||
-                    item.type === "powerup" ||
-                    item.type === "boost" ||
-                    item.category === "powerup"
+                      item.type === "powerup" ||
+                      item.type === "boost" ||
+                      item.category === "powerup"
                       ? (() => {
-                          // 🔥 CRITICAL: Match backend logic for inventory key
-                          const title = (item.title || "").toLowerCase();
-                          if (
-                            title.includes("streak freeze") ||
-                            title.includes("streak_freeze") ||
-                            item.sku === "streak_freeze"
-                          ) {
-                            return user?.inventory?.streak_freeze || 0;
-                          }
-                          // Neuro-Boost: Check SKU first, then type/category
-                          if (
-                            item.sku === "xp_boost_2x" ||
-                            item.type === "boost" ||
-                            item.type === "powerup" ||
-                            item.category === "powerup"
-                          ) {
-                            // Check BOTH keys to handle legacy/mismatched data
-                            // Check inventory keys AND active status
-                            const invCount =
-                              (user?.inventory?.neuro_boost || 0) +
-                              (user?.inventory?.["xp_boost_2x"] || 0);
-                            return invCount;
-                          }
-                          return user?.inventory?.[item.sku] || 0;
-                        })()
+                        // 🔥 CRITICAL: Match backend logic for inventory key
+                        const title = (item.title || "").toLowerCase();
+                        if (
+                          title.includes("streak freeze") ||
+                          title.includes("streak_freeze") ||
+                          item.sku === "streak_freeze"
+                        ) {
+                          return user?.inventory?.streak_freeze || 0;
+                        }
+                        // Neuro-Boost: Check SKU first, then type/category
+                        if (
+                          item.sku === "xp_boost_2x" ||
+                          item.type === "boost" ||
+                          item.type === "powerup" ||
+                          item.category === "powerup"
+                        ) {
+                          // Check BOTH keys to handle legacy/mismatched data
+                          // Check inventory keys AND active status
+                          const invCount =
+                            (user?.inventory?.neuro_boost || 0) +
+                            (user?.inventory?.["xp_boost_2x"] || 0);
+                          return invCount;
+                        }
+                        return user?.inventory?.[item.sku] || 0;
+                      })()
                       : undefined
                   }
                   onBuy={handleBuy}
@@ -502,18 +500,16 @@ const ShopPage = ({ isBanned = false }) => {
                     return (
                       <div
                         key={redemption.id}
-                        className={`glassmorphism rounded-xl p-4 border ${
-                          isExpired
+                        className={`glassmorphism rounded-xl p-4 border ${isExpired
                             ? "border-gray-600/30 bg-gray-800/10 opacity-60"
                             : "border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h3
-                              className={`font-bold text-sm mb-1 ${
-                                isExpired ? "text-gray-400" : "text-white"
-                              }`}
+                              className={`font-bold text-sm mb-1 ${isExpired ? "text-gray-400" : "text-white"
+                                }`}
                             >
                               {(() => {
                                 const item = shopItems.find(
@@ -525,11 +521,10 @@ const ShopPage = ({ isBanned = false }) => {
                               })()}
                             </h3>
                             <span
-                              className={`text-xs font-mono uppercase border px-2 py-0.5 rounded ${
-                                isExpired
+                              className={`text-xs font-mono uppercase border px-2 py-0.5 rounded ${isExpired
                                   ? "text-red-400 border-red-500/30 bg-red-500/10"
                                   : "text-green-400 border-green-500/30 bg-green-500/10"
-                              }`}
+                                }`}
                             >
                               {isExpired ? "EXPIRED" : redemption.status}
                             </span>
@@ -539,39 +534,35 @@ const ShopPage = ({ isBanned = false }) => {
                           </span>
                         </div>
                         <div
-                          className={`rounded-lg p-3 border mb-2 ${
-                            isExpired
+                          className={`rounded-lg p-3 border mb-2 ${isExpired
                               ? "bg-gray-900/40 border-gray-600/20"
                               : "bg-black/40 border-green-500/20"
-                          }`}
+                            }`}
                         >
                           <p className="text-xs text-gray-500 font-mono mb-1">
                             Coupon Code:
                           </p>
                           <p
-                            className={`text-lg font-black font-mono tracking-wider ${
-                              isExpired
+                            className={`text-lg font-black font-mono tracking-wider ${isExpired
                                 ? "text-gray-500 line-through"
                                 : "text-green-400"
-                            }`}
+                              }`}
                           >
                             {redemption.code}
                           </p>
                         </div>
                         <div
-                          className={`flex items-center justify-between mt-2 pt-2 border-t ${
-                            isExpired
+                          className={`flex items-center justify-between mt-2 pt-2 border-t ${isExpired
                               ? "border-gray-600/20"
                               : "border-green-500/20"
-                          }`}
+                            }`}
                         >
                           <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
                             {isExpired ? "Expired On" : "Valid Until"}
                           </p>
                           <p
-                            className={`text-xs font-bold font-mono ${
-                              isExpired ? "text-red-400" : "text-green-400"
-                            }`}
+                            className={`text-xs font-bold font-mono ${isExpired ? "text-red-400" : "text-green-400"
+                              }`}
                           >
                             {formatExpiryDate(redemption.expiresAt)}
                           </p>
@@ -648,75 +639,13 @@ const ShopPage = ({ isBanned = false }) => {
   );
 };
 
-const getItemDetails = (name, type, category) => {
-  const title = (name || "").toLowerCase();
-  
-  if (title.includes("streak freeze") || title.includes("streak_freeze") || title.includes("streak")) {
-    return {
-      title: "Streak Freeze",
-      tagline: "Streak Protection Matrix",
-      explanation: "Protects your daily bounty login streak if you miss a day of check-in.",
-      howItWorks: "If you fail to check in for a daily bounty reset, one Streak Freeze is automatically consumed to preserve your current multiplier.",
-      usage: "Passive item. Holds automatically in your neural inventory space."
-    };
-  }
-  
-  if (title.includes("neuro-boost") || title.includes("neuro boost") || title.includes("xp_boost") || type === "boost" || category === "powerup") {
-    return {
-      title: name || "Neuro-Boost",
-      tagline: "Neural Accelerator Synthesizer",
-      explanation: "A high-performance neural patch that accelerates XP synthesis during mission feedback loops.",
-      howItWorks: "Temporarily grants a 2x boost on your next completed mission, doubling the base rewards.",
-      usage: "Consumes automatically on your next mission success."
-    };
-  }
-
-  if (type === "voucher" || category === "real-world" || type === "real-world") {
-    return {
-      title: name || "Partnership Voucher",
-      tagline: "Real-world Supply Drop",
-      explanation: "A digital requisition voucher redeemable for physical items (beverages, snacks, or discounts) at partner zones.",
-      howItWorks: "Generates a secure redemption coupon code that is saved in your 'My Rewards' tab.",
-      usage: "Present the code to the operator/cashier at the designated hub sector to redeem."
-    };
-  }
-
-  if (type === "cosmetic" || category === "cosmetic" || category === "style") {
-    return {
-      title: name || "Cosmetic Frame",
-      tagline: "Identity Holo-Shield",
-      explanation: "A visual modification overlay to personalize your profile frame.",
-      howItWorks: "Drapes your avatar and identity card with themed cyberpunk designs visible to other operatives.",
-      usage: "Equips automatically to your active profile upon purchase."
-    };
-  }
-
-  if (type === "badge" || category === "badge") {
-    return {
-      title: name || "Prestige Badge",
-      tagline: "Elite Operative Mark",
-      explanation: "A permanent badge of honor showcasing your achievements or faction loyalty.",
-      howItWorks: "Adds a glowing badge on your inspectable character card.",
-      usage: "Displayed automatically to other heroes checking you out on the leaderboard."
-    };
-  }
-
-  // Fallback
-  return {
-    title: name || "Shop Item",
-    tagline: "Operative Utility Slot",
-    explanation: "A unique digital or physical upgrade for your matrix.",
-    howItWorks: "Grants specific boosts, status overrides, or voucher codes upon decryption.",
-    usage: "View details under corresponding active tabs."
-  };
-};
-
 const ShopItemCard = ({
   id,
   name,
   imageUrl,
   icon,
   description,
+  summary,
   cost,
   value, // For vouchers (₹100, ₹250, etc.)
   userXP,
@@ -732,7 +661,28 @@ const ShopItemCard = ({
   const showOwned = (type === "cosmetic" || type === "badge") && isOwned;
   const [showInfo, setShowInfo] = useState(false);
 
-  const details = getItemDetails(name, type, category);
+  // Derive a short tagline from item type — no hardcoded name matching needed
+  const typeTaglines = {
+    voucher: "Real-world Supply Drop",
+    cosmetic: "Identity Holo-Shield",
+    badge: "Elite Operative Mark",
+    powerup: "Neural Accelerator Synthesizer",
+    boost: "Neural Accelerator Synthesizer",
+    consumable: "Operative Utility Slot",
+  };
+  const tagline = typeTaglines[type] || typeTaglines[category] || "Operative Utility Slot";
+
+  // How it works + usage: simple per-type defaults (shown only when no custom summary)
+  const typeHowItWorks = {
+    voucher: "Generates a secure redemption coupon code saved in your 'My Rewards' tab.",
+    cosmetic: "Drapes your avatar with themed designs visible to other operatives.",
+    badge: "Adds a glowing badge on your inspectable character card.",
+    powerup: "Consumes automatically on your next mission success.",
+    boost: "Consumes automatically on your next mission success.",
+    consumable: "Grants specific boosts, status overrides, or voucher codes upon decryption.",
+  };
+
+  const howItWorks = typeHowItWorks[type] || typeHowItWorks[category] || typeHowItWorks.consumable;
 
   return (
     <div className="glassmorphism rounded-2xl p-4 md:p-6 relative overflow-hidden border-2 border-purple-500/30 bg-gradient-to-br from-purple-900/20 via-fuchsia-900/10 to-transparent">
@@ -807,13 +757,12 @@ const ShopItemCard = ({
           <button
             onClick={() => onBuy(id)}
             disabled={!canAfford || isPurchasing || showOwned}
-            className={`px-3 md:px-5 py-2.5 rounded-xl font-black uppercase tracking-wider text-xs transition-all transform relative overflow-hidden ${
-              showOwned
+            className={`px-3 md:px-5 py-2.5 rounded-xl font-black uppercase tracking-wider text-xs transition-all transform relative overflow-hidden ${showOwned
                 ? "bg-gray-700 text-gray-400 border border-gray-600 cursor-not-allowed" // Owned State
                 : canAfford && !isPurchasing
                   ? "bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white shadow-lg shadow-fuchsia-500/50 hover:scale-105"
                   : "bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700"
-            }`}
+              }`}
           >
             <span className="relative z-10">
               {isPurchasing && !showOwned
@@ -848,10 +797,10 @@ const ShopItemCard = ({
                 <div className="flex items-start justify-between border-b border-white/10 pb-3 mb-4">
                   <div>
                     <h4 className="text-lg font-black font-['Orbitron'] text-white uppercase italic tracking-tighter">
-                      {details.title}
+                      {name}
                     </h4>
                     <span className="text-[10px] text-purple-400 uppercase tracking-widest">
-                      {details.tagline}
+                      {tagline}
                     </span>
                   </div>
                   <button
@@ -864,26 +813,21 @@ const ShopItemCard = ({
 
                 {/* Body */}
                 <div className="space-y-4 text-xs text-left leading-relaxed">
-                  <div>
-                    <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
-                      System Summary:
-                    </span>
-                    <p className="text-gray-300">{details.explanation}</p>
-                  </div>
-
-                  <div>
-                    <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
-                      How it works:
-                    </span>
-                    <p className="text-gray-300">{details.howItWorks}</p>
-                  </div>
-
-                  <div>
-                    <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
-                      Operational Usage:
-                    </span>
-                    <p className="text-gray-300">{details.usage}</p>
-                  </div>
+                  {summary ? (
+                    <div>
+                      <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                        Summary:
+                      </span>
+                      <p className="text-gray-300">{summary}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-purple-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                        How it works:
+                      </span>
+                      <p className="text-gray-300">{howItWorks}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Close Action Button */}

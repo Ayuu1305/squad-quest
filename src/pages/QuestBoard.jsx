@@ -27,6 +27,16 @@ import {
   ArrowDown, // ✅ Added
 } from "lucide-react";
 import InstallPWA from "../components/InstallPWA";
+// import {
+//   collection,
+//   query,
+//   where,
+//   onSnapshot,
+//   doc,
+//   getDoc,
+//     updateDoc,
+//   serverTimestamp,
+// } from "firebase/firestore";
 
 const QuestCard = lazy(() => import("../components/QuestCard"));
 const DailyBounty = lazy(() => import("../components/DailyBounty"));
@@ -37,6 +47,7 @@ const CyberGridBackground = lazy(
 import QuestBoardSkeleton from "../components/skeletons/QuestBoardSkeleton";
 import QuestCardSkeleton from "../components/skeletons/QuestCardSkeleton";
 import toast from "react-hot-toast";
+// import { db } from "../backend/firebaseConfig";
 
 // 🍎 SAFARI COMPATIBILITY: Safe date parser for iOS
 // Safari rejects formats like "2024-02-12 10:00 PM" → returns Invalid Date
@@ -271,6 +282,21 @@ const QuestBoard = () => {
       className="min-h-screen relative transition-colors duration-1000 bg-dark-bg"
       ref={containerRef}
     >
+    {/* <button
+  style={{ position: "fixed", top: 10, left: 10, zIndex: 9999, background: "red", color: "white", padding: "8px" }}
+  onClick={async () => {
+    try {
+      await updateDoc(doc(db, "users", "IYtPwMYibgc6Dcu2rqSkI2PQRPE3"), {
+        verifiedGender: "Male",
+      });
+      console.log("❌ WRITE SUCCEEDED — VERIFIEDGENDER BYPASS IS NOT BLOCKED");
+    } catch (e) {
+      console.log("✅ BLOCKED:", e.code, e.message);
+    }
+  }}
+>
+  TEST RULE
+</button> */}
       {activeShowdown && (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,0,0,0.1)_0%,_transparent_70%)] pointer-events-none z-0" />
       )}
@@ -372,11 +398,11 @@ const QuestBoard = () => {
               {/* Private Channel Access - Secure Terminal */}
               {/* ✅ PERFORMANCE: Match DailyBounty height (180px), remove nested structure */}
               <div className="w-full lg:w-80">
-                <div className="p-[1px] rounded-2xl bg-gradient-to-br from-red-500/20 to-transparent shadow-2xl h-full relative overflow-hidden">
+                <div className="p-[1px] rounded-2xl shadow-2xl h-full relative overflow-hidden">
                   {/* Scanning Line Animation */}
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan text-shadow-neon" />
 
-                  <div className="min-h-[178px] bg-black rounded-xl p-4 relative font-mono flex flex-col">
+                  <div className="min-h-[160px] bg-black rounded-xl p-4 relative font-mono flex flex-col">
                     {/* ✅ LCP FIX: img tag for early discovery + preload */}
                     <img
                       src="/assets/cyber-grid.webp"
@@ -424,7 +450,7 @@ const QuestBoard = () => {
                               handlePrivateJoin();
                             }
                           }}
-                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/30 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
+                          className="w-full bg-[#050505] border border-red-900/20 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tracking-[0.3em] uppercase text-neon-green placeholder-red-900/70 focus:border-red-500/50 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] outline-none transition-all duration-100"
                         />
                       </div>
 
@@ -444,11 +470,7 @@ const QuestBoard = () => {
                       </button>
                     </div>
 
-                    {/* FOOTER - Fixed text */}
-                    <div className="mt-2 flex justify-between text-[8px] uppercase tracking-widest text-red-900/60 relative z-10">
-                      <span>Secure: AES-256</span>
-                      <span>v9.0.1</span>
-                    </div>
+                   
                   </div>
                 </div>
               </div>

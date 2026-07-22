@@ -52,7 +52,10 @@ service cloud.firestore {
           'daily_streak',
           'last_claimed_at',
           'roles',
-          'isAdmin'
+          'isAdmin',
+          'verifiedGender',
+          'questsCompleted',
+          'reportCount'
         ])
         // 🚨 CRITICAL WOMEN SAFETY: Block gender changes after initial set
         && (
@@ -123,8 +126,8 @@ service cloud.firestore {
         // NOTE: 'status' and 'completedBy' removed for security - only backend can update these
         (
             request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['participants', 'currentPlayers', 'members', 'membersCount', 'updatedAt'])
-        )
+             .hasOnly(['participants', 'currentPlayers', 'members', 'membersCount', 'updatedAt', 'completedBy'])
+          )
       );
 
       // 4. DELETE: Only the Host can delete
@@ -173,7 +176,39 @@ service cloud.firestore {
       // ✅ VERIFICATIONS
       match /verifications/{userId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated() && request.auth.uid == userId;
+
+        // 🔒 STRICT CREATE: Validate exact schema so fabricated docs are rejected at write time.
+        // Fields that MUST be present and have correct types/values:
+        //   uid          — must match the writing user (no impersonation)
+        //   questId      — must match the parent quest path parameter
+        //   completed    — must be true (can't log an incomplete verification)
+        //   rewarded     — must be false (ONLY the Admin SDK backend sets this to true)
+        //   completedAt  — must be a server timestamp
+        //   locationVerified, codeVerified — must be booleans
+        //   photoURL     — must be a string (empty string is allowed for no-photo submissions)
+        //
+        // NOTE: photoURL is a base64 data URI, not a Storage URL, so we cannot
+        // pattern-match it. The rewarded===false constraint is the structural gate:
+        // a fabricated doc with rewarded=false will never be counted by the backend
+        // badge endpoint, which only counts where rewarded==true.
+        allow create: if isAuthenticated()
+          && request.auth.uid == userId
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.questId == questId
+          && request.resource.data.completed == true
+          && request.resource.data.rewarded == false
+          && request.resource.data.locationVerified is bool
+          && request.resource.data.codeVerified is bool
+          && request.resource.data.photoURL is string
+          && request.resource.data.keys().hasAll([
+               'uid', 'questId', 'completed', 'rewarded',
+               'completedAt', 'locationVerified', 'codeVerified', 'photoURL'
+             ]);
+
+        // Only allow update by the quest host (e.g. to mark rewarded=true is done server-side via Admin SDK)
+        // Client-side updates are blocked entirely.
+        allow update: if false;
+
         allow delete: if (get(/databases/$(database)/documents/quests/$(questId)).data.hostId == request.auth.uid);
       }
     }

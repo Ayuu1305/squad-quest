@@ -15,8 +15,8 @@ export const createQuest = async (questData) => {
     await loadFirebase();
 
   const questsRef = collection(db, "quests");
-  let roomCode = null;
-  if (questData.isPrivate) {
+  let roomCode = questData.secretCode || questData.roomCode || null;
+  if (questData.isPrivate && !roomCode) {
     roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
@@ -24,6 +24,7 @@ export const createQuest = async (questData) => {
   const newQuest = {
     ...questData,
     roomCode: roomCode || null,
+    secretCode: roomCode || null,
     members: [questData.hostId], // Host is already a member
     membersCount: 1,
     status: "open",
@@ -308,75 +309,28 @@ export const saveQuestVerification = async (questId, uid, payload) => {
     updatedAt: serverTimestamp(),
   });
 
-  // 🚨 NEW: Auto-grant verified badge after 3 photo verifications
+  // 🔒 Trigger backend-only verified badge check (fire-and-forget).
+  // The server decides and writes verifiedGender. The client cannot influence the outcome.
   if (payload?.photoURL) {
-    await checkAndGrantVerifiedBadge(uid);
+    try {
+      const { auth } = await loadFirebase();
+      const token = await auth.currentUser?.getIdToken();
+      if (token) {
+        fetch(`${API_URL}/verification/check-badge`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {
+          // Non-blocking: badge grant failure must not block quest completion
+        });
+      }
+    } catch {
+      // Ignore — badge check is best-effort
+    }
   }
 
   return true;
 };
 
-// 🎯 Auto-Grant Verified Badge After 3 Photo Verifications (EXPORTED for retroactive check)
-export const checkAndGrantVerifiedBadge = async (userId) => {
-  try {
-    const {
-      db,
-      collectionGroup, // 🚨 FIX: Added missing import
-      query,
-      where,
-      getDocs,
-      doc,
-      getDoc,
-      updateDoc,
-      serverTimestamp,
-    } = await loadFirebase();
-
-    // Count all verifications with photos for this user across all quests
-    const verificationsQuery = query(
-      collectionGroup(db, "verifications"),
-      where("uid", "==", userId),
-      where("photoURL", "!=", ""),
-    );
-
-    const snapshot = await getDocs(verificationsQuery);
-    const photoVerifCount = snapshot.size;
-
-    console.log(`📸 User ${userId} has ${photoVerifCount} photo verifications`);
-
-    // Grant verified badge after 3+ photo verifications
-    if (photoVerifCount >= 3) {
-      const userRef = doc(db, "users", userId);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-
-        // Only grant once (check if already verified)
-        if (!userData.verifiedGender && userData.gender) {
-          await updateDoc(userRef, {
-            verifiedGender: userData.gender, // "Male" or "Female"
-            verifiedAt: serverTimestamp(),
-          });
-
-          console.log(
-            `✅ User ${userId} auto-verified as ${userData.gender} (${photoVerifCount} photos)`,
-          );
-
-          // Import toast dynamically to avoid circular dependency
-          import("react-hot-toast").then(({ default: toast }) => {
-            toast.success(
-              `🎉 You earned the Verified ${userData.gender} badge!`,
-              { duration: 5000 },
-            );
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.warn("Auto-verification check failed:", error);
-    // Don't throw - this is a bonus feature, shouldn't block quest completion
-  }
-};
 
 // ✅ Optimized for Pagination + Performance (SAFE)
 export const subscribeToAllQuests = (callback, cityFilter = null) => {

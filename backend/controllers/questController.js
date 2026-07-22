@@ -34,7 +34,9 @@ export const joinQuest = async (req, res) => {
 
       // Private Quest Check (Robust Secret Code Validation)
       if (questData.isPrivate && questData.hostId !== uid) {
-        const storedCode = String(questData.secretCode || "")
+        const storedCode = String(
+          questData.secretCode || questData.roomCode || "",
+        )
           .trim()
           .toUpperCase();
         const receivedCode = String(secretCode || "")
@@ -178,6 +180,15 @@ export const joinQuest = async (req, res) => {
   }
 };
 
+const isValidPhoto = (photoURL) => {
+  if (!photoURL) return false;
+  const isDataUri = /^data:image\/(jpeg|jpg|png|webp);base64,/.test(photoURL);
+  if (!isDataUri) return false;
+  const base64Part = photoURL.split(",")[1] || "";
+  const approxBytes = base64Part.length * 0.75;
+  return approxBytes > 5000; // reject trivially small/fake payloads
+};
+
 export const finalizeQuest = async (req, res) => {
   // ✅ Use validated data
   const { questId, photoURL } = req.validatedData || req.body;
@@ -269,7 +280,7 @@ export const finalizeQuest = async (req, res) => {
         startTime = new Date(startTime);
       }
 
-      if (startTime && !isNaN(startTime.getTime())) {
+    if (startTime && !isNaN(startTime.getTime())) {
         const now = new Date();
         const diffMinutes = (now - startTime) / 1000 / 60;
         if (diffMinutes <= 5 && diffMinutes >= -15) {
@@ -278,7 +289,7 @@ export const finalizeQuest = async (req, res) => {
         }
       }
 
-      if (photoURL && photoURL.length > 10) {
+      if (photoURL && isValidPhoto(photoURL)) {
         earnedXP += 20;
         bonuses.push("PHOTO_EVIDENCE");
       }

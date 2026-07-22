@@ -424,7 +424,7 @@ const QuestDetails = () => {
           </section>
 
           {/* ✅ NEW: Mission Code (Host Only) */}
-          {isHost && quest.isPrivate && quest.roomCode && (
+          {isHost && quest.isPrivate && (quest.roomCode || quest.secretCode) && (
             <section>
               <div className="flex items-center gap-2 mb-3 text-red-400">
                 <ShieldCheck className="w-4 h-4 animate-pulse" />
@@ -439,7 +439,7 @@ const QuestDetails = () => {
                       Encrypted Access Key
                     </p>
                     <div className="text-3xl font-black font-mono text-white tracking-[0.2em] group-hover:text-red-400 transition-colors">
-                      {quest.roomCode}
+                      {quest.roomCode || quest.secretCode}
                     </div>
                   </div>
                   <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/30">

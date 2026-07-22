@@ -55,7 +55,7 @@ const InstallPWA = () => {
   return (
     <button
       onClick={handleInstallClick}
-      className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:scale-105 active:scale-95 text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg transition-all animate-pulse"
+      className="flex items-center sm:m-0 m-3 gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:scale-105 active:scale-95 text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-lg transition-all animate-pulse"
     >
       <Smartphone className="w-4 h-4" />
       <span>INSTALL APP</span>

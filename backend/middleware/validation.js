@@ -16,12 +16,12 @@ const schemas = {
     secretCode: Joi.string()
       .allow("", null) // ✅ Allow empty string OR null (for public quests / roomCode joins)
       .length(6)
-      .pattern(/^[A-Z0-9]{6}$/)
+      .pattern(/^[a-zA-Z0-9]{6}$/)
       .optional()
       .messages({
         "string.length": "Secret code must be exactly 6 characters",
         "string.pattern.base":
-          "Secret code must contain only uppercase letters and numbers",
+          "Secret code must contain letters and numbers",
       }),
   }),
 

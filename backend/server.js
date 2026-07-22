@@ -157,6 +157,7 @@ import {
   updateAvatar,
   acknowledgeViolation,
 } from "./controllers/userController.js"; // ✅ Added acknowledgeViolation
+import { checkVerifiedBadge } from "./controllers/verificationController.js"; // 🔒 Sole write path for verifiedGender
 import {
   sendUserNotification,
   sendVendorNotification,
@@ -229,6 +230,9 @@ app.post(
 
 // 🚨 Violation Management
 app.post("/api/user/acknowledge-violation", verifyToken, acknowledgeViolation);
+
+// 🔒 Verified Badge Check (ONLY server-side write path for verifiedGender)
+app.post("/api/verification/check-badge", verifyToken, checkVerifiedBadge);
 
 // 📊 Leaderboard Routes
 app.get("/api/leaderboard/weekly", getWeeklyLeaderboard);

@@ -213,7 +213,7 @@ const Lobby = () => {
 
           <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
             {/* Mission Code - Hidden on very small screens to save space if needed, but kept for now */}
-            {liveQuest.isPrivate && liveQuest.roomCode && (
+            {liveQuest.isPrivate && (liveQuest.roomCode || liveQuest.secretCode) && (
               <div className="mb-4 p-3 bg-gradient-to-r from-red-500/10 to-transparent border border-red-500/20 rounded-xl relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <div>
@@ -221,7 +221,7 @@ const Lobby = () => {
                       Mission Code
                     </p>
                     <div className="text-xl font-mono font-black text-white tracking-widest">
-                      {liveQuest.roomCode}
+                      {liveQuest.roomCode || liveQuest.secretCode}
                     </div>
                   </div>
                 </div>

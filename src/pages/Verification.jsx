@@ -17,6 +17,8 @@ import {
   onSnapshot,
   doc,
   getDoc,
+    updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../backend/firebaseConfig";
 import { isShowdownActive } from "../utils/showdownUtils";
@@ -313,6 +315,22 @@ const Verification = () => {
 
   return (
     <div className="app-container min-h-screen pt-12 p-4 flex flex-col items-center bg-dark-bg">
+      <button
+  style={{ position: "fixed", top: 10, left: 10, zIndex: 9999, background: "red", color: "white", padding: "8px" }}
+  onClick={async () => {
+    try {
+      await updateDoc(doc(db, "quests", "zz4Ati0lc6572w2uFt7q"), {
+        updatedAt: serverTimestamp(),
+        genderPreference: null,
+      });
+      console.log("❌ WRITE SUCCEEDED — RULE IS NOT BLOCKING THIS");
+    } catch (e) {
+      console.log("✅ BLOCKED:", e.code, e.message);
+    }
+  }}
+>
+  TEST RULE
+</button>
       {isVerifying ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

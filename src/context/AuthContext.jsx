@@ -203,34 +203,7 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribeStats();
   }, [profile?.uid]); // Only resubscribe if UID changes
 
-  // 🚨 EFFECT 3: Retroactive Verified Badge Check (For Existing Users)
-  const hasCheckedBadge = useRef(false); // Prevent multiple checks
 
-  useEffect(() => {
-    if (
-      !user?.uid ||
-      !user?.gender ||
-      user?.verifiedGender ||
-      hasCheckedBadge.current
-    ) {
-      return; // Skip if no user, already verified, or already checked
-    }
-
-    // Mark as checked (one-time per session)
-    hasCheckedBadge.current = true;
-
-    // Import and run retroactive check
-    import("../backend/services/quest.service").then(
-      ({ checkAndGrantVerifiedBadge }) => {
-        console.log(
-          "🔍 [AuthContext] Running retroactive verified badge check...",
-        );
-        checkAndGrantVerifiedBadge(user.uid).catch((err) => {
-          console.warn("Retroactive badge check failed:", err);
-        });
-      },
-    );
-  }, [user?.uid, user?.gender, user?.verifiedGender]);
 
   // ✅ EFFECT 4: Safe Self-Healing Sync (ONLY when stats > profile)
   const lastSyncedXP = useRef(null);

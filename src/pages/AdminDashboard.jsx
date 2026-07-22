@@ -17,6 +17,7 @@ const AdminDashboard = () => {
     sku: "",
     imageUrl: "",
     stock: "",
+    summary: "",
   });
 
   // Helper to determine category from type
@@ -77,6 +78,7 @@ const AdminDashboard = () => {
         category: getCategoryFromType(formData.type),
         imageUrl: formData.imageUrl.trim(),
         stock: stock,
+        summary: formData.summary.trim(),
         createdAt: serverTimestamp(),
         createdBy: user.uid,
       });
@@ -91,6 +93,7 @@ const AdminDashboard = () => {
         sku: "",
         imageUrl: "",
         stock: "",
+        summary: "",
       });
     } catch (error) {
       console.error("Error adding item:", error);
@@ -223,6 +226,25 @@ const AdminDashboard = () => {
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-purple-500 focus:outline-none transition-colors"
                 disabled={isSubmitting}
               />
+            </div>
+
+            {/* Summary */}
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-2">
+                Summary <span className="text-purple-400 normal-case font-normal">(shown in ⓘ info popup)</span>
+              </label>
+              <textarea
+                name="summary"
+                value={formData.summary}
+                onChange={handleInputChange}
+                placeholder="Briefly explain what this item does and how to use it. E.g. 'Redeem at Burger Hub. Show the code at the counter for a free classic burger.'"
+                rows={3}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-purple-500 focus:outline-none transition-colors resize-none text-sm"
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-gray-500 mt-1 font-mono">
+                Optional — leave blank to use auto-generated description.
+              </p>
             </div>
 
             {/* Submit Button */}
