@@ -42,9 +42,7 @@ const AdminRoute = ({ children }) => {
           <p className="text-gray-400 text-sm font-mono mb-6">
             You do not have administrator privileges.
           </p>
-          <p className="text-gray-500 text-xs font-mono mb-4">
-            User ID: {user.uid}
-          </p>
+         
           <button
             onClick={() => window.history.back()}
             className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors font-black uppercase text-xs tracking-wider"

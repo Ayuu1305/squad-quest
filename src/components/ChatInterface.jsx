@@ -178,22 +178,22 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
   return (
     <div className="flex flex-col h-full relative">
       {/* Squad Members Horizontal List */}
-      <div className="p-4 pt-6 md:pt-4 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar flex items-center gap-3 bg-black/20 shrink-0">
+      <div className="px-3 py-2 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar flex items-center gap-2.5 bg-black/20 shrink-0">
         {members.map((userId) => (
-          <div key={userId} className="inline-flex flex-col items-center gap-1">
+          <div key={userId} className="inline-flex flex-col items-center gap-0.5">
             <div className="relative">
               <HeroAvatar
                 user={memberData[userId] || { uid: userId }} // ✅ Pass User Object to prevent "isMe" fallback
                 seed={memberData[userId]?.seed || userId}
                 tierName={memberData[userId]?.tier || "Bronze"}
-                size={48}
-                className="border-2 border-neon-purple shadow-lg"
+                size={36}
+                className="border-2 border-neon-purple shadow-md"
               />
               {userId === quest.partyLeader && (
-                <Crown className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
+                <Crown className="w-3.5 h-3.5 text-yellow-500 absolute -top-1 -right-1" />
               )}
             </div>
-            <span className="text-[10px] text-gray-400 font-bold max-w-[60px] truncate">
+            <span className="text-[9px] text-gray-400 font-bold max-w-[55px] truncate">
               {memberData[userId]?.name || `Hero_${userId.slice(0, 4)}`}
             </span>
           </div>
@@ -286,7 +286,7 @@ const ChatInterface = ({ quest, user, onLeave, isReadOnly = false }) => {
       </div>
 
       {/* Footer / Input */}
-      <div className="p-4 pb-6 md:pb-4 glassmorphism border-t border-white/10 relative z-20 shrink-0">
+      <div className="p-4 pb-4 md:pb-4 glassmorphism border-t border-white/10 relative z-20 shrink-0">
         <div className="flex gap-2 mb-3">
           <input
             type="text"

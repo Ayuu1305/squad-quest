@@ -388,12 +388,39 @@
   animation: particle-float 3s infinite;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-neon-purple);
+/* ==========================================================================
+   GLOBAL CUSTOM APP SCROLLBAR DESIGN SYSTEM
+   ========================================================================== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.5) rgba(255, 255, 255, 0.05);
+}
+
+/* Chrome, Edge, Safari, WebKit */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
 }
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #9333ea;
+  background: rgba(168, 85, 247, 0.85);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(15, 15, 35, 0.9);
 }
 
 /* 3D Flip Card Utilities */

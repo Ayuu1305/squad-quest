@@ -8,6 +8,8 @@ import {
   Chrome,
   ArrowRight,
   ShieldCheck,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   signInWithEmail,
@@ -20,6 +22,7 @@ import CyberGridBackground from "../components/CyberGridBackground";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -115,7 +118,7 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-gray-500 ml-2 tracking-widest">
+              <label className="text-[10px] font-black uppercase text-gray-300 ml-2 tracking-widest">
                 Comms Address (Email)
               </label>
               <div className="relative group">
@@ -132,19 +135,30 @@ const Login = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-gray-500 ml-2 tracking-widest">
+              <label className="text-[10px] font-black uppercase text-gray-300 ml-2 tracking-widest">
                 Security Key (Password)
               </label>
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-neon-purple transition-colors" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-black/40 border border-white/5 py-4 pl-12 pr-4 rounded-2xl text-white font-medium focus:border-neon-purple focus:outline-none transition-all"
+                  className="w-full bg-black/40 border border-white/5 py-4 pl-12 pr-12 rounded-2xl text-white font-medium focus:border-neon-purple focus:outline-none transition-all"
                   placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
               <div className="flex justify-end pt-1">
                 <button

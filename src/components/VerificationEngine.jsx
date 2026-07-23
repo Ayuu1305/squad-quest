@@ -330,7 +330,7 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
             LOCKED ON TARGET
           </>
         ) : (
-          "COMMENCE SCAN"
+          "Verify your location"
         )}
       </button>
 
@@ -390,7 +390,7 @@ const VerificationEngine = ({ hub, quest, onVerificationComplete }) => {
       <div className="space-y-4">
         <input
           type="text"
-          placeholder="[ _ _ _ _ _ _ ]"
+          placeholder="[ _ _ _ _]"
           className={`input-field text-center text-2xl tracking-[0.5em] font-mono border-2 uppercase ${
             secretError
               ? "border-red-500 text-red-500"

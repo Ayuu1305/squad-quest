@@ -188,24 +188,6 @@ const EditQuestModal = ({
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             className="relative max-w-2xl w-full glassmorphism-dark rounded-3xl p-4 md:p-8 border-2 border-blue-500/50 my-8 max-h-[90vh] overflow-y-auto overflow-x-hidden"
           >
-            {/* Scrollbar Theme */}
-            <style>{`
-            ::-webkit-scrollbar {
-              width: 6px;
-              height: 6px;
-            }
-            ::-webkit-scrollbar-track {
-              background: rgba(255, 255, 255, 0.05);
-              border-radius: 4px;
-            }
-            ::-webkit-scrollbar-thumb {
-              background: rgba(59, 130, 246, 0.5); /* Blue thumb for blue border */
-              border-radius: 4px;
-            }
-            ::-webkit-scrollbar-thumb:hover {
-              background: rgba(59, 130, 246, 0.8);
-            }
-          `}</style>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-['Orbitron'] font-black text-white uppercase tracking-tight">
                 Edit Quest

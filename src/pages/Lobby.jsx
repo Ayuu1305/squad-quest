@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Zap,
@@ -9,6 +8,9 @@ import {
   ChevronRight,
   Share2,
   CheckCircle2,
+  Lock,
+  Copy,
+  Check,
 } from "lucide-react";
 import ChatInterface from "../components/ChatInterface";
 import { useGame } from "../context/GameContext";
@@ -41,6 +43,15 @@ const Lobby = () => {
 
   // ✅ NEW: Verification status
   const [isCompleted, setIsCompleted] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const handleCopyCode = (code) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    toast.success("Mission Code Copied!");
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
 
   // Subscribe to real-time quest updates + Auto-Eject on deletion
   useEffect(() => {
@@ -180,18 +191,18 @@ const Lobby = () => {
     <div className="fixed inset-0 flex flex-col bg-dark-bg overflow-hidden">
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* Left Column - Top on Mobile */}
-        <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-white/10 overflow-hidden shrink-0 h-auto md:h-full max-h-[35vh] md:max-h-full">
+        <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-white/10 overflow-hidden shrink-0 h-auto md:h-full">
           {/* Header */}
-          <div className="px-6 py-4 flex items-center justify-between border-b border-white/10 bg-black/20 shrink-0">
-            <div className="flex items-center gap-4">
+          <div className="px-4 py-2.5 md:px-6 md:py-4 flex items-center justify-between border-b border-white/10 bg-black/20 shrink-0">
+            <div className="flex items-center gap-3 md:gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2.5 glassmorphism rounded-xl hover:bg-white/10 transition-colors"
+                className="p-2 md:p-2.5 glassmorphism rounded-xl hover:bg-white/10 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <div>
-                <h1 className="font-['Orbitron'] font-black text-white text-base leading-tight truncate max-w-[150px] italic tracking-tighter uppercase">
+                <h1 className="font-['Orbitron'] font-black text-white text-sm md:text-base leading-tight truncate max-w-[140px] md:max-w-[150px] italic tracking-tighter uppercase">
                   {liveQuest.title}
                 </h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -203,64 +214,105 @@ const Lobby = () => {
               </div>
             </div>
 
-            <div className="bg-neon-purple/10 border border-neon-purple/50 rounded-lg px-2.5 py-1 flex items-center gap-2">
+            <div className="bg-neon-purple/10 border border-neon-purple/50 rounded-lg px-2 py-0.5 md:px-2.5 md:py-1 flex items-center gap-1.5 md:gap-2">
               <Zap className="w-3 h-3 text-neon-purple" />
-              <span className="font-black font-mono text-[10px] text-neon-purple">
+              <span className="font-black font-mono text-[9px] md:text-[10px] text-neon-purple">
                 +{(Number(liveQuest.difficulty) || 1) * 100} XP
               </span>
             </div>
           </div>
 
-          <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
-            {/* Mission Code - Hidden on very small screens to save space if needed, but kept for now */}
-            {liveQuest.isPrivate && (liveQuest.roomCode || liveQuest.secretCode) && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-red-500/10 to-transparent border border-red-500/20 rounded-xl relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[8px] text-gray-500 uppercase font-mono">
-                      Mission Code
-                    </p>
-                    <div className="text-xl font-mono font-black text-white tracking-widest">
-                      {liveQuest.roomCode || liveQuest.secretCode}
+          <div className="flex-1 p-3 md:p-6 overflow-y-auto no-scrollbar flex flex-col justify-between">
+            {/* Countdown & Mission Code Area */}
+            <div className="space-y-2 md:space-y-3 mt-auto">
+              {liveQuest.isPrivate && (liveQuest.roomCode || liveQuest.secretCode) ? (
+                /* 50/50 Side-by-Side: Left Timer, Right Code */
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                  {/* Left (50%): Launch Sync */}
+                  <div className="flex items-center gap-2 md:gap-3 bg-black/40 p-2 md:p-3 rounded-xl border border-white/5 overflow-hidden">
+                    <div className="bg-neon-purple/20 p-1.5 md:p-2 rounded-lg shrink-0">
+                      <Clock
+                        className={`w-3.5 h-3.5 md:w-4 md:h-4 ${
+                          isLocked
+                            ? "text-neon-purple animate-pulse"
+                            : "text-green-500"
+                        }`}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[8px] md:text-[9px] text-gray-500 font-black uppercase tracking-widest truncate">
+                        Launch Sync
+                      </div>
+                      <div
+                        className={`text-xs sm:text-base md:text-lg font-black font-mono tracking-wider leading-tight truncate ${
+                          isLocked ? "text-white" : "text-green-500"
+                        }`}
+                      >
+                        {timeLeft}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
 
-            {/* Countdown & Button Area */}
-            <div className="space-y-3 mt-auto">
-              <div className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="bg-neon-purple/20 p-2 rounded-lg">
-                    <Clock
-                      className={`w-4 h-4 ${
-                        isLocked
-                          ? "text-neon-purple animate-pulse"
-                          : "text-green-500"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest">
-                      Launch Sync
+                  {/* Right (50%): Private Mission Code */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopyCode(liveQuest.roomCode || liveQuest.secretCode)
+                    }
+                    className="flex items-center gap-2 md:gap-3 bg-gradient-to-r from-red-500/10 to-transparent p-2 md:p-3 rounded-xl border border-red-500/20 overflow-hidden cursor-pointer hover:bg-red-500/20 transition-all text-left group"
+                    title="Click to Copy Mission Code"
+                  >
+                    <div className="bg-red-500/20 p-1.5 md:p-2 rounded-lg shrink-0">
+                      {copiedCode ? (
+                        <Check className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 md:w-4 md:h-4 text-red-400 group-hover:scale-110 transition-transform" />
+                      )}
                     </div>
-                    <div
-                      className={`text-lg font-black font-mono tracking-widest ${
-                        isLocked ? "text-white" : "text-green-500"
-                      }`}
-                    >
-                      {timeLeft}
+                    <div className="min-w-0">
+                      <div className="text-[8px] md:text-[9px] text-gray-500 font-black uppercase tracking-widest truncate">
+                        Mission Code
+                      </div>
+                      <div className="text-xs sm:text-base md:text-lg font-mono font-black text-white tracking-widest leading-tight truncate">
+                        {liveQuest.roomCode || liveQuest.secretCode}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                /* Public Quest: Full Width Launch Sync */
+                <div className="flex items-center justify-between bg-black/40 p-2 md:p-3 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-2.5 md:gap-3">
+                    <div className="bg-neon-purple/20 p-1.5 md:p-2 rounded-lg">
+                      <Clock
+                        className={`w-3.5 h-3.5 md:w-4 md:h-4 ${
+                          isLocked
+                            ? "text-neon-purple animate-pulse"
+                            : "text-green-500"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[8px] md:text-[9px] text-gray-500 font-black uppercase tracking-widest">
+                        Launch Sync
+                      </div>
+                      <div
+                        className={`text-base md:text-lg font-black font-mono tracking-widest leading-tight ${
+                          isLocked ? "text-white" : "text-green-500"
+                        }`}
+                      >
+                        {timeLeft}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Button or Mission Cleared Badge */}
               {liveQuest.status === "completed" ||
               liveQuest.completedBy?.includes(user?.uid) ? (
-                <div className="w-full py-6 rounded-xl font-black italic tracking-[0.2em] text-sm uppercase flex items-center justify-center gap-3 glassmorphism border border-green-500/30 bg-green-500/10 backdrop-blur-xl shadow-[0_0_30px_rgba(34,197,94,0.2)]">
-                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <div className="w-full py-3 md:py-6 rounded-xl font-black italic tracking-[0.2em] text-xs md:text-sm uppercase flex items-center justify-center gap-2 md:gap-3 glassmorphism border border-green-500/30 bg-green-500/10 backdrop-blur-xl shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                  <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
                   <span className="text-green-400">Mission Cleared</span>
                 </div>
               ) : (
@@ -273,7 +325,7 @@ const Lobby = () => {
                       navigate(`/verify/${liveQuest.id}`);
                     }
                   }}
-                  className={`w-full py-4 rounded-xl font-black italic tracking-[0.2em] text-sm uppercase flex items-center justify-center gap-3 transition-all duration-500 ${
+                  className={`w-full py-2.5 md:py-4 rounded-xl font-black italic tracking-[0.2em] text-xs md:text-sm uppercase flex items-center justify-center gap-2 md:gap-3 transition-all duration-500 ${
                     isLocked || isCompleted
                       ? "bg-gray-800 text-gray-600 border border-white/5 cursor-not-allowed opacity-50"
                       : "btn-primary shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-100 hover:scale-100 active:scale-95"
@@ -285,7 +337,7 @@ const Lobby = () => {
                     "Verify Squad (Locked)"
                   ) : (
                     <>
-                      Commence Scan
+                      Verify Squad
                       <ChevronRight className="w-4 h-4" />
                     </>
                   )}

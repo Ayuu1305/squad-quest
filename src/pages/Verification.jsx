@@ -9,7 +9,6 @@ import {
   finalizeQuest,
   saveQuestVerification,
 } from "../backend/services/quest.service";
-import { syncHubLocation } from "../backend/services/user.service";
 import {
   collection,
   query,
@@ -317,7 +316,7 @@ const Verification = () => {
 
   return (
     <div className="app-container min-h-screen pt-12 p-4 flex flex-col items-center bg-dark-bg">
-      <button
+      {/* <button
   style={{ position: "fixed", top: 10, left: 10, zIndex: 9999, background: "red", color: "white", padding: "8px" }}
   onClick={async () => {
     try {
@@ -332,7 +331,7 @@ const Verification = () => {
   }}
 >
   TEST RULE
-</button>
+</button> */}
       {isVerifying ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
-  Lock, // ✅ Added missing import
+  Lock,
   MapPin,
   Clock,
   Users,
@@ -15,6 +15,8 @@ import {
   ExternalLink,
   Edit3,
   Trash2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useGame } from "../context/GameContext";
 import { useAuth } from "../context/AuthContext";
@@ -58,7 +60,16 @@ const QuestDetails = () => {
   const [hub, setHub] = useState(null);
   const [members, setMembers] = useState([]); // Added specific state for members
   const [loading, setLoading] = useState(true);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
+
+  const handleCopyCode = (code) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    toast.success("Mission Code Copied!");
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
 
   // ✅ NEW: Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -326,9 +337,15 @@ const QuestDetails = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-dark-bg to-transparent z-10" />
           <div className="absolute inset-0 bg-neon-purple/20 mix-blend-overlay z-0" />
           <img
-            src={`https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop`}
-            className="w-full h-full object-cover grayscale opacity-50"
-            alt=""
+            src={
+              hub?.image ||
+              hub?.photoURL ||
+              quest?.hubImage ||
+              quest?.image ||
+              "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"
+            }
+            className="w-full h-full object-cover opacity-60"
+            alt={hub?.name || quest?.title || "Hub"}
           />
 
           {/* Top Controls */}
@@ -369,35 +386,37 @@ const QuestDetails = () => {
             )}
           </div>
 
-          {/* Quest Title Overlay */}
+          {/* Tag & Threat Level Overlay */}
           <div className="absolute bottom-6 left-6 right-6 z-20">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2 py-0.5 bg-neon-purple text-white text-[10px] font-black rounded uppercase">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 bg-neon-purple text-white text-[10px] font-black rounded uppercase tracking-wider">
                 {quest.category || "Field"}
               </span>
-              <span className="text-gray-400 text-xs font-mono">
+              <span className="text-gray-300 text-xs font-mono font-bold">
                 • {quest.difficulty || 1} Threat Level
               </span>
             </div>
-            <h1 className="text-3xl font-black font-['Orbitron'] text-white italic tracking-tighter leading-tight">
-              {quest.title}
-            </h1>
           </div>
         </div>
 
         <div className="px-6 space-y-8 mt-6">
-          {/* Quest Details */}
+          {/* Quest Title */}
           <section>
             <div className="flex items-center gap-2 mb-3 text-purple-400">
               <ShieldCheck className="w-4 h-4" />
               <h2 className="text-xs font-black uppercase tracking-widest">
-                Quest Details
+                Quest Title
               </h2>
             </div>
-            <div className="p-5 glassmorphism-dark rounded-2xl space-y-3 border border-white/10">
-              <p className="text-gray-200 text-sm leading-relaxed">
-                {quest.description || "No description provided."}
-              </p>
+            <div className="p-5 glassmorphism-dark rounded-2xl space-y-2 border border-white/10">
+              <h1 className="text-2xl md:text-3xl font-black font-['Orbitron'] text-white italic tracking-tighter uppercase">
+                {quest.title}
+              </h1>
+              {quest.description && (
+                <p className="text-gray-300 text-sm font-mono leading-relaxed pt-1">
+                  {quest.description}
+                </p>
+              )}
             </div>
           </section>
 
@@ -442,9 +461,20 @@ const QuestDetails = () => {
                       {quest.roomCode || quest.secretCode}
                     </div>
                   </div>
-                  <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/30">
-                    <Lock className="w-6 h-6 text-red-500" />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopyCode(quest.roomCode || quest.secretCode)
+                    }
+                    className="p-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl border border-red-500/30 transition-all cursor-pointer group/btn"
+                    title="Copy Mission Code"
+                  >
+                    {copiedCode ? (
+                      <Check className="w-6 h-6 text-green-400" />
+                    ) : (
+                      <Copy className="w-6 h-6 text-red-400 group-hover/btn:scale-110 transition-transform" />
+                    )}
+                  </button>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
